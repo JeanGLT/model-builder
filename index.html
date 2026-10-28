@@ -1,0 +1,1153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+</head>
+<body>
+<title>Coolabah Model Builder</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a model workbook. Inputs rail on the left in the blue-ink input convention, the output sheet on the right. */
+:root {
+  --bg: #f3f5f6; --surface: #ffffff; --surface-2: #eef2f3;
+  --ink: #14202b; --ink-2: #475764; --muted: #6f7f89; --line: #d9e0e4;
+  --accent: #24614f; --accent-soft: #e2efe9; --input: #1747c4; --input-bg: #f5f8ff;
+  --good: #1f7a3a; --good-bg: #e3f3e7; --warn: #8a5a00; --warn-bg: #fbf0d9; --crit: #b3261e; --crit-bg: #fbe5e3;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --ref: #8a98a2;
+  --f-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0e1316; --surface: #151c20; --surface-2: #1b242a;
+  --ink: #e6ecef; --ink-2: #a9b6be; --muted: #84929b; --line: #27333a;
+  --accent: #6cc2a4; --accent-soft: #17302a; --input: #8db0ff; --input-bg: #18213a;
+  --good: #5cc983; --good-bg: #14301f; --warn: #e0a63a; --warn-bg: #33270f; --crit: #f07167; --crit-bg: #3a1916;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --ref: #7d8b94; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0e1316; --surface: #151c20; --surface-2: #1b242a;
+  --ink: #e6ecef; --ink-2: #a9b6be; --muted: #84929b; --line: #27333a;
+  --accent: #6cc2a4; --accent-soft: #17302a; --input: #8db0ff; --input-bg: #18213a;
+  --good: #5cc983; --good-bg: #14301f; --warn: #e0a63a; --warn-bg: #33270f; --crit: #f07167; --crit-bg: #3a1916;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --ref: #7d8b94; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 14px; line-height: 1.45; }
+.num, td.n, .kpi .v { font-family: var(--f-data); font-variant-numeric: tabular-nums; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; }
+button, select, input, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.top { padding-block: 18px 14px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  border-bottom: 1px solid var(--line); background: var(--surface); display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: end; justify-content: space-between; }
+.eyebrow { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.top h1 { font-size: 26px; font-weight: 600; line-height: 1.15; }
+.top .sub { color: var(--ink-2); margin-top: 2px; }
+.top-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 6px 12px; cursor: pointer; font-weight: 500; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.pill.good { background: var(--good-bg); color: var(--good); }
+.pill.warn { background: var(--warn-bg); color: var(--warn); }
+.pill.crit { background: var(--crit-bg); color: var(--crit); }
+.pill .ic { font-family: var(--f-data); }
+
+.shell { display: grid; grid-template-columns: 330px minmax(0, 1fr); align-items: start; }
+@media (max-width: 920px) { .shell { grid-template-columns: minmax(0, 1fr); } }
+
+/* Inputs rail */
+.rail { border-right: 1px solid var(--line); background: var(--surface); padding-block: 8px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: 16px; }
+@media (min-width: 921px) { .rail { position: sticky; top: 0; max-height: 100vh; overflow-y: auto; } }
+@media (max-width: 920px) { .rail { border-right: 0; border-bottom: 1px solid var(--line); padding-right: max(16px, env(safe-area-inset-right, 0px)); } }
+.rail-head { display: flex; justify-content: space-between; align-items: center; padding-block: 10px 4px; gap: 8px; }
+.legend-ink { font-size: 12px; color: var(--muted); }
+.legend-ink b { color: var(--input); font-weight: 600; }
+details.sec { border-top: 1px solid var(--line); padding-block: 4px; }
+details.sec > summary { cursor: pointer; padding-block: 8px; font-family: var(--f-display); font-weight: 600; font-size: 15px; list-style: none; display: flex; justify-content: space-between; }
+details.sec > summary::after { content: "+"; color: var(--muted); font-family: var(--f-data); }
+details.sec[open] > summary::after { content: "–"; }
+.field { display: grid; grid-template-columns: minmax(0, 1fr) 128px; gap: 2px 10px; align-items: center; padding-block: 5px; }
+.field label { font-size: 13px; color: var(--ink); }
+.field .ctl { display: flex; align-items: center; gap: 4px; }
+.field input, .field select { width: 100%; min-width: 0; border: 1px solid var(--line); background: var(--input-bg); color: var(--input); border-radius: 4px; padding: 4px 6px; font-family: var(--f-data); font-size: 13px; text-align: right; }
+.field select { text-align: left; font-family: var(--f-body); }
+.field input[type="date"] { text-align: left; }
+.field .unit { font-size: 11px; color: var(--muted); min-width: 34px; }
+.field .src { grid-column: 1 / -1; font-size: 11px; color: var(--muted); line-height: 1.3; }
+.field.edited label::after { content: " • edited"; color: var(--warn); font-size: 11px; }
+.field.bad input { border-color: var(--crit); }
+
+/* Output sheet */
+.sheet { min-width: 0; padding-block: 16px 48px; padding-left: 24px; padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 20px; }
+@media (max-width: 920px) { .sheet { padding-left: max(16px, env(safe-area-inset-left, 0px)); } }
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.tab { border: 0; background: none; padding: 8px 14px; cursor: pointer; color: var(--ink-2); font-weight: 500; border-bottom: 2px solid transparent; white-space: nowrap; }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.panel { display: grid; gap: 20px; min-width: 0; }
+
+.errors { border: 1px solid var(--crit); background: var(--crit-bg); color: var(--crit); padding: 12px 14px; border-radius: 6px; }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.kpi { background: var(--surface); padding: 12px 14px; display: grid; gap: 2px; align-content: start; }
+.kpi .k { font-size: 12px; color: var(--ink-2); }
+.kpi .v { font-size: 22px; font-weight: 500; }
+.kpi .d { font-size: 12px; color: var(--muted); }
+
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; min-width: 0; }
+.card h2 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+.card .note { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+
+.flags { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.flags li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; }
+.flags p { margin: 0; max-width: 70ch; }
+
+table { border-collapse: collapse; width: 100%; }
+.su td, .su th { padding: 5px 6px; border-bottom: 1px solid var(--line); text-align: left; font-weight: 400; }
+.su td.n, .su th.n { text-align: right; }
+.su tr.tot td { font-weight: 600; border-bottom: 0; border-top: 1px solid var(--ink-2); }
+
+.scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.cf { font-size: 12px; white-space: nowrap; }
+.cf th, .cf td { padding: 4px 8px; border-bottom: 1px solid var(--line); text-align: right; }
+.cf thead th { position: sticky; top: 0; background: var(--surface-2); font-weight: 600; font-family: var(--f-data); font-size: 11px; color: var(--ink-2); }
+.cf thead tr.ph th { font-family: var(--f-body); text-transform: uppercase; letter-spacing: .06em; font-size: 10px; }
+.cf th.row, .cf td.row { position: sticky; left: 0; text-align: left; background: var(--surface); z-index: 1; border-right: 1px solid var(--line); min-width: 170px; }
+.cf thead th.row { background: var(--surface-2); z-index: 2; }
+.cf tr.grp td { background: var(--surface-2); font-weight: 600; font-family: var(--f-display); font-size: 13px; text-align: left; }
+.cf tr.grp td.row { background: var(--surface-2); }
+.cf tr.key td { font-weight: 600; }
+.cf td.tot { border-left: 1px solid var(--line); font-weight: 600; }
+.cf td.lk { color: var(--crit); font-weight: 600; }
+.cf .constr { background: color-mix(in srgb, var(--surface-2) 50%, transparent); }
+.cf td.zero { color: var(--muted); }
+
+.chart { position: relative; width: 100%; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart text { font-family: var(--f-data); font-size: 10px; fill: var(--muted); }
+.chart .tick line { stroke: var(--line); }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; color: var(--ink-2); margin-bottom: 6px; }
+.chart-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.sw.line { height: 2px; border-radius: 0; }
+.sw.dash { height: 0; border-top: 2px dashed; border-radius: 0; background: none !important; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.12); min-width: 170px; z-index: 5; }
+.tip b { font-family: var(--f-data); }
+.tip .r { display: flex; justify-content: space-between; gap: 12px; }
+.tip .r span:last-child { font-family: var(--f-data); }
+
+.sens td, .sens th { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+.sens th { font-size: 12px; color: var(--ink-2); font-weight: 600; }
+.sens td:first-child, .sens th:first-child { text-align: left; }
+.sens input { width: 76px; border: 1px solid var(--line); background: var(--input-bg); color: var(--input); border-radius: 4px; padding: 3px 6px; font-family: var(--f-data); text-align: right; }
+.sens tr.base td { font-weight: 600; }
+
+textarea.json { width: 100%; min-height: 380px; font-family: var(--f-data); font-size: 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); padding: 10px; resize: vertical; }
+pre.prompt { white-space: pre-wrap; font-family: var(--f-data); font-size: 12px; background: var(--surface-2); padding: 12px; border-radius: 6px; margin: 0; max-height: 300px; overflow-y: auto; }
+.row-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+.msg { font-size: 12px; color: var(--ink-2); }
+.checks { display: flex; flex-wrap: wrap; gap: 6px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<header class="top">
+  <div>
+    <div class="eyebrow">Term sheet → project finance model · v1</div>
+    <h1 id="dealName">Project Coolabah</h1>
+    <div class="sub" id="dealSub"></div>
+  </div>
+  <div class="top-actions">
+    <span id="checkPill" class="pill good"></span>
+    <button class="btn" id="copyTsv" type="button">Copy cash flows for Excel</button>
+  </div>
+</header>
+
+<div class="shell">
+  <aside class="rail" aria-label="Model inputs">
+    <div class="rail-head">
+      <h2 style="font-size:17px">Inputs</h2>
+      <button class="btn" id="resetBtn" type="button">Reset to term sheet</button>
+    </div>
+    <div class="legend-ink"><b>Blue</b> = input. The line under each field is the term sheet clause it comes from.</div>
+    <form id="inputs" autocomplete="off"></form>
+  </aside>
+
+  <main class="sheet">
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" data-tab="overview" id="tab-overview">Overview</button>
+      <button class="tab" role="tab" data-tab="debt" id="tab-debt">Debt &amp; ratios</button>
+      <button class="tab" role="tab" data-tab="cashflow" id="tab-cashflow">Cash flow</button>
+      <button class="tab" role="tab" data-tab="sens" id="tab-sens">Sensitivities</button>
+      <button class="tab" role="tab" data-tab="json" id="tab-json">Deal JSON</button>
+    </div>
+    <div id="errorBox" class="errors" hidden></div>
+
+    <section class="panel" data-panel="overview">
+      <div class="kpis" id="kpis"></div>
+      <div class="grid2">
+        <div class="card">
+          <h2>Credit points</h2>
+          <div class="note">Read off the model. These update as you change inputs.</div>
+          <ul class="flags" id="flags"></ul>
+        </div>
+        <div class="card">
+          <h2>Sources &amp; uses</h2>
+          <div class="note" id="suNote"></div>
+          <div style="overflow-x:auto"><table class="su" id="su"></table></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>CFADS against debt service</h2>
+        <div class="note">Semi-annual, <span class="cur"></span>k. Bars are debt service; lines are cash flow available for debt service.</div>
+        <div class="chart-legend" id="lg1"></div>
+        <div class="chart" id="ch1"></div>
+      </div>
+      <div class="card">
+        <h2>Integrity checks</h2>
+        <div class="checks" id="checks"></div>
+      </div>
+    </section>
+
+    <section class="panel" data-panel="debt" hidden>
+      <div class="card">
+        <h2>DSCR by period</h2>
+        <div class="note">Covenant levels shown as reference lines. The 12-month historic DSCR is what gets tested.</div>
+        <div class="chart-legend" id="lg2"></div>
+        <div class="chart" id="ch2"></div>
+      </div>
+      <div class="card">
+        <h2>Senior debt balance</h2>
+        <div class="note">Closing balance, <span class="cur"></span>k.</div>
+        <div class="chart" id="ch3"></div>
+      </div>
+      <div class="card">
+        <h2>Debt schedule</h2>
+        <div class="note">Semi-annual, <span class="cur"></span>k.</div>
+        <div class="scroll"><table class="cf" id="debtTable"></table></div>
+      </div>
+    </section>
+
+    <section class="panel" data-panel="cashflow" hidden>
+      <div class="card" style="padding-bottom:6px">
+        <h2>Cash flow model</h2>
+        <div class="note">Semi-annual periods across, <span class="cur"></span>k unless stated. Shaded columns are construction. Totals on the right.</div>
+      </div>
+      <div class="scroll"><table class="cf" id="cfTable"></table></div>
+    </section>
+
+    <section class="panel" data-panel="sens" hidden>
+      <div class="card">
+        <h2>Sensitivities</h2>
+        <div class="note">Each row reruns the full model with one shock. Edit the shocks in blue. Debt amount stays as in the inputs unless sizing is set to "lower of".</div>
+        <div class="scroll" style="border:0"><table class="sens" id="sensTable"></table></div>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <h2>Breakevens</h2>
+          <div class="note">How far a single input can move before the minimum post-tax DSCR hits a threshold.</div>
+          <table class="su" id="beTable"></table>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" data-panel="json" hidden>
+      <div class="grid2">
+        <div class="card">
+          <h2>Deal JSON</h2>
+          <div class="note">The whole model runs from this. Paste a new deal and apply it, or open a .json file.</div>
+          <textarea class="json" id="jsonBox" spellcheck="false" aria-label="Deal JSON"></textarea>
+          <div class="row-actions">
+            <button class="btn primary" id="applyJson" type="button">Apply</button>
+            <button class="btn" id="copyJson" type="button">Copy</button>
+            <label class="btn" for="fileJson">Open .json</label>
+            <input type="file" id="fileJson" accept=".json,application/json" hidden>
+            <span class="msg" id="jsonMsg"></span>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Extract a new term sheet</h2>
+          <div class="note">Paste this prompt into Claude with your term sheet. It returns a deal JSON you can apply here.</div>
+          <pre class="prompt" id="promptBox"></pre>
+          <div class="row-actions"><button class="btn" id="copyPrompt" type="button">Copy prompt</button><span class="msg" id="promptMsg"></span></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+/*
+ * Project finance engine — v1
+ * Pure functions: deal JSON in, time series and ratios out. No UI, no LLM.
+ * Units: thousands of currency (k). Rates are decimals. Periods are semi-annual.
+ * See SPEC.md for the calculation order and the decisions taken where the term sheet is silent.
+ */
+(function (root) {
+  'use strict';
+
+  const MONTH = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  function parseDate(s) {
+    const [y, m, d] = s.split('-').map(Number);
+    return { y, m, d };
+  }
+
+  // Months from the start of the financial close month to a date.
+  // A date on or after the 28th counts as the end of its month (30 June -> full month).
+  function monthsFrom(fc, s) {
+    const t = parseDate(s);
+    let months = (t.y - fc.y) * 12 + (t.m - fc.m);
+    if (t.d >= 28) months += 1;
+    return months;
+  }
+
+  function sum(a) { return a.reduce((x, y) => x + y, 0); }
+
+  function irr(flows) {
+    const npv = (r) => flows.reduce((acc, f, i) => acc + f / Math.pow(1 + r, i), 0);
+    let lo = -0.99, hi = 1.0;
+    if (npv(lo) * npv(hi) > 0) return null;
+    for (let i = 0; i < 300; i++) {
+      const mid = (lo + hi) / 2;
+      if (npv(mid) > 0) lo = mid; else hi = mid;
+    }
+    return (lo + hi) / 2;
+  }
+
+  function validate(deal) {
+    const errors = [];
+    const p = deal.construction.capex_profile;
+    if (Math.abs(sum(p) - 1) > 1e-6) errors.push('Capex profile must add up to 100% (now ' + (sum(p) * 100).toFixed(1) + '%).');
+    const fc = parseDate(deal.timeline.financial_close);
+    const nC = monthsFrom(fc, deal.timeline.cod) / 6;
+    if (!Number.isInteger(nC) || nC <= 0) errors.push('COD must fall a whole number of semesters after financial close.');
+    else if (p.length !== nC) errors.push('Capex profile has ' + p.length + ' entries but construction lasts ' + nC + ' semesters.');
+    const nM = monthsFrom(fc, deal.timeline.debt_maturity) / 6;
+    const nT = monthsFrom(fc, deal.timeline.ppa_end) / 6;
+    if (!Number.isInteger(nM) || nM <= nC) errors.push('Debt maturity must be a semester end after COD.');
+    if (!Number.isInteger(nT) || nT < nM) errors.push('PPA end must be a semester end on or after debt maturity.');
+    const k = deal.dsra.months_of_ds / 6;
+    if (!Number.isInteger(k) || k < 0) errors.push('DSRA months must be a multiple of 6.');
+    return errors;
+  }
+
+  function run(deal) {
+    const errors = validate(deal);
+    if (errors.length) return { ok: false, errors };
+
+    const C = deal.construction, O = deal.operations, T = deal.tax, D = deal.senior_debt;
+    const fc = parseDate(deal.timeline.financial_close);
+    const nC = monthsFrom(fc, deal.timeline.cod) / 6;          // construction periods
+    const nM = monthsFrom(fc, deal.timeline.debt_maturity) / 6; // last debt period
+    const N = monthsFrom(fc, deal.timeline.ppa_end) / 6;        // last period
+    const r = D.base_rate + D.margin;
+    const rs = r / 2;
+
+    // ---- Timeline -------------------------------------------------------
+    const periods = [];
+    for (let t = 1; t <= N; t++) {
+      const endIdx = fc.m - 1 + 6 * t - 1; // 0-based month index of period end
+      const year = fc.y + Math.floor(endIdx / 12);
+      const month = (endIdx % 12) + 1;
+      const fy = month <= 6 ? year : year + 1;
+      periods.push({
+        t, label: MONTH[month - 1] + '-' + String(year).slice(2), year, month, fy,
+        phase: t <= nC ? 'construction' : 'operations',
+        opYear: t > nC ? Math.floor((t - nC - 1) / 2) + 1 : 0,
+      });
+    }
+    const fy1 = periods[0].fy;
+    const z = () => new Array(N).fill(0);
+
+    // ---- B. Operations (computed first: sizing depends on CFADS) ---------
+    const energy = z(), revenue = z(), opex = z(), ebitda = z(), index = z();
+    for (let i = nC; i < N; i++) {
+      const p = periods[i];
+      const idx = Math.pow(1 + O.cpi, p.fy - fy1);
+      const deg = Math.pow(1 - O.degradation, p.opYear - 1);
+      const annualE = O.capacity_mw * 8760 * O.capacity_factor_p50 * O.availability * deg;
+      const priceIdx = 1 + (idx - 1) * O.ppa_indexation;
+      index[i] = idx;
+      energy[i] = annualE / 2;
+      revenue[i] = (annualE * O.ppa_price_fc * priceIdx / 1000) / 2;
+      opex[i] = (O.opex_real_fc * idx) / 2;
+      ebitda[i] = revenue[i] - opex[i];
+    }
+    const cfadsPre = ebitda.slice();
+
+    // ---- Debt sizing ----------------------------------------------------
+    const nRep = nM - nC;
+    const df = []; // discount factor for each repayment period, from COD
+    for (let k = 1; k <= nRep; k++) df.push(Math.pow(1 + rs, -k));
+    const pvCfads = sum(df.map((f, k) => f * cfadsPre[nC + k]));
+    const capacityAtTarget = pvCfads / D.target_dscr;
+    const gearingCap = C.capex_total * D.gearing;
+    let amount = D.amount;
+    let sizingBinding = 'fixed input';
+    if (D.sizing === 'lower_of') {
+      amount = Math.min(gearingCap, capacityAtTarget);
+      sizingBinding = gearingCap <= capacityAtTarget ? 'gearing' : 'DSCR';
+    }
+    const effGearing = amount / C.capex_total;
+
+    // ---- A. Construction ------------------------------------------------
+    const capex = z(), draw = z(), idc = z(), commit = z(), upfront = z(), equityIn = z();
+    const debtOpen = z(), debtClose = z(), interest = z(), principal = z(), debtService = z();
+    let bal = 0, undrawn = amount;
+    for (let i = 0; i < nC; i++) {
+      capex[i] = C.capex_total * C.capex_profile[i];
+      draw[i] = capex[i] * effGearing;
+      debtOpen[i] = bal;
+      idc[i] = bal * rs;
+      commit[i] = undrawn * D.margin * D.commitment_fee_pct_margin / 2;
+      if (i === 0) upfront[i] = amount * D.upfront_fee;
+      equityIn[i] = capex[i] - draw[i] + idc[i] + commit[i] + upfront[i];
+      bal += draw[i];
+      undrawn -= draw[i];
+      debtClose[i] = bal;
+    }
+    const totalIdc = sum(idc), totalCommit = sum(commit), totalUpfront = sum(upfront);
+    const projectCost = C.capex_total + totalIdc + totalCommit + totalUpfront;
+
+    // ---- C. Repayment profile -------------------------------------------
+    let sculptDscr = null;
+    if (D.repayment === 'sculpted') {
+      sculptDscr = pvCfads / amount;
+      for (let k = 0; k < nRep; k++) debtService[nC + k] = cfadsPre[nC + k] / sculptDscr;
+    } else if (D.repayment === 'annuity') {
+      const pmt = amount * rs / (1 - Math.pow(1 + rs, -nRep));
+      for (let k = 0; k < nRep; k++) debtService[nC + k] = pmt;
+    }
+    for (let i = nC; i < nM; i++) {
+      debtOpen[i] = bal;
+      interest[i] = bal * rs;
+      if (D.repayment === 'linear') {
+        principal[i] = amount / nRep;
+        debtService[i] = principal[i] + interest[i];
+      } else {
+        principal[i] = debtService[i] - interest[i];
+      }
+      bal -= principal[i];
+      debtClose[i] = bal;
+    }
+    const balanceAtMaturity = bal;
+
+    // ---- D. Tax ---------------------------------------------------------
+    const depreciation = z(), taxable = z(), lossUsed = z(), lossBal = z(), tax = z();
+    const depPerPeriod = projectCost / T.depreciation_years / 2;
+    let losses = 0;
+    for (let i = nC; i < N; i++) {
+      if (i - nC < T.depreciation_years * 2) depreciation[i] = depPerPeriod;
+      taxable[i] = ebitda[i] - depreciation[i] - interest[i];
+      if (taxable[i] < 0) {
+        losses += -taxable[i];
+      } else {
+        const use = Math.min(losses, taxable[i]);
+        losses -= use;
+        lossUsed[i] = use;
+        tax[i] = (taxable[i] - use) * T.rate;
+      }
+      lossBal[i] = losses;
+    }
+    const cfadsPost = ebitda.map((e, i) => e - tax[i]);
+
+    // ---- G. Ratios ------------------------------------------------------
+    const dscrPre = z().map(() => null), dscrPost = z().map(() => null);
+    const llcrPre = z().map(() => null), llcrPost = z().map(() => null);
+    const hDscr = z().map(() => null);
+    for (let i = nC; i < nM; i++) {
+      dscrPre[i] = cfadsPre[i] / debtService[i];
+      dscrPost[i] = cfadsPost[i] / debtService[i];
+      let pvPre = 0, pvPost = 0;
+      for (let j = i; j < nM; j++) {
+        const f = Math.pow(1 + rs, -(j - i + 1));
+        pvPre += cfadsPre[j] * f;
+        pvPost += cfadsPost[j] * f;
+      }
+      llcrPre[i] = pvPre / debtOpen[i];
+      llcrPost[i] = pvPost / debtOpen[i];
+      if (i >= nC + 1) {
+        hDscr[i] = (cfadsPost[i] + cfadsPost[i - 1]) / (debtService[i] + debtService[i - 1]);
+      }
+    }
+    let pvPpa = 0;
+    for (let j = nC; j < N; j++) pvPpa += cfadsPre[j] * Math.pow(1 + rs, -(j - nC + 1));
+    const plcrCod = pvPpa / amount;
+
+    // ---- E/F. DSRA and waterfall ----------------------------------------
+    const kDs = deal.dsra.months_of_ds / 6;
+    const dsraTarget = z();
+    for (let i = nC - 1; i < N; i++) {
+      let s = 0;
+      for (let j = i + 1; j <= i + kDs && j < N; j++) s += debtService[j];
+      dsraTarget[i] = s;
+    }
+    const dsraFund = z(), dsraTopUp = z(), dsraRelease = z(), dsraDraw = z(), dsraBal = z();
+    const cashAfterDs = z(), trapped = z(), trapBal = z(), distributions = z();
+    const lockup = z().map(() => false), defaultFlag = z().map(() => false), shortfall = z();
+    dsraFund[nC - 1] = dsraTarget[nC - 1];
+    dsraBal[nC - 1] = dsraFund[nC - 1];
+    let dsra = dsraBal[nC - 1], trap = 0;
+    const cov = deal.covenants;
+    for (let i = nC; i < N; i++) {
+      let cash = cfadsPost[i] - debtService[i];
+      cashAfterDs[i] = cash;
+      if (cash < 0) {
+        const d = Math.min(dsra, -cash);
+        dsraDraw[i] = d; dsra -= d; cash += d;
+        if (cash < -1e-9) { shortfall[i] = -cash; cash = 0; }
+      }
+      const gap = dsraTarget[i] - dsra;
+      if (gap > 0) { const u = Math.min(gap, cash); dsraTopUp[i] = u; dsra += u; cash -= u; }
+      else if (gap < 0) { dsraRelease[i] = -gap; dsra += gap; cash -= gap; }
+      dsraBal[i] = dsra;
+
+      if (hDscr[i] !== null) {
+        lockup[i] = hDscr[i] < cov.lockup_dscr;
+        defaultFlag[i] = hDscr[i] < cov.default_dscr;
+      }
+      const dsraFull = dsra >= dsraTarget[i] - 1e-6;
+      if (lockup[i] || !dsraFull) {
+        trapped[i] = cash; trap += cash;
+      } else {
+        distributions[i] = cash + trap; trap = 0;
+      }
+      if (i === N - 1) { distributions[i] += trap + dsra; trap = 0; dsraRelease[i] += dsra; dsra = 0; dsraBal[i] = 0; }
+      trapBal[i] = trap;
+    }
+
+    // ---- H. Equity returns ----------------------------------------------
+    const equityFlows = z().map((_, i) => -equityIn[i] - dsraFund[i] + distributions[i]);
+    const irrSemi = irr(equityFlows);
+    const equityIrr = irrSemi === null ? null : Math.pow(1 + irrSemi, 2) - 1;
+
+    // ---- Summary & checks ------------------------------------------------
+    const debtIdx = [];
+    for (let i = nC; i < nM; i++) debtIdx.push(i);
+    const minOf = (arr) => Math.min(...debtIdx.map((i) => arr[i]));
+    const avgOf = (arr) => sum(debtIdx.map((i) => arr[i])) / debtIdx.length;
+    const minIdx = (arr) => debtIdx.reduce((b, i) => (arr[i] < arr[b] ? i : b), debtIdx[0]);
+    const firstTax = tax.findIndex((x) => x > 0);
+    const totalEquity = sum(equityIn);
+
+    const checks = [
+      { name: 'Debt fully drawn at COD', ok: Math.abs(sum(draw) - amount) < 0.01, value: sum(draw) },
+      { name: 'Debt repaid at maturity', ok: Math.abs(balanceAtMaturity) < 0.01, value: balanceAtMaturity },
+      { name: 'Sources equal uses', ok: Math.abs(amount + totalEquity - projectCost) < 0.01, value: amount + totalEquity - projectCost },
+      { name: 'Gearing within limit', ok: effGearing <= D.gearing + 1e-9, value: effGearing },
+      { name: 'No debt service shortfall', ok: sum(shortfall) < 0.01, value: sum(shortfall) },
+      { name: 'No principal re-borrowing', ok: debtIdx.every((i) => principal[i] >= -1e-9), value: Math.min(...debtIdx.map((i) => principal[i])) },
+    ];
+
+    return {
+      ok: true,
+      errors: [],
+      meta: { nC, nM, N, nRep, rate: r, firstOpLabel: periods[nC].label, maturityLabel: periods[nM - 1].label },
+      periods,
+      series: {
+        capex, draw, idc, commit, upfront, equityIn, index,
+        energy, revenue, opex, ebitda, cfadsPre, depreciation, taxable, lossUsed, lossBal, tax, cfadsPost,
+        debtOpen, interest, principal, debtService, debtClose,
+        dscrPre, dscrPost, hDscr, llcrPre, llcrPost,
+        dsraTarget, dsraFund, dsraTopUp, dsraRelease, dsraDraw, dsraBal,
+        cashAfterDs, trapped, trapBal, distributions, equityFlows, lockup, defaultFlag, shortfall,
+      },
+      summary: {
+        amount, effGearing, sizingBinding,
+        capex: C.capex_total, idc: totalIdc, commitmentFees: totalCommit, upfrontFee: totalUpfront,
+        projectCost, equityAtFc: totalEquity, dsraAtCod: dsraFund[nC - 1],
+        sculptDscr, capacityAtTarget, headroom: capacityAtTarget / amount - 1,
+        minDscrPre: minOf(dscrPre), avgDscrPre: avgOf(dscrPre),
+        minDscrPost: minOf(dscrPost), avgDscrPost: avgOf(dscrPost), minDscrPostLabel: periods[minIdx(dscrPost)].label,
+        llcrCodPre: llcrPre[nC], llcrCodPost: llcrPost[nC], minLlcrPost: minOf(llcrPost), plcrCod,
+        firstTaxLabel: firstTax >= 0 ? periods[firstTax].label : null,
+        lockupPeriods: lockup.filter(Boolean).length, defaultPeriods: defaultFlag.filter(Boolean).length,
+        equityIrr, totalDistributions: sum(distributions),
+        firstOpYear: {
+          energy: energy[nC] + energy[nC + 1], revenue: revenue[nC] + revenue[nC + 1],
+          opex: opex[nC] + opex[nC + 1], ebitda: ebitda[nC] + ebitda[nC + 1],
+          margin: (ebitda[nC] + ebitda[nC + 1]) / (revenue[nC] + revenue[nC + 1]),
+        },
+        firstDebtService: debtService[nC], firstPrincipal: principal[nC],
+      },
+      checks,
+    };
+  }
+
+  const api = { run, validate, irr, version: '1.0.0' };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.PFEngine = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+(function () {
+  'use strict';
+  const BASE = {
+  "meta": { "name": "Project Coolabah", "currency": "AUD", "units": "k" },
+  "timeline": {
+    "financial_close": "2027-07-01",
+    "cod": "2029-07-01",
+    "ppa_end": "2049-06-30",
+    "debt_maturity": "2047-06-30"
+  },
+  "construction": {
+    "capex_total": 140000,
+    "capex_profile": [0.15, 0.35, 0.35, 0.15]
+  },
+  "operations": {
+    "capacity_mw": 100,
+    "capacity_factor_p50": 0.27,
+    "availability": 0.99,
+    "degradation": 0.005,
+    "ppa_price_fc": 60.0,
+    "ppa_indexation": 1.0,
+    "opex_real_fc": 3200,
+    "cpi": 0.025
+  },
+  "tax": {
+    "rate": 0.30,
+    "depreciation_years": 20
+  },
+  "senior_debt": {
+    "sizing": "fixed",
+    "amount": 98000,
+    "gearing": 0.70,
+    "base_rate": 0.04,
+    "margin": 0.0175,
+    "upfront_fee": 0.015,
+    "commitment_fee_pct_margin": 0.40,
+    "repayment": "sculpted",
+    "target_dscr": 1.30
+  },
+  "dsra": { "months_of_ds": 6 },
+  "covenants": { "lockup_dscr": 1.10, "default_dscr": 1.05 },
+  "sources": {
+    "timeline.financial_close": "Summary: financial close targeted 1 July 2027",
+    "timeline.cod": "Summary: COD 1 July 2029",
+    "timeline.ppa_end": "§1 PPA: tenor 20 years from COD, ending 30 June 2049",
+    "timeline.debt_maturity": "§2 Final Maturity: 30 June 2047",
+    "construction.capex_total": "§2 Sources and uses: construction capex AUD 140,000k",
+    "construction.capex_profile": "§2 Capex drawn 15% / 35% / 35% / 15%",
+    "operations.capacity_mw": "§6 Base case: 100 MWac",
+    "operations.capacity_factor_p50": "§6 P50 capacity factor 27.0%",
+    "operations.availability": "§6 Availability 99.0%",
+    "operations.degradation": "§6 Degradation 0.5% p.a. from operating year 2",
+    "operations.ppa_price_fc": "§1 PPA: AUD 60.00/MWh at financial close",
+    "operations.ppa_indexation": "§1 PPA: indexed at 100% of CPI annually",
+    "operations.opex_real_fc": "§6 Operating costs AUD 3.20m p.a. real",
+    "operations.cpi": "§6 CPI 2.5% p.a., applied annually",
+    "tax.rate": "§6 Corporate tax 30%",
+    "tax.depreciation_years": "§6 Straight-line tax depreciation over 20 years",
+    "senior_debt.amount": "§2 Senior Facility AUD 98,000,000",
+    "senior_debt.gearing": "§2 Drawdowns pro rata at 70% of each capex amount",
+    "senior_debt.base_rate": "§3 Base case BBSW 4.00%",
+    "senior_debt.margin": "§3 Margin 1.75% p.a.",
+    "senior_debt.upfront_fee": "§3 Upfront fee 1.50%",
+    "senior_debt.commitment_fee_pct_margin": "§3 Commitment fee 40% of the Margin",
+    "senior_debt.repayment": "§4 Repayment sculpted",
+    "senior_debt.target_dscr": "§4 Target DSCR 1.30x on P50 CFADS",
+    "dsra.months_of_ds": "§4 DSRA: next 6 months of scheduled debt service",
+    "covenants.lockup_dscr": "§4 Lock-up < 1.10x",
+    "covenants.default_dscr": "§4 Event of Default < 1.05x"
+  }
+};
+  const $ = (id) => document.getElementById(id);
+  const clone = (o) => JSON.parse(JSON.stringify(o));
+  const get = (o, path) => path.split('.').reduce((a, k) => (a == null ? a : a[k]), o);
+  const set = (o, path, v) => { const ks = path.split('.'); const last = ks.pop(); ks.reduce((a, k) => a[k], o)[last] = v; };
+
+  let deal = clone(BASE);
+  try { const saved = localStorage.getItem('pf-deal'); if (saved) deal = JSON.parse(saved); } catch (e) {}
+  let res = null;
+  const cur = () => (deal.meta && deal.meta.currency) || 'AUD';
+
+  // ---------- Formatting ----------
+  const nf0 = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+  const k0 = (v) => (v == null || isNaN(v) ? '–' : Math.abs(v) < 0.5 ? '–' : (v < 0 ? '(' + nf0.format(-v) + ')' : nf0.format(v)));
+  const mn = (v) => (v / 1000).toFixed(1) + 'm';
+  const x2 = (v) => (v == null || !isFinite(v) ? '–' : v.toFixed(2) + 'x');
+  const x3 = (v) => (v == null || !isFinite(v) ? '–' : v.toFixed(3) + 'x');
+  const pc = (v, d = 1) => (v == null || !isFinite(v) ? '–' : (v * 100).toFixed(d) + '%');
+
+  // ---------- Inputs ----------
+  const SECTIONS = [
+    { name: 'Timeline', fields: [
+      ['timeline.financial_close', 'Financial close', 'date'],
+      ['timeline.cod', 'Commercial operation (COD)', 'date'],
+      ['timeline.debt_maturity', 'Final maturity', 'date'],
+      ['timeline.ppa_end', 'PPA expiry', 'date'],
+    ] },
+    { name: 'Construction', fields: [
+      ['construction.capex_total', 'Construction capex', 'k'],
+      ['construction.capex_profile', 'Capex by semester', 'list'],
+    ] },
+    { name: 'Operations', fields: [
+      ['operations.capacity_mw', 'Capacity', 'num', 'MWac'],
+      ['operations.capacity_factor_p50', 'P50 capacity factor', 'pct'],
+      ['operations.availability', 'Availability', 'pct'],
+      ['operations.degradation', 'Degradation', 'pct', '% p.a.'],
+      ['operations.ppa_price_fc', 'PPA price at FC', 'num', '/MWh'],
+      ['operations.ppa_indexation', 'PPA indexation', 'pct', '% CPI'],
+      ['operations.opex_real_fc', 'Opex (real, at FC)', 'k', 'k p.a.'],
+      ['operations.cpi', 'CPI', 'pct', '% p.a.'],
+    ] },
+    { name: 'Senior debt', fields: [
+      ['senior_debt.sizing', 'Debt sizing', 'select', '', [['fixed', 'Fixed amount'], ['lower_of', 'Lower of gearing / DSCR']]],
+      ['senior_debt.amount', 'Facility amount', 'k'],
+      ['senior_debt.gearing', 'Max gearing (of capex)', 'pct'],
+      ['senior_debt.base_rate', 'Base rate (BBSW)', 'pct'],
+      ['senior_debt.margin', 'Margin', 'pct'],
+      ['senior_debt.upfront_fee', 'Upfront fee', 'pct'],
+      ['senior_debt.commitment_fee_pct_margin', 'Commitment fee', 'pct', '% margin'],
+      ['senior_debt.repayment', 'Repayment profile', 'select', '', [['sculpted', 'Sculpted'], ['annuity', 'Annuity'], ['linear', 'Linear']]],
+      ['senior_debt.target_dscr', 'Target DSCR', 'num', 'x'],
+    ] },
+    { name: 'Tax', fields: [
+      ['tax.rate', 'Corporate tax rate', 'pct'],
+      ['tax.depreciation_years', 'Tax depreciation', 'num', 'years'],
+    ] },
+    { name: 'Reserves & covenants', fields: [
+      ['dsra.months_of_ds', 'DSRA size', 'num', 'months'],
+      ['covenants.lockup_dscr', 'Lock-up DSCR', 'num', 'x'],
+      ['covenants.default_dscr', 'Default DSCR', 'num', 'x'],
+    ] },
+  ];
+
+  function toDisplay(type, v) {
+    if (type === 'pct') return +(v * 100).toFixed(4);
+    if (type === 'list') return v.map((x) => +(x * 100).toFixed(2)).join(' / ');
+    return v;
+  }
+  function fromDisplay(type, s) {
+    if (type === 'date' || type === 'select') return s;
+    if (type === 'list') {
+      const arr = s.split(/[\/,;\s]+/).filter(Boolean).map(Number);
+      return arr.some(isNaN) ? null : arr.map((x) => x / 100);
+    }
+    const n = parseFloat(String(s).replace(/,/g, ''));
+    if (isNaN(n)) return null;
+    return type === 'pct' ? n / 100 : n;
+  }
+
+  function buildInputs() {
+    const form = $('inputs');
+    form.innerHTML = '';
+    let open = true;
+    for (const sec of SECTIONS) {
+      const d = document.createElement('details');
+      d.className = 'sec'; d.open = open || sec.name === 'Senior debt'; open = false;
+      d.innerHTML = '<summary>' + sec.name + '</summary>';
+      for (const [path, label, type, unit, opts] of sec.fields) {
+        const id = 'in-' + path.replace(/\./g, '-');
+        const wrap = document.createElement('div');
+        wrap.className = 'field'; wrap.dataset.path = path;
+        const u = unit !== undefined ? unit : (type === 'pct' ? '%' : type === 'k' ? 'k' : type === 'list' ? '%' : '');
+        let ctl;
+        if (type === 'select') {
+          ctl = '<select id="' + id + '">' + opts.map(([v, t]) => '<option value="' + v + '">' + t + '</option>').join('') + '</select>';
+        } else {
+          ctl = '<input id="' + id + '" type="' + (type === 'date' ? 'date' : 'text') + '" inputmode="' + (type === 'date' ? '' : 'decimal') + '">';
+        }
+        const src = deal.sources && deal.sources[path] ? deal.sources[path] : (BASE.sources && BASE.sources[path]) || '';
+        wrap.innerHTML = '<label for="' + id + '">' + label + '</label><div class="ctl">' + ctl +
+          (u && type !== 'date' && type !== 'select' ? '<span class="unit">' + (type === 'k' ? cur() + ' k' : u) + '</span>' : '') + '</div>' +
+          (src ? '<div class="src">' + src.replace(/</g, '&lt;') + '</div>' : '');
+        d.appendChild(wrap);
+        const el = wrap.querySelector('input,select');
+        el.value = toDisplay(type, get(deal, path));
+        el.addEventListener(type === 'select' || type === 'date' ? 'change' : 'input', () => {
+          const v = fromDisplay(type, el.value);
+          if (v === null || v === '') { wrap.classList.add('bad'); return; }
+          wrap.classList.remove('bad');
+          set(deal, path, v);
+          schedule();
+        });
+      }
+      form.appendChild(d);
+    }
+    markEdited();
+  }
+  function markEdited() {
+    document.querySelectorAll('.field').forEach((w) => {
+      const p = w.dataset.path;
+      w.classList.toggle('edited', JSON.stringify(get(deal, p)) !== JSON.stringify(get(BASE, p)) && deal.meta.name === BASE.meta.name);
+    });
+  }
+
+  let timer = null;
+  function schedule() { clearTimeout(timer); timer = setTimeout(recalc, 120); }
+
+  // ---------- SVG chart ----------
+  function chart(host, cfg) {
+    const W = Math.max(320, host.clientWidth || 700), H = cfg.height || 260;
+    const m = { l: 52, r: 12, t: 10, b: 26 };
+    const n = cfg.labels.length;
+    const iw = W - m.l - m.r, ih = H - m.t - m.b;
+    const stackTop = cfg.labels.map((_, i) => (cfg.bars || []).reduce((a, b) => a + Math.max(0, b.values[i] || 0), 0));
+    const vals = [...stackTop];
+    (cfg.lines || []).forEach((l) => l.values.forEach((v) => v != null && vals.push(v)));
+    (cfg.refs || []).forEach((r) => vals.push(r.y));
+    let yMin = cfg.yMin != null ? cfg.yMin : Math.min(0, ...vals);
+    let yMax = Math.max(...vals) * 1.06;
+    const step = niceStep((yMax - yMin) / 5);
+    yMin = Math.floor(yMin / step) * step; yMax = Math.ceil(yMax / step) * step;
+    const y = (v) => m.t + ih - ((v - yMin) / (yMax - yMin)) * ih;
+    const bw = iw / n;
+    const x = (i) => m.l + bw * i + bw / 2;
+    let s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + cfg.title + '">';
+    for (let v = yMin; v <= yMax + 1e-9; v += step) {
+      s += '<g class="tick"><line x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + y(v) + '" y2="' + y(v) + '"/><text x="' + (m.l - 6) + '" y="' + (y(v) + 3) + '" text-anchor="end">' + cfg.yFmt(v) + '</text></g>';
+    }
+    const every = Math.ceil(n / Math.max(4, Math.floor(iw / 64)));
+    cfg.labels.forEach((lab, i) => { if (i % every === 0) s += '<text x="' + x(i) + '" y="' + (H - 8) + '" text-anchor="middle">' + lab + '</text>'; });
+    const gap = Math.min(2, bw * 0.15);
+    const barW = Math.max(1, bw - gap * 2);
+    (cfg.bars || []).forEach((b, bi) => {
+      cfg.labels.forEach((_, i) => {
+        const below = (cfg.bars || []).slice(0, bi).reduce((a, bb) => a + Math.max(0, bb.values[i] || 0), 0);
+        const v = Math.max(0, b.values[i] || 0);
+        if (v <= 0) return;
+        const y0 = y(below), y1 = y(below + v);
+        const h = Math.max(0, y0 - y1 - (bi > 0 ? 1 : 0));
+        s += '<rect x="' + (x(i) - barW / 2) + '" y="' + y1 + '" width="' + barW + '" height="' + h + '" fill="' + b.color + '" rx="' + Math.min(2, barW / 3) + '"/>';
+      });
+    });
+    (cfg.refs || []).forEach((r) => {
+      s += '<line x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + y(r.y) + '" y2="' + y(r.y) + '" stroke="var(--ref)" stroke-width="1" stroke-dasharray="4 3"/>' +
+        '<text x="' + (W - m.r - 2) + '" y="' + (y(r.y) - 4) + '" text-anchor="end">' + r.label + '</text>';
+    });
+    (cfg.lines || []).forEach((l) => {
+      let d = '', pen = false;
+      l.values.forEach((v, i) => { if (v == null) { pen = false; return; } d += (pen ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1); pen = true; });
+      s += '<path d="' + d + '" fill="none" stroke="' + l.color + '" stroke-width="2" stroke-linejoin="round"' + (l.dash ? ' stroke-dasharray="5 4"' : '') + '/>';
+    });
+    s += '<line id="xh" x1="0" x2="0" y1="' + m.t + '" y2="' + (m.t + ih) + '" stroke="var(--ink-2)" stroke-width="1" opacity="0"/>';
+    s += '<rect x="' + m.l + '" y="' + m.t + '" width="' + iw + '" height="' + ih + '" fill="transparent" class="hit"/>';
+    s += '</svg><div class="tip" hidden></div>';
+    host.innerHTML = s;
+    const svg = host.querySelector('svg'), tip = host.querySelector('.tip'), xh = host.querySelector('#xh');
+    const series = [...(cfg.bars || []), ...(cfg.lines || [])];
+    function move(ev) {
+      const pt = svg.getBoundingClientRect();
+      const sx = ((ev.clientX - pt.left) / pt.width) * W;
+      const i = Math.max(0, Math.min(n - 1, Math.floor((sx - m.l) / bw)));
+      xh.setAttribute('x1', x(i)); xh.setAttribute('x2', x(i)); xh.setAttribute('opacity', '0.5');
+      tip.innerHTML = '<b>' + cfg.labels[i] + '</b>' + series.map((se) => '<div class="r"><span><i class="sw' + (se.dash ? ' dash' : se.values && cfg.lines && cfg.lines.includes(se) ? ' line' : '') + '" style="background:' + se.color + ';border-color:' + se.color + '"></i> ' + se.name + '</span><span>' + (se.values[i] == null ? '–' : cfg.tipFmt(se.values[i])) + '</span></div>').join('');
+      tip.hidden = false;
+      const px = (x(i) / W) * pt.width;
+      tip.style.left = Math.min(pt.width - tip.offsetWidth - 4, Math.max(0, px + 12)) + 'px';
+      tip.style.top = '8px';
+    }
+    svg.addEventListener('pointermove', move);
+    svg.addEventListener('pointerleave', () => { tip.hidden = true; xh.setAttribute('opacity', '0'); });
+  }
+  function niceStep(raw) {
+    const p = Math.pow(10, Math.floor(Math.log10(raw)));
+    const f = raw / p;
+    return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p;
+  }
+  function legend(host, items) {
+    host.innerHTML = items.map((it) => '<span><i class="sw' + (it.kind ? ' ' + it.kind : '') + '" style="background:' + it.color + ';border-color:' + it.color + '"></i>' + it.name + '</span>').join('');
+  }
+  const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+  // ---------- Render ----------
+  function recalc() {
+    try { localStorage.setItem('pf-deal', JSON.stringify(deal)); } catch (e) {}
+    markEdited();
+    res = PFEngine.run(deal);
+    const eb = $('errorBox');
+    if (!res.ok) { eb.hidden = false; eb.innerHTML = '<b>The model can\'t run with these inputs.</b><br>' + res.errors.join('<br>'); return; }
+    eb.hidden = true;
+    renderHeader(); renderOverview(); renderDebt(); renderCashflow(); renderSens(); renderJson();
+  }
+
+  function renderHeader() {
+    const s = res.summary, o = deal.operations;
+    $('dealName').textContent = deal.meta.name;
+    $('dealSub').textContent = o.capacity_mw + ' MWac · ' + cur() + ' ' + mn(s.amount) + ' senior debt · COD ' + res.periods[res.meta.nC - 1].label.replace('Jun', 'Jul').replace('Dec', 'Jan') + ' · maturity ' + res.meta.maturityLabel;
+    const fails = res.checks.filter((c) => !c.ok).length;
+    const p = $('checkPill');
+    p.className = 'pill ' + (fails ? 'crit' : 'good');
+    p.innerHTML = '<span class="ic">' + (fails ? '✕' : '✓') + '</span>' + (fails ? fails + ' check' + (fails > 1 ? 's' : '') + ' failing' : 'All checks pass');
+    document.querySelectorAll('.cur').forEach((e) => (e.textContent = cur()));
+  }
+
+  function kpi(k, v, d) { return '<div class="kpi"><div class="k">' + k + '</div><div class="v">' + v + '</div><div class="d">' + d + '</div></div>'; }
+
+  function renderOverview() {
+    const s = res.summary, D = deal.senior_debt, C = deal.covenants;
+    $('kpis').innerHTML =
+      kpi('Senior debt', cur() + ' ' + mn(s.amount), pc(s.effGearing) + ' of capex · ' + pc(s.amount / s.projectCost) + ' of cost') +
+      kpi('DSCR pre-tax', D.repayment === 'sculpted' ? x2(s.sculptDscr) : x2(s.minDscrPre), D.repayment === 'sculpted' ? 'Constant, sculpted' : 'Minimum · avg ' + x2(s.avgDscrPre)) +
+      kpi('Min DSCR post-tax', x2(s.minDscrPost), s.minDscrPostLabel + ' · avg ' + x2(s.avgDscrPost)) +
+      kpi('LLCR at COD', x2(s.llcrCodPost), 'Post-tax · pre-tax ' + x2(s.llcrCodPre)) +
+      kpi('Debt capacity at ' + x2(D.target_dscr), cur() + ' ' + mn(s.capacityAtTarget), (s.headroom >= 0 ? '+' : '') + pc(s.headroom) + ' vs facility') +
+      kpi('Equity IRR', pc(s.equityIrr, 2), 'Post-tax, nominal, no terminal value');
+
+    const flags = [];
+    const tgt = D.target_dscr;
+    if (D.repayment === 'sculpted') {
+      if (s.sculptDscr > tgt + 0.005) flags.push(['good', '✓', 'Sculpted at ' + x2(s.sculptDscr) + ' pre-tax, above the ' + x2(tgt) + ' target. At ' + x2(tgt) + ' the cash flows would carry ' + cur() + ' ' + mn(s.capacityAtTarget) + ', so the facility sits ' + pc(s.headroom, 0) + ' inside DSCR capacity.']);
+      else if (s.sculptDscr < tgt - 0.005) flags.push(['crit', '✕', 'Sculpted DSCR is ' + x2(s.sculptDscr) + ', below the ' + x2(tgt) + ' target. The facility is ' + pc(-s.headroom, 0) + ' larger than the cash flows support at target; DSCR sizing would cut it to ' + cur() + ' ' + mn(s.capacityAtTarget) + '.']);
+      else flags.push(['good', '✓', 'Debt sized exactly at the ' + x2(tgt) + ' target DSCR (' + s.sizingBinding + ' constraint binds).']);
+    }
+    if (s.minDscrPost < tgt) {
+      const sev = s.minDscrPost < C.default_dscr ? 'crit' : s.minDscrPost < C.lockup_dscr ? 'crit' : 'warn';
+      flags.push([sev, sev === 'warn' ? '!' : '✕', 'Post-tax DSCR falls to ' + x2(s.minDscrPost) + ' (' + s.minDscrPostLabel + ')' + (s.firstTaxLabel ? ' once tax losses run out and cash tax starts in ' + s.firstTaxLabel : '') + '. That is below the ' + x2(tgt) + ' sculpting target' + (sev === 'warn' ? ' but clears lock-up at ' + x2(C.lockup_dscr) + '.' : ' and through a covenant level.') + ' Sculpting on pre-tax CFADS hides this.']);
+    }
+    if (s.lockupPeriods > 0) flags.push(['crit', '✕', s.lockupPeriods + ' semi-annual test' + (s.lockupPeriods > 1 ? 's' : '') + ' below the ' + x2(C.lockup_dscr) + ' lock-up' + (s.defaultPeriods ? ', ' + s.defaultPeriods + ' below the ' + x2(C.default_dscr) + ' default level' : '') + '.']);
+    else flags.push(['good', '✓', 'No lock-up across the base case: the 12-month historic DSCR stays at or above ' + x2(C.lockup_dscr) + '.']);
+    const tailYears = (res.meta.N - res.meta.nM) / 2;
+    flags.push([tailYears >= 2 ? 'good' : 'warn', tailYears >= 2 ? '✓' : '!', 'PPA tail of ' + tailYears + ' year' + (tailYears === 1 ? '' : 's') + ' after final maturity. PLCR at COD ' + x2(s.plcrCod) + '.']);
+    if (s.equityIrr != null && s.equityIrr < 0.07) flags.push(['warn', '!', 'Equity IRR of ' + pc(s.equityIrr, 1) + ' looks thin for a greenfield sponsor. The model gives no value after PPA expiry, so merchant tail or refinancing would lift it.']);
+    $('flags').innerHTML = flags.map(([c, i, t]) => '<li><span class="pill ' + c + '"><span class="ic">' + i + '</span></span><p>' + t + '</p></li>').join('');
+
+    const rows = [
+      ['Construction capex', s.capex, 'Senior debt', s.amount],
+      ['Interest during construction', s.idc, 'Sponsor equity', s.equityAtFc],
+      ['Upfront fee', s.upfrontFee, '', null],
+      ['Commitment fee', s.commitmentFees, '', null],
+    ];
+    const tot = s.projectCost;
+    $('su').innerHTML = '<thead><tr><th>Uses</th><th class="n">' + cur() + 'k</th><th class="n">%</th><th>Sources</th><th class="n">' + cur() + 'k</th><th class="n">%</th></tr></thead><tbody>' +
+      rows.map((r) => '<tr><td>' + r[0] + '</td><td class="n">' + k0(r[1]) + '</td><td class="n">' + pc(r[1] / tot) + '</td><td>' + r[2] + '</td><td class="n">' + (r[3] == null ? '' : k0(r[3])) + '</td><td class="n">' + (r[3] == null ? '' : pc(r[3] / tot)) + '</td></tr>').join('') +
+      '<tr class="tot"><td>Total</td><td class="n">' + k0(tot) + '</td><td class="n">100.0%</td><td>Total</td><td class="n">' + k0(s.amount + s.equityAtFc) + '</td><td class="n">100.0%</td></tr></tbody>';
+    $('suNote').textContent = 'At financial close. The DSRA (' + cur() + ' ' + k0(s.dsraAtCod) + 'k) is funded by a further equity injection at COD.';
+
+    const S = res.series, nC = res.meta.nC;
+    const op = (arr) => arr.slice(nC);
+    const labels = res.periods.slice(nC).map((p) => p.label);
+    const c1 = css('--s1'), c2 = css('--s3'), c3 = css('--s2');
+    legend($('lg1'), [{ name: 'Principal', color: c1 }, { name: 'Interest', color: c2 }, { name: 'CFADS post-tax', color: c3, kind: 'line' }, { name: 'CFADS pre-tax', color: css('--ref'), kind: 'dash' }]);
+    chart($('ch1'), {
+      title: 'CFADS against debt service', labels, yMin: 0,
+      bars: [{ name: 'Principal', color: c1, values: op(S.principal) }, { name: 'Interest', color: c2, values: op(S.interest) }],
+      lines: [{ name: 'CFADS post-tax', color: c3, values: op(S.cfadsPost) }, { name: 'CFADS pre-tax', color: css('--ref'), values: op(S.cfadsPre), dash: true }],
+      yFmt: (v) => nf0.format(v), tipFmt: (v) => k0(v),
+    });
+    $('checks').innerHTML = res.checks.map((c) => '<span class="pill ' + (c.ok ? 'good' : 'crit') + '"><span class="ic">' + (c.ok ? '✓' : '✕') + '</span>' + c.name + '</span>').join('');
+  }
+
+  function renderDebt() {
+    const S = res.series, nC = res.meta.nC, nM = res.meta.nM, C = deal.covenants;
+    const labels = res.periods.slice(nC, nM).map((p) => p.label);
+    const sl = (a) => a.slice(nC, nM);
+    const c1 = css('--s1'), c2 = css('--s2'), c3 = css('--s3');
+    legend($('lg2'), [{ name: 'DSCR post-tax', color: c1, kind: 'line' }, { name: '12m historic (tested)', color: c3, kind: 'line' }, { name: 'DSCR pre-tax', color: c2, kind: 'dash' }]);
+    const all = [...sl(S.dscrPost), ...sl(S.dscrPre)].filter((v) => v != null);
+    chart($('ch2'), {
+      title: 'DSCR by period', labels, yMin: Math.max(0, Math.floor((Math.min(...all, C.default_dscr) - 0.1) * 10) / 10),
+      lines: [{ name: 'DSCR post-tax', color: c1, values: sl(S.dscrPost) }, { name: '12m historic', color: c3, values: sl(S.hDscr) }, { name: 'DSCR pre-tax', color: c2, values: sl(S.dscrPre), dash: true }],
+      refs: [{ y: deal.senior_debt.target_dscr, label: 'Target ' + x2(deal.senior_debt.target_dscr) }, { y: C.lockup_dscr, label: 'Lock-up ' + x2(C.lockup_dscr) }, { y: C.default_dscr, label: 'Default ' + x2(C.default_dscr) }],
+      yFmt: (v) => v.toFixed(2) + 'x', tipFmt: (v) => x3(v),
+    });
+    chart($('ch3'), {
+      title: 'Senior debt balance', labels: res.periods.slice(0, nM).map((p) => p.label), yMin: 0, height: 200,
+      bars: [{ name: 'Closing balance', color: c1, values: S.debtClose.slice(0, nM) }],
+      yFmt: (v) => nf0.format(v), tipFmt: (v) => k0(v),
+    });
+    const head = '<thead><tr><th class="row">Period</th><th>Opening</th><th>Interest</th><th>Principal</th><th>Debt service</th><th>Closing</th><th>CFADS post-tax</th><th>DSCR pre</th><th>DSCR post</th><th>12m DSCR</th><th>LLCR post</th><th>DSRA</th></tr></thead>';
+    let body = '';
+    for (let i = nC; i < nM; i++) {
+      const lk = res.series.lockup[i];
+      body += '<tr><td class="row">' + res.periods[i].label + '</td><td class="n">' + k0(S.debtOpen[i]) + '</td><td>' + k0(S.interest[i]) + '</td><td>' + k0(S.principal[i]) + '</td><td>' + k0(S.debtService[i]) + '</td><td>' + k0(S.debtClose[i]) + '</td><td>' + k0(S.cfadsPost[i]) + '</td><td>' + x3(S.dscrPre[i]) + '</td><td>' + x3(S.dscrPost[i]) + '</td><td' + (lk ? ' class="lk"' : '') + '>' + x3(S.hDscr[i]) + '</td><td>' + x3(S.llcrPost[i]) + '</td><td>' + k0(S.dsraBal[i]) + '</td></tr>';
+    }
+    $('debtTable').innerHTML = head + '<tbody>' + body + '</tbody>';
+  }
+
+  const CF_ROWS = [
+    ['g', 'Construction'],
+    ['capex', 'Capex', 'k'], ['draw', 'Debt drawdown', 'k'], ['idc', 'Interest during construction', 'k'], ['commit', 'Commitment fee', 'k'], ['upfront', 'Upfront fee', 'k'], ['equityIn', 'Equity contribution', 'k', 1],
+    ['g', 'Operations'],
+    ['energy', 'Net energy (MWh)', 'k'], ['revenue', 'Revenue', 'k'], ['opex', 'Operating costs', 'k'], ['ebitda', 'EBITDA', 'k', 1], ['tax', 'Cash tax', 'k'], ['cfadsPost', 'CFADS (post-tax)', 'k', 1],
+    ['g', 'Senior debt'],
+    ['debtOpen', 'Opening balance', 'b'], ['interest', 'Interest', 'k'], ['principal', 'Principal', 'k'], ['debtService', 'Debt service', 'k', 1], ['debtClose', 'Closing balance', 'b'],
+    ['g', 'Ratios'],
+    ['dscrPre', 'DSCR pre-tax', 'x'], ['dscrPost', 'DSCR post-tax', 'x'], ['hDscr', '12m historic DSCR', 'x', 1], ['llcrPost', 'LLCR post-tax', 'x'],
+    ['g', 'Debt service reserve'],
+    ['dsraTarget', 'Target balance', 'b'], ['dsraFund', 'Initial funding (equity)', 'k'], ['dsraTopUp', 'Top-up', 'k'], ['dsraRelease', 'Release', 'k'], ['dsraBal', 'Balance', 'b'],
+    ['g', 'Equity'],
+    ['cashAfterDs', 'Cash after debt service', 'k'], ['trapped', 'Cash trapped (lock-up)', 'k'], ['distributions', 'Distributions', 'k', 1], ['equityFlows', 'Equity cash flow', 'k', 1],
+    ['g', 'Tax workings'],
+    ['depreciation', 'Tax depreciation', 'k'], ['taxable', 'Taxable income', 'k'], ['lossUsed', 'Losses used', 'k'], ['lossBal', 'Losses carried forward', 'b'],
+  ];
+  function cfCell(kind, v) {
+    if (kind === 'x') return v == null ? '' : x3(v);
+    return k0(v);
+  }
+  function renderCashflow() {
+    const S = res.series, P = res.periods, nC = res.meta.nC;
+    let h = '<thead><tr class="ph"><th class="row"></th>' + P.map((p) => '<th class="' + (p.phase === 'construction' ? 'constr' : '') + '">' + (p.phase === 'construction' ? 'Constr.' : 'Op yr ' + p.opYear) + '</th>').join('') + '<th>Total</th></tr>';
+    h += '<tr><th class="row">' + cur() + 'k</th>' + P.map((p) => '<th class="' + (p.phase === 'construction' ? 'constr' : '') + '">' + p.label + '</th>').join('') + '<th></th></tr></thead><tbody>';
+    for (const [key, label, kind, strong] of CF_ROWS) {
+      if (key === 'g') { h += '<tr class="grp"><td class="row">' + label + '</td><td colspan="' + (P.length + 1) + '"></td></tr>'; continue; }
+      const arr = S[key];
+      const tot = kind === 'k' ? arr.reduce((a, b) => a + b, 0) : null;
+      h += '<tr class="' + (strong ? 'key' : '') + '"><td class="row">' + label + '</td>' + arr.map((v, i) => '<td class="n' + (i < nC ? ' constr' : '') + (kind === 'x' && key === 'hDscr' && S.lockup[i] ? ' lk' : '') + (kind !== 'x' && Math.abs(v || 0) < 0.5 ? ' zero' : '') + '">' + cfCell(kind, v) + '</td>').join('') + '<td class="n tot">' + (tot == null ? '' : k0(tot)) + '</td></tr>';
+    }
+    $('cfTable').innerHTML = h + '</tbody>';
+  }
+
+  function toTsv() {
+    const S = res.series, P = res.periods;
+    const lines = [['Line'].concat(P.map((p) => p.label)).join('\t')];
+    for (const [key, label, kind] of CF_ROWS) {
+      if (key === 'g') { lines.push(label); continue; }
+      lines.push([label].concat(S[key].map((v) => (v == null ? '' : kind === 'x' ? v.toFixed(4) : v.toFixed(2)))).join('\t'));
+    }
+    return lines.join('\n');
+  }
+
+  // ---------- Sensitivities ----------
+  const SENS = [
+    { id: 'price', label: 'PPA price', unit: '%', shock: -10, apply: (d, s) => (d.operations.ppa_price_fc *= 1 + s / 100) },
+    { id: 'yield', label: 'Energy yield (P90 proxy)', unit: '%', shock: -8, apply: (d, s) => (d.operations.capacity_factor_p50 *= 1 + s / 100) },
+    { id: 'avail', label: 'Availability', unit: 'pt', shock: -2, apply: (d, s) => (d.operations.availability += s / 100) },
+    { id: 'opex', label: 'Operating costs', unit: '%', shock: 15, apply: (d, s) => (d.operations.opex_real_fc *= 1 + s / 100) },
+    { id: 'rate', label: 'Base rate', unit: 'bp', shock: 100, apply: (d, s) => (d.senior_debt.base_rate += s / 10000) },
+    { id: 'cpi', label: 'CPI', unit: 'pt', shock: -1, apply: (d, s) => (d.operations.cpi += s / 100) },
+  ];
+  let sensShocks = {};
+  try { sensShocks = JSON.parse(localStorage.getItem('pf-sens') || '{}'); } catch (e) {}
+  SENS.forEach((x) => { if (sensShocks[x.id] != null) x.shock = sensShocks[x.id]; });
+
+  function statusFor(dscr) {
+    const C = deal.covenants;
+    if (dscr < C.default_dscr) return ['crit', '✕', 'Default'];
+    if (dscr < C.lockup_dscr) return ['crit', '✕', 'Lock-up'];
+    if (dscr < deal.senior_debt.target_dscr) return ['warn', '!', 'Below target'];
+    return ['good', '✓', 'OK'];
+  }
+  function sensRow(label, r, shockCell, cls) {
+    if (!r.ok) return '<tr><td>' + label + '</td><td>' + shockCell + '</td><td colspan="6">Inputs out of range</td></tr>';
+    const s = r.summary, st = statusFor(s.minDscrPost);
+    return '<tr class="' + (cls || '') + '"><td>' + label + '</td><td>' + shockCell + '</td><td>' + mn(s.amount) + '</td><td>' + x2(s.minDscrPost) + '</td><td>' + x2(s.avgDscrPost) + '</td><td>' + x2(s.llcrCodPost) + '</td><td>' + pc(s.equityIrr, 2) + '</td><td><span class="pill ' + st[0] + '"><span class="ic">' + st[1] + '</span>' + st[2] + (s.lockupPeriods ? ' · ' + s.lockupPeriods + ' tests' : '') + '</span></td></tr>';
+  }
+  function renderSens() {
+    let h = '<thead><tr><th>Case</th><th>Shock</th><th>Debt</th><th>Min DSCR post-tax</th><th>Avg DSCR post-tax</th><th>LLCR at COD</th><th>Equity IRR</th><th>Covenant</th></tr></thead><tbody>';
+    h += sensRow('Base case', res, '', 'base');
+    const combined = clone(deal);
+    for (const x of SENS) {
+      const d = clone(deal); x.apply(d, x.shock); x.apply(combined, x.shock);
+      h += sensRow(x.label, PFEngine.run(d), '<input id="sh-' + x.id + '" data-id="' + x.id + '" value="' + x.shock + '" inputmode="decimal" aria-label="' + x.label + ' shock"> ' + x.unit);
+    }
+    h += sensRow('All shocks together', PFEngine.run(combined), '', 'base');
+    $('sensTable').innerHTML = h + '</tbody>';
+    $('sensTable').querySelectorAll('input').forEach((el) => el.addEventListener('change', () => {
+      const v = parseFloat(el.value); if (isNaN(v)) return;
+      const x = SENS.find((s) => s.id === el.dataset.id); x.shock = v; sensShocks[x.id] = v;
+      try { localStorage.setItem('pf-sens', JSON.stringify(sensShocks)); } catch (e) {}
+      renderSens();
+    }));
+
+    // Breakevens: multiplier on one input such that min post-tax DSCR = threshold
+    const C = deal.covenants;
+    const be = (mutate, thr) => {
+      let lo = 0.2, hi = 1.0;
+      const f = (k) => { const d = clone(deal); mutate(d, k); const r = PFEngine.run(d); return r.ok ? r.summary.minDscrPost : 0; };
+      if (f(hi) < thr) return null;
+      for (let i = 0; i < 50; i++) { const mid = (lo + hi) / 2; if (f(mid) >= thr) hi = mid; else lo = mid; }
+      return hi;
+    };
+    const bePrice = (thr) => be((d, k) => (d.operations.ppa_price_fc *= k), thr);
+    const beYield = (thr) => be((d, k) => (d.operations.capacity_factor_p50 *= k), thr);
+    const fmtBe = (k, unitFn) => (k == null ? 'Already below' : unitFn(k));
+    const p0 = deal.operations.ppa_price_fc, cf0 = deal.operations.capacity_factor_p50;
+    const rows = [
+      ['PPA price for min DSCR = ' + x2(C.lockup_dscr) + ' (lock-up)', fmtBe(bePrice(C.lockup_dscr), (k) => cur() + ' ' + (p0 * k).toFixed(2) + '/MWh · ' + pc(k - 1) )],
+      ['PPA price for min DSCR = 1.00x', fmtBe(bePrice(1.0), (k) => cur() + ' ' + (p0 * k).toFixed(2) + '/MWh · ' + pc(k - 1))],
+      ['Capacity factor for min DSCR = ' + x2(C.lockup_dscr), fmtBe(beYield(C.lockup_dscr), (k) => pc(cf0 * k) + ' · ' + pc(k - 1) + ' yield')],
+      ['Capacity factor for min DSCR = 1.00x', fmtBe(beYield(1.0), (k) => pc(cf0 * k) + ' · ' + pc(k - 1) + ' yield')],
+    ];
+    $('beTable').innerHTML = '<tbody>' + rows.map((r) => '<tr><td>' + r[0] + '</td><td class="n">' + r[1] + '</td></tr>').join('') + '</tbody>';
+  }
+
+  // ---------- JSON & prompt ----------
+  function renderJson() {
+    if (document.activeElement !== $('jsonBox')) $('jsonBox').value = JSON.stringify(deal, null, 2);
+  }
+  const PROMPT = `You are a project finance analyst. Read the term sheet below and return ONLY a JSON object, no commentary, matching this schema exactly. Use thousands of currency for amounts and decimals for rates (5.75% -> 0.0575). Dates as YYYY-MM-DD; maturity and PPA end on a 30 June or 31 December.
+
+{
+  "meta": { "name": string, "currency": string, "units": "k" },
+  "timeline": { "financial_close": date, "cod": date, "ppa_end": date, "debt_maturity": date },
+  "construction": { "capex_total": number, "capex_profile": [one share per construction semester, summing to 1] },
+  "operations": { "capacity_mw", "capacity_factor_p50", "availability", "degradation", "ppa_price_fc" (per MWh at financial close), "ppa_indexation" (share of CPI, 1 = 100%), "opex_real_fc" (thousands p.a., real at FC), "cpi" },
+  "tax": { "rate", "depreciation_years" },
+  "senior_debt": { "sizing": "fixed" | "lower_of", "amount", "gearing", "base_rate", "margin", "upfront_fee", "commitment_fee_pct_margin", "repayment": "sculpted" | "annuity" | "linear", "target_dscr" },
+  "dsra": { "months_of_ds" },
+  "covenants": { "lockup_dscr", "default_dscr" },
+  "sources": { "<section.field>": "clause reference and the words it came from" }
+}
+
+Rules:
+- Every field must have a "sources" entry quoting the clause it came from.
+- If a value is not in the term sheet, use a market-standard assumption and write "ASSUMED: <reason>" as its source.
+- If the term sheet gives the commitment fee as a flat rate, divide it by the margin.
+- After the JSON, nothing else.
+
+TERM SHEET:
+<paste here>`;
+
+  function flash(id, text) { const el = $(id); el.textContent = text; setTimeout(() => (el.textContent = ''), 2500); }
+  async function copy(text, msgId) {
+    try { await navigator.clipboard.writeText(text); flash(msgId, 'Copied.'); }
+    catch (e) { flash(msgId, 'Copy blocked here. Select the text and copy it manually.'); }
+  }
+  function loadDeal(obj, msgId) {
+    const test = PFEngine.run(obj);
+    if (!test.ok) { flash(msgId, 'Not applied: ' + test.errors[0]); return false; }
+    deal = obj; buildInputs(); recalc(); flash(msgId, 'Applied. Model rebuilt from ' + (obj.meta && obj.meta.name || 'the new deal') + '.'); return true;
+  }
+
+  // ---------- Wiring ----------
+  $('promptBox').textContent = PROMPT;
+  $('copyPrompt').addEventListener('click', () => copy(PROMPT, 'promptMsg'));
+  $('copyJson').addEventListener('click', () => copy(JSON.stringify(deal, null, 2), 'jsonMsg'));
+  $('applyJson').addEventListener('click', () => {
+    try { loadDeal(JSON.parse($('jsonBox').value), 'jsonMsg'); } catch (e) { flash('jsonMsg', 'That is not valid JSON: ' + e.message); }
+  });
+  $('fileJson').addEventListener('change', (ev) => {
+    const f = ev.target.files[0]; if (!f) return;
+    const rd = new FileReader();
+    rd.onload = () => { try { loadDeal(JSON.parse(rd.result), 'jsonMsg'); } catch (e) { flash('jsonMsg', 'That file is not valid JSON.'); } };
+    rd.readAsText(f);
+  });
+  $('copyTsv').addEventListener('click', async () => {
+    const b = $('copyTsv');
+    try { await navigator.clipboard.writeText(toTsv()); b.textContent = 'Copied, paste into Excel'; }
+    catch (e) { b.textContent = 'Copy blocked in this view'; }
+    setTimeout(() => (b.textContent = 'Copy cash flows for Excel'), 2500);
+  });
+  $('resetBtn').addEventListener('click', () => { deal = clone(BASE); buildInputs(); recalc(); });
+
+  function showTab(name) {
+    document.querySelectorAll('.tab').forEach((t) => t.setAttribute('aria-selected', t.dataset.tab === name ? 'true' : 'false'));
+    document.querySelectorAll('[data-panel]').forEach((p) => (p.hidden = p.dataset.panel !== name));
+    if (res && res.ok) { if (name === 'overview') renderOverview(); if (name === 'debt') renderDebt(); }
+  }
+  document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => { showTab(t.dataset.tab); try { history.replaceState(null, '', '#' + t.dataset.tab); } catch (e) {} }));
+  const fromHash = () => { const h = location.hash.slice(1); return ['overview', 'debt', 'cashflow', 'sens', 'json'].includes(h) ? h : 'overview'; };
+  window.addEventListener('hashchange', () => showTab(fromHash()));
+
+  let rz = null;
+  new ResizeObserver(() => { clearTimeout(rz); rz = setTimeout(() => { if (res && res.ok) { renderOverview(); renderDebt(); } }, 150); }).observe(document.querySelector('.sheet'));
+  if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => res && res.ok && (renderOverview(), renderDebt()));
+
+  buildInputs();
+  showTab(fromHash());
+  recalc();
+})();
+</script>
+
+</body>
+</html>
