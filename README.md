@@ -9,7 +9,7 @@ A web app that turns a project finance term sheet into a full semi-annual cash f
 
 Everything runs in the browser. No backend, no install, no dependencies.
 
-**Live app:** https://jeanglt.github.io/coolabah-model/ (try `?deal=4821`)
+**Live app:** https://jeanglt.github.io/model-builder/ (try `?deal=4821`)
 
 ## Files
 
