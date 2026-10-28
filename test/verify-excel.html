@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Excel formula check</title></head>
+<body>
+<!-- Independent check of the Excel export: recalculates every formula with HyperFormula
+     (loaded from a CDN, test only) and prints the Checks sheet. Serve the project folder
+     (python3 -m http.server) and open /test/verify-excel.html. See README. -->
+<pre id="out">running…</pre>
+<script src="https://cdn.jsdelivr.net/npm/hyperformula@2.7.1/dist/hyperformula.full.min.js"></script>
+<script src="../src/engine.js"></script>
+<script src="../src/generator.js"></script>
+<script src="../src/xlsx.js"></script>
+<script src="../src/excel.js"></script>
+<script>
+// Recalculates the exported workbook with an independent spreadsheet engine and reports the Checks sheet.
+const DEAL = { "meta": { "name": "Project Coolabah", "currency": "AUD", "units": "k" }, "timeline": { "financial_close": "2027-07-01", "cod": "2029-07-01", "ppa_end": "2049-06-30", "debt_maturity": "2047-06-30" }, "construction": { "capex_total": 140000, "capex_profile": [0.15, 0.35, 0.35, 0.15] }, "operations": { "capacity_mw": 100, "capacity_factor_p50": 0.27, "availability": 0.99, "degradation": 0.005, "ppa_price_fc": 60.0, "ppa_indexation": 1.0, "opex_real_fc": 3200, "cpi": 0.025 }, "tax": { "rate": 0.30, "depreciation_years": 20 }, "senior_debt": { "sizing": "fixed", "amount": 98000, "gearing": 0.70, "base_rate": 0.04, "margin": 0.0175, "upfront_fee": 0.015, "commitment_fee_pct_margin": 0.40, "repayment": "sculpted", "target_dscr": 1.30 }, "dsra": { "months_of_ds": 6 }, "covenants": { "lockup_dscr": 1.10, "default_dscr": 1.05 } };
+
+function evaluate(deal) {
+  const res = PFEngine.run(deal);
+  const wb = PFExcel.buildWorkbook(deal, res);
+  const sheets = {};
+  for (const s of wb.sheets) {
+    const grid = [];
+    for (const [r, cells] of s.rows) {
+      grid[r - 1] = grid[r - 1] || [];
+      for (const [c, cell] of cells) {
+        const v = cell.value;
+        grid[r - 1][c - 1] = v && typeof v === 'object' ? '=' + v.f : v;
+      }
+    }
+    for (let i = 0; i < grid.length; i++) grid[i] = grid[i] || [];
+    sheets[s.name] = grid;
+  }
+  const hf = HyperFormula.buildFromSheets(sheets, { licenseKey: 'gpl-v3' });
+  for (const [name, ref] of wb.names) hf.addNamedExpression(name, '=' + ref);
+  const id = hf.getSheetId('Checks');
+  const lines = [];
+  for (let r = 4; r < 36; r++) {
+    const row = [0, 1, 2, 3, 4].map((c) => hf.getCellValue({ sheet: id, row: r, col: c }));
+    if (row.every((x) => x === null || x === '')) continue;
+    lines.push((r + 1) + ' | ' + row.map((x) => (x && x.type ? '#' + x.type : x)).join(' | '));
+  }
+  // Any formula errors anywhere?
+  let errors = 0, firstErr = '';
+  for (const s of wb.sheets) {
+    const sid = hf.getSheetId(s.name);
+    const vals = hf.getSheetValues(sid);
+    vals.forEach((row, r) => row.forEach((x, c) => { if (x && x.type) { errors++; if (!firstErr) firstErr = s.name + '!' + PFXlsx.colName(c + 1) + (r + 1) + ' ' + x.type + ' ' + (x.message || ''); } }));
+  }
+  // HyperFormula has no IRR function: recompute it in JS from the equity flows it calculated.
+  const calc = hf.getSheetId('Calc'), calcSheet = wb.sheets.find((s) => s.name === 'Calc');
+  const irrRow = [...calcSheet.rows.entries()].find(([r, cells]) => cells.get(1) && cells.get(1).value === 'Equity cash flow')[0];
+  const flows = []; for (let c = 3; c < 3 + res.meta.N; c++) flows.push(hf.getCellValue({ sheet: calc, row: irrRow - 1, col: c }));
+  const irr = Math.pow(1 + PFEngine.irr(flows), 2) - 1;
+  lines.push('IRR from recalculated equity flows: ' + irr + ' vs app ' + res.summary.equityIrr + ' -> ' + (Math.abs(irr - res.summary.equityIrr) < 1e-9 ? 'match' : 'MISMATCH'));
+  return lines.join('\n') + '\nformula errors: ' + errors + (firstErr ? ' (first: ' + firstErr + ')' : '');
+}
+
+let text = '';
+try {
+  text += '=== Coolabah ===\n' + evaluate(DEAL) + '\n\n';
+  for (const seed of [4821, 7, 1234]) text += '=== Deal #' + seed + ' ===\n' + evaluate(PFGenerator.generateDeal(seed)) + '\n\n';
+} catch (e) { text += 'ERROR ' + e.message + '\n' + e.stack; }
+document.getElementById('out').textContent = text;
+</script>
+</body>
+</html>
