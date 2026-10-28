@@ -36,6 +36,8 @@ test('B. first operating year (FY30)', () => {
 test('C. sculpting and debt capacity', () => {
   near(s.sculptDscr, 1.475, 0.002, 'Sculpted pre-tax DSCR');
   near(s.llcrCodPre, 1.475, 0.002, 'LLCR at COD');
+  near(s.llcrCodPost, 1.417, 0.002, 'LLCR at COD (post-tax)');
+  near(s.plcrCod, 1.584, 0.002, 'PLCR at COD');
   near(s.capacityAtTarget, 111206, 10, 'Capacity at 1.30x');
   near(s.firstDebtService, 3863, 2, 'First debt service');
   near(s.firstPrincipal, 1046, 2, 'First principal');
