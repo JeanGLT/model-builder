@@ -197,7 +197,7 @@ These were recomputed independently from the term sheet inputs. The engine must 
 
 ## 9. Tech stack
 
-**Status of v1 (built 27 Oct 2026):** steps 1–8 of the build order are done in plain JavaScript, no build tool. `src/engine.js` holds the engine, `test/engine.test.js` the golden tests (`node --test`, 10/10 green), and `index.html` the app, built by `node build.js`, which inlines the engine into the page. Moving to the stack below is optional and can happen in Claude Code.
+**Status (28 Oct 2026):** v1 is built in plain JavaScript, no build tool and no dependencies. `src/engine.js` holds the engine, `index.html` the app (built by `node build.js`). Steps 1–9 of the build order below are done, plus the random deal generator (section 11). `node --test` runs 22 tests, all green. Step 10 (GitHub Pages) is waiting for the repository to be made public. Moving to the stack below is optional; it is not planned, because the plain version is simpler to maintain.
 
 Target stack:
 - Vite + TypeScript, plain React
@@ -221,3 +221,25 @@ Target stack:
 10. Deploy to GitHub Pages.
 
 One step per session, tests green before moving on.
+
+## 11. Random deal generator (added 28 Oct 2026)
+
+Purpose: someone without a term sheet (e.g. a recruiter) can still test the model on a new deal.
+
+- `generateDeal(seed)` in `src/generator.js`. Same seed, same deal. The app opens a deal with `?deal=<seed>`.
+- Solar only, Australia (NSW, QLD, VIC, SA, WA zones with their own capacity factor range; fixed-tilt plants get 3 points less than trackers).
+- Ranges: 50–400 MWac, capex AUD 1.15–1.45m/MW, opex AUD 22–32k/MW p.a. real, PPA 15–20 years (70% CPI-indexed, 30% flat), tail 1–2 years, 3 or 4 construction semesters, gearing 65–80%, BBSW 3.50–4.50%, margin 1.50–2.50%, target DSCR 1.25–1.40x, lock-up 1.10x or 1.15x.
+- Debt sizing, like a lender: lowest of (i) max gearing × capex, (ii) sculpted at target DSCR on pre-tax CFADS, (iii) the amount keeping the minimum post-tax DSCR at least lock-up + 0.05x. Rounded down to AUD 0.5m and stored as a fixed amount.
+- PPA price: the lowest price on a AUD 0.50 grid giving the sponsor a target equity IRR drawn in 5.5–8.5%. Without this step the median IRR was negative, which no sponsor would sign.
+- If a draw fails any check, the generator draws again from the same random stream (deterministic).
+- `src/termsheet.js` writes the term sheet; `deal.sources` points each input to its clause.
+- Tests (`test/generator.test.js`, 300 seeds): every check passes, gearing and DSCR terms respected, no lock-up in the base case, IRR in 5–9%, and the term sheet states the numbers the model uses.
+
+## 12. Excel export (added 28 Oct 2026)
+
+- `src/xlsx.js` writes the .xlsx directly (zip of XML, no library). `src/excel.js` builds the workbook.
+- Sheets: Cover, Inputs (named cells, blue), Calc (all formulas, timeline across), Outputs, Checks.
+- Calc follows the same order as the engine. Debt sizing uses a backward PV recursion so there is no circularity. Only common functions are used (IF, SUM, SUMIF, SUMPRODUCT, MIN, MAX, EDATE, INDEX, IRR…), no OFFSET and no array formulas, so it also opens in Google Sheets, Numbers and LibreOffice.
+- Each formula cell carries the engine's value as a cached result; Excel recalculates on opening (`fullCalcOnLoad`).
+- Limits: the number of period columns is fixed at export (a Checks line flags a changed PPA end date); the DSRA formula supports 0, 6 or 12 months.
+- Verified with `test/verify-excel.html` (HyperFormula recalculation): all reconciled outputs match the engine to the last decimal for Coolabah and three random deals.

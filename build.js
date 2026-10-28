@@ -1,13 +1,18 @@
-// Builds the app by inlining the engine and the deal into src/app.html.
+// Builds the app by inlining the libraries, the Coolabah deal and its term sheet into src/app.html.
 //   dist/artifact.html : page body only (for publishing as a claude.ai artifact)
 //   index.html         : standalone page you can open in a browser or host on GitHub Pages
 const fs = require('fs');
 const path = require('path');
 const dir = __dirname;
-const tpl = fs.readFileSync(path.join(dir, 'src/app.html'), 'utf8');
-const engine = fs.readFileSync(path.join(dir, 'src/engine.js'), 'utf8');
-const deal = fs.readFileSync(path.join(dir, 'deal.json'), 'utf8').trim();
-const body = tpl.replace('/*__ENGINE__*/', () => engine).replace('/*__DEAL__*/', () => deal);
+const read = (f) => fs.readFileSync(path.join(dir, f), 'utf8');
+// Order matters: each library uses the ones before it.
+const LIBS = ['engine', 'generator', 'termsheet', 'markdown', 'xlsx', 'excel'].map((f) => read('src/' + f + '.js')).join('\n');
+const deal = read('deal.json').trim();
+const termSheet = JSON.stringify(read('docs/coolabah_term_sheet.md'));
+const body = read('src/app.html')
+  .replace('/*__LIBS__*/', () => LIBS)
+  .replace('/*__DEAL__*/', () => deal)
+  .replace('/*__COOLABAH_TS__*/', () => termSheet);
 fs.mkdirSync(path.join(dir, 'dist'), { recursive: true });
 fs.writeFileSync(path.join(dir, 'dist/artifact.html'), body);
 fs.writeFileSync(path.join(dir, 'index.html'),

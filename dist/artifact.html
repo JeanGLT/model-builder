@@ -1,193 +1,317 @@
-<title>Coolabah Model Builder</title>
-<meta name="claude:viewport-fit-sides" content="cover">
+<title>Model Builder · Term sheet to project finance model</title>
+<meta name="description" content="Turns a project finance term sheet into a semi-annual cash flow model with sculpted debt, DSCR / LLCR, equity IRR and a live-formula Excel export.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Serif+Display&display=swap">
 <style>
-/* Layout: a model workbook. Inputs rail on the left in the blue-ink input convention, the output sheet on the right. */
+/* Design system: "Credit Approved" (one blue accent, white cards on light grey, Inter with tabular figures). */
 :root {
-  --bg: #f3f5f6; --surface: #ffffff; --surface-2: #eef2f3;
-  --ink: #14202b; --ink-2: #475764; --muted: #6f7f89; --line: #d9e0e4;
-  --accent: #24614f; --accent-soft: #e2efe9; --input: #1747c4; --input-bg: #f5f8ff;
-  --good: #1f7a3a; --good-bg: #e3f3e7; --warn: #8a5a00; --warn-bg: #fbf0d9; --crit: #b3261e; --crit-bg: #fbe5e3;
-  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --ref: #8a98a2;
-  --f-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
-  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --f-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --bg: #f6f7f9; --surface: #ffffff; --border: #e5e7eb; --border-strong: #d1d5db;
+  --text: #111827; --body: #374151; --muted: #6b7280; --faint: #9ca3af;
+  --accent: #2f5bea; --accent-hover: #2449c7; --accent-soft: #eef2fe; --accent-2: #93b0f3;
+  --good: #15803d; --good-soft: #e9f7ef; --warn: #b45309; --warn-soft: #fdf3e3; --bad: #c62828; --bad-soft: #fdecec;
+  --sponsor: #e0a800;
+  --radius: 12px; --radius-sm: 8px;
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
+  color-scheme: light;
 }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #0e1316; --surface: #151c20; --surface-2: #1b242a;
-  --ink: #e6ecef; --ink-2: #a9b6be; --muted: #84929b; --line: #27333a;
-  --accent: #6cc2a4; --accent-soft: #17302a; --input: #8db0ff; --input-bg: #18213a;
-  --good: #5cc983; --good-bg: #14301f; --warn: #e0a63a; --warn-bg: #33270f; --crit: #f07167; --crit-bg: #3a1916;
-  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --ref: #7d8b94; color-scheme: dark; } }
-:root[data-theme="dark"] {
-  --bg: #0e1316; --surface: #151c20; --surface-2: #1b242a;
-  --ink: #e6ecef; --ink-2: #a9b6be; --muted: #84929b; --line: #27333a;
-  --accent: #6cc2a4; --accent-soft: #17302a; --input: #8db0ff; --input-bg: #18213a;
-  --good: #5cc983; --good-bg: #14301f; --warn: #e0a63a; --warn-bg: #33270f; --crit: #f07167; --crit-bg: #3a1916;
-  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --ref: #7d8b94; color-scheme: dark; }
-
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 14px; line-height: 1.45; }
-.num, td.n, .kpi .v { font-family: var(--f-data); font-variant-numeric: tabular-nums; }
-h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--text); font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 15px; line-height: 1.55; font-variant-numeric: tabular-nums; }
+h1, h2, h3 { margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+h1 { font-size: 28px; line-height: 1.2; font-weight: 700; }
+h2 { font-size: 16px; font-weight: 600; }
+h3 { font-size: 14px; font-weight: 600; }
 button, select, input, textarea { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+a { color: var(--accent); }
+.display { font-family: "DM Serif Display", Georgia, serif; font-weight: 400; letter-spacing: 0; }
+.muted { color: var(--muted); }
+.eyebrow { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); margin-bottom: 8px; }
+.label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
 
-.top { padding-block: 18px 14px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
-  border-bottom: 1px solid var(--line); background: var(--surface); display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: end; justify-content: space-between; }
-.eyebrow { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
-.top h1 { font-size: 26px; font-weight: 600; line-height: 1.15; }
-.top .sub { color: var(--ink-2); margin-top: 2px; }
-.top-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+/* Buttons, pills, callouts */
+.btn { font-weight: 600; font-size: 14px; border-radius: var(--radius-sm); border: 1px solid transparent; padding: 9px 16px; cursor: pointer; transition: background .15s, border-color .15s, color .15s; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; white-space: nowrap; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-ghost { background: var(--surface); border-color: var(--border-strong); color: var(--text); }
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+.btn-lg { padding: 13px 28px; font-size: 15px; }
+.btn-sm { padding: 6px 12px; font-size: 13px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 99px; white-space: nowrap; }
+.pill.good { background: var(--good-soft); color: var(--good); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.crit { background: var(--bad-soft); color: var(--bad); }
+.pill.neutral { background: var(--bg); color: var(--muted); }
+.callout { padding: 12px 14px; border-radius: var(--radius-sm); font-size: 14px; }
+.callout-info { background: var(--accent-soft); color: #1e3a8a; }
+.callout-warn { background: var(--warn-soft); color: #7c2d12; }
+.callout-good { background: var(--good-soft); color: #14532d; }
+.callout p { margin: 0; }
+.callout p + p { margin-top: 6px; }
 
-.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 6px 12px; cursor: pointer; font-weight: 500; }
-.btn:hover { border-color: var(--accent); }
-.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
-.pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
-.pill.good { background: var(--good-bg); color: var(--good); }
-.pill.warn { background: var(--warn-bg); color: var(--warn); }
-.pill.crit { background: var(--crit-bg); color: var(--crit); }
-.pill .ic { font-family: var(--f-data); }
+/* Top bar */
+.top { position: sticky; top: 0; z-index: 20; background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+.top-in { max-width: 1360px; margin: 0 auto; padding: 12px 32px; display: flex; align-items: center; gap: 12px 20px; flex-wrap: wrap; }
+.brand { font-family: "DM Serif Display", Georgia, serif; font-size: 22px; color: var(--text); background: none; border: 0; padding: 0; cursor: pointer; }
+.brand span { color: var(--accent); }
+.deal-id { display: flex; flex-direction: column; min-width: 0; border-left: 1px solid var(--border); padding-left: 16px; }
+.deal-id b { font-size: 15px; font-weight: 600; }
+.deal-id small { font-size: 12px; color: var(--muted); }
+.top-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
-.shell { display: grid; grid-template-columns: 330px minmax(0, 1fr); align-items: start; }
-@media (max-width: 920px) { .shell { grid-template-columns: minmax(0, 1fr); } }
+/* Landing */
+.landing { max-width: 1040px; margin: 0 auto; padding: 64px 32px 72px; }
+.hero h1 { font-family: "DM Serif Display", Georgia, serif; font-weight: 400; font-size: 56px; line-height: 1.05; letter-spacing: -0.01em; max-width: 20ch; }
+.hero .lead { font-size: 18px; color: var(--body); max-width: 62ch; margin: 20px 0 28px; }
+.cta { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.seed-form { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); }
+.seed-form input { width: 92px; }
+.steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 56px; }
+.step .num { width: 28px; height: 28px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 14px; display: inline-grid; place-items: center; margin-bottom: 12px; }
+.step p { margin: 6px 0 0; color: var(--body); font-size: 14px; }
+.facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
+.fact { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; }
+.fact b { display: block; font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+.fact span { font-size: 12px; color: var(--muted); }
+.fineprint { margin-top: 32px; font-size: 12px; color: var(--faint); }
+@media (max-width: 860px) { .steps, .facts { grid-template-columns: minmax(0, 1fr); } .hero h1 { font-size: 40px; } .landing { padding: 40px 16px 56px; } }
+
+/* Workspace */
+.shell { max-width: 1360px; margin: 0 auto; padding: 24px 32px 56px; display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 960px) { .shell { grid-template-columns: minmax(0, 1fr); padding: 16px; } .shell .rail { order: 2; } .top { position: static; } .top-in { padding: 10px 16px; } }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; min-width: 0; }
+.card .note { font-size: 13px; color: var(--muted); margin: 4px 0 14px; }
+.card-head { display: flex; justify-content: space-between; align-items: start; gap: 12px; flex-wrap: wrap; }
 
 /* Inputs rail */
-.rail { border-right: 1px solid var(--line); background: var(--surface); padding-block: 8px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: 16px; }
-@media (min-width: 921px) { .rail { position: sticky; top: 0; max-height: 100vh; overflow-y: auto; } }
-@media (max-width: 920px) { .rail { border-right: 0; border-bottom: 1px solid var(--line); padding-right: max(16px, env(safe-area-inset-right, 0px)); } }
-.rail-head { display: flex; justify-content: space-between; align-items: center; padding-block: 10px 4px; gap: 8px; }
-.legend-ink { font-size: 12px; color: var(--muted); }
-.legend-ink b { color: var(--input); font-weight: 600; }
-details.sec { border-top: 1px solid var(--line); padding-block: 4px; }
-details.sec > summary { cursor: pointer; padding-block: 8px; font-family: var(--f-display); font-weight: 600; font-size: 15px; list-style: none; display: flex; justify-content: space-between; }
-details.sec > summary::after { content: "+"; color: var(--muted); font-family: var(--f-data); }
+.rail { padding: 18px 18px 8px; }
+@media (min-width: 961px) { .rail { position: sticky; top: 84px; max-height: calc(100vh - 100px); overflow-y: auto; } }
+.rail-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.legend-ink { font-size: 12px; color: var(--muted); margin: 6px 0 8px; }
+.legend-ink b { color: var(--accent); font-weight: 600; }
+details.sec { border-top: 1px solid var(--border); }
+details.sec > summary { cursor: pointer; padding: 10px 0; font-weight: 600; font-size: 14px; list-style: none; display: flex; justify-content: space-between; }
+details.sec > summary::-webkit-details-marker { display: none; }
+details.sec > summary::after { content: "+"; color: var(--muted); }
 details.sec[open] > summary::after { content: "–"; }
-.field { display: grid; grid-template-columns: minmax(0, 1fr) 128px; gap: 2px 10px; align-items: center; padding-block: 5px; }
-.field label { font-size: 13px; color: var(--ink); }
+.field { display: grid; grid-template-columns: minmax(0, 1fr) 128px; gap: 2px 10px; align-items: center; padding: 5px 0; }
+.field label { font-size: 13px; color: var(--body); }
 .field .ctl { display: flex; align-items: center; gap: 4px; }
-.field input, .field select { width: 100%; min-width: 0; border: 1px solid var(--line); background: var(--input-bg); color: var(--input); border-radius: 4px; padding: 4px 6px; font-family: var(--f-data); font-size: 13px; text-align: right; }
-.field select { text-align: left; font-family: var(--f-body); }
+.field input, .field select { width: 100%; min-width: 0; border: 1px solid var(--border-strong); background: var(--surface); color: var(--accent); border-radius: var(--radius-sm); padding: 5px 8px; font-size: 13px; font-weight: 500; text-align: right; }
+.field select { text-align: left; }
 .field input[type="date"] { text-align: left; }
+.field input:focus, .field select:focus, input:focus, textarea:focus { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .field .unit { font-size: 11px; color: var(--muted); min-width: 34px; }
-.field .src { grid-column: 1 / -1; font-size: 11px; color: var(--muted); line-height: 1.3; }
-.field.edited label::after { content: " • edited"; color: var(--warn); font-size: 11px; }
-.field.bad input { border-color: var(--crit); }
+.field .src { grid-column: 1 / -1; font-size: 11px; color: var(--faint); line-height: 1.35; }
+.field.edited label::after { content: " • edited"; color: var(--warn); font-size: 11px; font-weight: 600; }
+.field.bad input { border-color: var(--bad); }
+input.plain { border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 8px 12px; background: var(--surface); }
 
-/* Output sheet */
-.sheet { min-width: 0; padding-block: 16px 48px; padding-left: 24px; padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 20px; }
-@media (max-width: 920px) { .sheet { padding-left: max(16px, env(safe-area-inset-left, 0px)); } }
-.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); overflow-x: auto; }
-.tab { border: 0; background: none; padding: 8px 14px; cursor: pointer; color: var(--ink-2); font-weight: 500; border-bottom: 2px solid transparent; white-space: nowrap; }
-.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
-.panel { display: grid; gap: 20px; min-width: 0; }
+/* Tabs and panels */
+.sheet { min-width: 0; display: grid; gap: 16px; }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); overflow-x: auto; }
+.tab { border: 0; background: none; padding: 10px 14px; cursor: pointer; color: var(--muted); font-weight: 600; font-size: 14px; border-bottom: 2px solid transparent; white-space: nowrap; margin-bottom: -1px; }
+.tab:hover { color: var(--text); }
+.tab[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+.panel { display: grid; gap: 16px; min-width: 0; }
+.errors { background: var(--bad-soft); color: var(--bad); padding: 12px 14px; border-radius: var(--radius-sm); }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
 
-.errors { border: 1px solid var(--crit); background: var(--crit-bg); color: var(--crit); padding: 12px 14px; border-radius: 6px; }
-
-.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-.kpi { background: var(--surface); padding: 12px 14px; display: grid; gap: 2px; align-content: start; }
-.kpi .k { font-size: 12px; color: var(--ink-2); }
-.kpi .v { font-size: 22px; font-weight: 500; }
+/* KPI tiles */
+.kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 1500px) { .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px 16px; display: grid; gap: 2px; align-content: start; }
+.kpi .k { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.kpi .v { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; white-space: nowrap; }
 .kpi .d { font-size: 12px; color: var(--muted); }
+.kpi.good { background: var(--good-soft); border-color: transparent; } .kpi.good .v { color: var(--good); }
+.kpi.warn { background: var(--warn-soft); border-color: transparent; } .kpi.warn .v { color: var(--warn); }
+.kpi.crit { background: var(--bad-soft); border-color: transparent; } .kpi.crit .v { color: var(--bad); }
 
-.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; min-width: 0; }
-.card h2 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
-.card .note { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
-
-.flags { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.flags { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
 .flags li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; }
-.flags p { margin: 0; max-width: 70ch; }
+.flags p { margin: 0; color: var(--body); font-size: 14px; max-width: 72ch; }
 
 table { border-collapse: collapse; width: 100%; }
-.su td, .su th { padding: 5px 6px; border-bottom: 1px solid var(--line); text-align: left; font-weight: 400; }
+.su td, .su th { padding: 7px 8px; border-bottom: 1px solid var(--border); text-align: left; font-weight: 400; font-size: 14px; }
+.su th { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
 .su td.n, .su th.n { text-align: right; }
-.su tr.tot td { font-weight: 600; border-bottom: 0; border-top: 1px solid var(--ink-2); }
+.su tr.tot td { font-weight: 600; border-bottom: 0; border-top: 1px solid var(--text); }
 
-.scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.scroll { overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); max-height: 72vh; }
 .cf { font-size: 12px; white-space: nowrap; }
-.cf th, .cf td { padding: 4px 8px; border-bottom: 1px solid var(--line); text-align: right; }
-.cf thead th { position: sticky; top: 0; background: var(--surface-2); font-weight: 600; font-family: var(--f-data); font-size: 11px; color: var(--ink-2); }
-.cf thead tr.ph th { font-family: var(--f-body); text-transform: uppercase; letter-spacing: .06em; font-size: 10px; }
-.cf th.row, .cf td.row { position: sticky; left: 0; text-align: left; background: var(--surface); z-index: 1; border-right: 1px solid var(--line); min-width: 170px; }
-.cf thead th.row { background: var(--surface-2); z-index: 2; }
-.cf tr.grp td { background: var(--surface-2); font-weight: 600; font-family: var(--f-display); font-size: 13px; text-align: left; }
-.cf tr.grp td.row { background: var(--surface-2); }
-.cf tr.key td { font-weight: 600; }
-.cf td.tot { border-left: 1px solid var(--line); font-weight: 600; }
-.cf td.lk { color: var(--crit); font-weight: 600; }
-.cf .constr { background: color-mix(in srgb, var(--surface-2) 50%, transparent); }
-.cf td.zero { color: var(--muted); }
+.cf th, .cf td { padding: 5px 10px; border-bottom: 1px solid var(--border); text-align: right; }
+.cf thead th { position: sticky; top: 0; background: var(--bg); font-weight: 600; font-size: 11px; color: var(--muted); z-index: 1; }
+.cf thead tr.ph th { text-transform: uppercase; letter-spacing: .06em; font-size: 10px; top: 0; }
+.cf thead tr:nth-child(2) th { top: 25px; }
+.cf th.row, .cf td.row { position: sticky; left: 0; text-align: left; background: var(--surface); z-index: 2; border-right: 1px solid var(--border); min-width: 190px; color: var(--body); }
+.cf thead th.row { background: var(--bg); z-index: 3; }
+.cf tr.grp td { background: var(--accent-soft); color: #1e3a8a; font-weight: 600; font-size: 12px; text-align: left; }
+.cf tr.grp td.row { background: var(--accent-soft); color: #1e3a8a; }
+.cf tr.key td { font-weight: 600; color: var(--text); }
+.cf td.tot { border-left: 1px solid var(--border); font-weight: 600; }
+.cf td.lk { color: var(--bad); font-weight: 600; }
+.cf .constr { background: #fafafa; }
+.cf td.zero { color: var(--faint); }
 
+/* Charts */
 .chart { position: relative; width: 100%; }
 .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
-.chart text { font-family: var(--f-data); font-size: 10px; fill: var(--muted); }
-.chart .tick line { stroke: var(--line); }
-.chart-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; color: var(--ink-2); margin-bottom: 6px; }
+.chart text { font-family: "Inter", system-ui, sans-serif; font-size: 11px; fill: var(--muted); }
+.chart .tick line { stroke: var(--border); }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; color: var(--body); margin-bottom: 8px; }
 .chart-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
-.sw.line { height: 2px; border-radius: 0; }
+.sw.line { height: 3px; border-radius: 2px; }
 .sw.dash { height: 0; border-top: 2px dashed; border-radius: 0; background: none !important; }
-.tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.12); min-width: 170px; z-index: 5; }
-.tip b { font-family: var(--f-data); }
+.tip { position: absolute; pointer-events: none; background: var(--text); color: #fff; border-radius: var(--radius-sm); padding: 8px 10px; font-size: 12px; box-shadow: 0 16px 48px rgba(16, 24, 40, .2); min-width: 190px; z-index: 5; }
 .tip .r { display: flex; justify-content: space-between; gap: 12px; }
-.tip .r span:last-child { font-family: var(--f-data); }
+.tip .sw { vertical-align: middle; }
 
-.sens td, .sens th { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
-.sens th { font-size: 12px; color: var(--ink-2); font-weight: 600; }
+.sens td, .sens th { padding: 8px; border-bottom: 1px solid var(--border); text-align: right; white-space: nowrap; font-size: 14px; }
+.sens th { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
 .sens td:first-child, .sens th:first-child { text-align: left; }
-.sens input { width: 76px; border: 1px solid var(--line); background: var(--input-bg); color: var(--input); border-radius: 4px; padding: 3px 6px; font-family: var(--f-data); text-align: right; }
+.sens input { width: 76px; border: 1px solid var(--border-strong); color: var(--accent); font-weight: 500; border-radius: var(--radius-sm); padding: 4px 8px; text-align: right; }
 .sens tr.base td { font-weight: 600; }
 
-textarea.json { width: 100%; min-height: 380px; font-family: var(--f-data); font-size: 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); padding: 10px; resize: vertical; }
-pre.prompt { white-space: pre-wrap; font-family: var(--f-data); font-size: 12px; background: var(--surface-2); padding: 12px; border-radius: 6px; margin: 0; max-height: 300px; overflow-y: auto; }
-.row-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
-.msg { font-size: 12px; color: var(--ink-2); }
+/* Term sheet document */
+.doc { max-width: 880px; }
+.doc h1 { font-family: "DM Serif Display", Georgia, serif; font-weight: 400; font-size: 32px; line-height: 1.15; margin-bottom: 6px; }
+.doc h2 { font-size: 17px; margin: 28px 0 10px; padding-top: 18px; border-top: 1px solid var(--border); }
+.doc p { color: var(--body); margin: 0 0 12px; font-size: 14px; }
+.doc em { color: var(--muted); font-size: 13px; }
+.doc ul, .doc ol { margin: 0 0 12px; padding-left: 22px; color: var(--body); font-size: 14px; }
+.doc li.todo { list-style: none; margin-left: -22px; display: flex; gap: 8px; }
+.doc .box { width: 16px; height: 16px; border: 1px solid var(--border-strong); border-radius: 4px; flex: none; margin-top: 3px; font-size: 11px; display: grid; place-items: center; }
+.ts-table { overflow-x: auto; margin: 0 0 14px; }
+.ts-table table { font-size: 13px; }
+.ts-table th { text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); background: var(--bg); padding: 7px 10px; border-bottom: 1px solid var(--border); }
+.ts-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--body); }
+.ts-table td:first-child { font-weight: 600; color: var(--text); white-space: nowrap; }
+
+/* Methodology */
+.method h3 { margin: 18px 0 6px; }
+.method p, .method li { color: var(--body); font-size: 14px; }
+.method p { margin: 0 0 10px; max-width: 78ch; }
+.method ol, .method ul { padding-left: 20px; margin: 0 0 10px; max-width: 78ch; }
+.method li { margin-bottom: 4px; }
+.method code { font-size: 12.5px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; }
+
+textarea.json { width: 100%; min-height: 380px; font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; font-size: 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface); padding: 10px; resize: vertical; }
+pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; font-size: 12px; background: var(--bg); padding: 12px; border-radius: var(--radius-sm); margin: 0; max-height: 300px; overflow-y: auto; }
+.row-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+.msg { font-size: 12px; color: var(--muted); }
 .checks { display: flex; flex-wrap: wrap; gap: 6px; }
+.foot { max-width: 1360px; margin: 0 auto; padding: 0 32px 32px; font-size: 12px; color: var(--faint); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 
 <header class="top">
-  <div>
-    <div class="eyebrow">Term sheet → project finance model · v1</div>
-    <h1 id="dealName">Project Coolabah</h1>
-    <div class="sub" id="dealSub"></div>
-  </div>
-  <div class="top-actions">
-    <span id="checkPill" class="pill good"></span>
-    <button class="btn" id="copyTsv" type="button">Copy cash flows for Excel</button>
+  <div class="top-in">
+    <button class="brand" id="homeBtn" type="button" aria-label="Back to the start page">Model <span>Builder</span></button>
+    <div class="deal-id" id="dealId" hidden>
+      <b id="dealName"></b>
+      <small id="dealSub"></small>
+    </div>
+    <div class="top-actions" id="topActions" hidden>
+      <span id="checkPill" class="pill good"></span>
+      <button class="btn btn-ghost btn-sm" id="randomBtn" type="button">New random deal</button>
+      <button class="btn btn-primary btn-sm" id="xlsxBtn" type="button">Download Excel model</button>
+    </div>
   </div>
 </header>
 
-<div class="shell">
-  <aside class="rail" aria-label="Model inputs">
-    <div class="rail-head">
-      <h2 style="font-size:17px">Inputs</h2>
-      <button class="btn" id="resetBtn" type="button">Reset to term sheet</button>
+<!-- Start page -->
+<main class="landing" id="landing">
+  <section class="hero">
+    <div class="eyebrow">Project finance · term sheet → model</div>
+    <h1>From term sheet to bankable model.</h1>
+    <p class="lead">Model Builder reads the terms of a project finance deal and builds the full semi-annual model: construction funding, operations, sculpted debt, tax, DSRA, covenants and equity returns. Every input cites its clause, and the whole model downloads as an Excel file with live formulas.</p>
+    <div class="cta">
+      <button class="btn btn-primary btn-lg" id="openExample" type="button">Open the Coolabah example</button>
+      <button class="btn btn-ghost btn-lg" id="openRandom" type="button">Generate a random deal</button>
+      <form class="seed-form" id="seedForm">
+        <label for="seedIn">or open deal #</label>
+        <input class="plain" id="seedIn" inputmode="numeric" placeholder="4821" aria-label="Deal number">
+        <button class="btn btn-ghost btn-sm" type="submit">Open</button>
+      </form>
     </div>
-    <div class="legend-ink"><b>Blue</b> = input. The line under each field is the term sheet clause it comes from.</div>
+  </section>
+
+  <section class="steps" aria-label="How it works">
+    <div class="card step">
+      <span class="num">1</span>
+      <h3>Read the term sheet</h3>
+      <p>Start from the reference deal (a 100 MW solar farm in NSW) or draw a new fictional deal: a full indicative term sheet is written for it.</p>
+    </div>
+    <div class="card step">
+      <span class="num">2</span>
+      <h3>Check the inputs</h3>
+      <p>Every assumption sits in one place, with the term sheet clause it comes from. Change any of them and the model reruns instantly.</p>
+    </div>
+    <div class="card step">
+      <span class="num">3</span>
+      <h3>Test the model</h3>
+      <p>Dashboard, DSCR and LLCR, debt schedule, sensitivities and breakevens. Download the Excel model and audit every formula yourself.</p>
+    </div>
+  </section>
+
+  <section class="facts" aria-label="What the model covers">
+    <div class="fact"><b>Semi-annual</b><span>periods from financial close to PPA expiry</span></div>
+    <div class="fact"><b>Sculpted</b><span>debt, sized on gearing and DSCR</span></div>
+    <div class="fact"><b>9 checks</b><span>debt drawn and repaid, sources = uses…</span></div>
+    <div class="fact"><b>0 hard-codes</b><span>in the Excel calculation sheet</span></div>
+  </section>
+
+  <p class="fineprint">All deals are fictional and for modelling practice only. Built by Jean. Calculations run in your browser; nothing is sent anywhere.</p>
+</main>
+
+<!-- Workspace -->
+<div class="shell" id="workspace" hidden>
+  <aside class="card rail" aria-label="Model inputs">
+    <div class="rail-head">
+      <h2>Inputs</h2>
+      <button class="btn btn-ghost btn-sm" id="resetBtn" type="button">Reset</button>
+    </div>
+    <div class="legend-ink"><b>Blue</b> = input. The grey line under each field is the term sheet clause it comes from.</div>
     <form id="inputs" autocomplete="off"></form>
   </aside>
 
   <main class="sheet">
     <div class="tabs" role="tablist">
-      <button class="tab" role="tab" data-tab="overview" id="tab-overview">Overview</button>
-      <button class="tab" role="tab" data-tab="debt" id="tab-debt">Debt &amp; ratios</button>
-      <button class="tab" role="tab" data-tab="cashflow" id="tab-cashflow">Cash flow</button>
-      <button class="tab" role="tab" data-tab="sens" id="tab-sens">Sensitivities</button>
-      <button class="tab" role="tab" data-tab="json" id="tab-json">Deal JSON</button>
+      <button class="tab" role="tab" data-tab="termsheet">Term sheet</button>
+      <button class="tab" role="tab" data-tab="overview">Overview</button>
+      <button class="tab" role="tab" data-tab="debt">Debt &amp; ratios</button>
+      <button class="tab" role="tab" data-tab="cashflow">Cash flow</button>
+      <button class="tab" role="tab" data-tab="sens">Sensitivities</button>
+      <button class="tab" role="tab" data-tab="method">Methodology</button>
+      <button class="tab" role="tab" data-tab="json">Deal JSON</button>
     </div>
     <div id="errorBox" class="errors" hidden></div>
 
-    <section class="panel" data-panel="overview">
+    <section class="panel" data-panel="termsheet">
+      <div class="callout callout-info" id="tsCallout"></div>
+      <div class="card">
+        <div class="card-head">
+          <div class="label">Indicative term sheet</div>
+          <div class="row-actions" style="margin-top:0">
+            <button class="btn btn-ghost btn-sm" id="tsDownload" type="button">Download .md</button>
+            <button class="btn btn-primary btn-sm" id="tsToModel" type="button">See the model →</button>
+          </div>
+        </div>
+        <article class="doc" id="tsDoc"></article>
+      </div>
+    </section>
+
+    <section class="panel" data-panel="overview" hidden>
       <div class="kpis" id="kpis"></div>
       <div class="grid2">
         <div class="card">
           <h2>Credit points</h2>
-          <div class="note">Read off the model. These update as you change inputs.</div>
+          <div class="note">Read off the model. They update as you change inputs.</div>
           <ul class="flags" id="flags"></ul>
         </div>
         <div class="card">
@@ -204,6 +328,7 @@ pre.prompt { white-space: pre-wrap; font-family: var(--f-data); font-size: 12px;
       </div>
       <div class="card">
         <h2>Integrity checks</h2>
+        <div class="note">The same checks run in the Excel file (Checks sheet).</div>
         <div class="checks" id="checks"></div>
       </div>
     </section>
@@ -228,9 +353,14 @@ pre.prompt { white-space: pre-wrap; font-family: var(--f-data); font-size: 12px;
     </section>
 
     <section class="panel" data-panel="cashflow" hidden>
-      <div class="card" style="padding-bottom:6px">
-        <h2>Cash flow model</h2>
-        <div class="note">Semi-annual periods across, <span class="cur"></span>k unless stated. Shaded columns are construction. Totals on the right.</div>
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>Cash flow model</h2>
+            <div class="note" style="margin-bottom:0">Semi-annual periods across, <span class="cur"></span>k unless stated. Shaded columns are construction. Totals on the right.</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" id="xlsxBtn2" type="button">Download Excel model</button>
+        </div>
       </div>
       <div class="scroll"><table class="cf" id="cfTable"></table></div>
     </section>
@@ -238,15 +368,53 @@ pre.prompt { white-space: pre-wrap; font-family: var(--f-data); font-size: 12px;
     <section class="panel" data-panel="sens" hidden>
       <div class="card">
         <h2>Sensitivities</h2>
-        <div class="note">Each row reruns the full model with one shock. Edit the shocks in blue. Debt amount stays as in the inputs unless sizing is set to "lower of".</div>
-        <div class="scroll" style="border:0"><table class="sens" id="sensTable"></table></div>
+        <div class="note">Each row reruns the full model with one shock. Edit the shocks in blue. The debt amount stays as in the inputs unless sizing is set to "lower of".</div>
+        <div style="overflow-x:auto"><table class="sens" id="sensTable"></table></div>
       </div>
-      <div class="grid2">
-        <div class="card">
-          <h2>Breakevens</h2>
-          <div class="note">How far a single input can move before the minimum post-tax DSCR hits a threshold.</div>
-          <table class="su" id="beTable"></table>
-        </div>
+      <div class="card">
+        <h2>Breakevens</h2>
+        <div class="note">How far a single input can move before the minimum post-tax DSCR hits a threshold.</div>
+        <table class="su" id="beTable"></table>
+      </div>
+    </section>
+
+    <section class="panel" data-panel="method" hidden>
+      <div class="card method">
+        <h2>How the model works</h2>
+        <div class="note">Three layers, kept apart: the deal inputs (one JSON file), a calculation engine of pure functions with no UI, and this interface plus the Excel export. Nothing is calculated by an AI.</div>
+
+        <h3>Calculation order</h3>
+        <ol>
+          <li><b>Timeline.</b> Semi-annual periods ending 30 June and 31 December, from financial close to PPA expiry. Australian financial year (July–June).</li>
+          <li><b>Operations.</b> Energy = MW × 8,760 × P50 capacity factor × availability × degradation. Revenue = energy × PPA price, indexed to CPI in annual steps from financial close. Opex is indexed the same way. Annual figures are split 50/50 between the two semesters.</li>
+          <li><b>Debt sizing.</b> CFADS (pre-tax) is discounted at the all-in rate over the debt tenor. Capacity at the target DSCR = PV of CFADS ÷ target DSCR. With "lower of" sizing, the debt is the lower of that capacity and maximum gearing × capex.</li>
+          <li><b>Construction.</b> Capex follows the drawdown profile; debt is drawn pro rata at the effective gearing. Equity pays its share of capex plus IDC, commitment fee and the upfront fee.</li>
+          <li><b>Repayment.</b> Sculpted: debt service in each period = CFADS ÷ the constant DSCR that repays the debt exactly at maturity (PV of CFADS ÷ debt). Annuity and linear profiles are also available.</li>
+          <li><b>Tax.</b> Straight-line depreciation of the total project cost from COD; taxable income = EBITDA − depreciation − interest; losses carried forward; 30% corporate tax.</li>
+          <li><b>Ratios.</b> DSCR pre- and post-tax per period, 12-month historic DSCR (tested from the second calculation date), LLCR and PLCR from a backward PV recursion.</li>
+          <li><b>DSRA and waterfall.</b> DSRA target = next 6 months of debt service, funded by equity at COD, topped up from cash flow and released when the target falls. Distributions are blocked during lock-up or while the DSRA is short; trapped cash is released once the test is passed again.</li>
+          <li><b>Equity returns.</b> Equity IRR on semi-annual flows (contributions, DSRA funding, distributions), annualised as (1 + IRR)² − 1. No terminal value after the PPA.</li>
+        </ol>
+
+        <h3>Random deals</h3>
+        <p>A generated deal draws a fictional Australian solar project from realistic ranges: location and capacity factor, capacity (50–400 MW), capex of AUD 1.15–1.45m per MW, opex, 15–20 year PPA (CPI-indexed or flat), margin, fees, gearing (65–80%) and target DSCR (1.25–1.40x). The debt is then sized like a lender would: the lowest of maximum gearing, the amount sculpted at the target DSCR, and the amount that keeps the minimum post-tax DSCR 0.05x above lock-up, rounded down to AUD 0.5m. The PPA price is the lowest price that gives the sponsor its target equity IRR (5.5–8.5%). The same deal number always gives the same deal.</p>
+
+        <h3>Choices where the term sheet is silent</h3>
+        <ul>
+          <li>Sculpting follows the term sheet on <b>pre-tax</b> CFADS. The post-tax DSCR is shown next to it, because tax can push it below the sculpting target once tax losses run out.</li>
+          <li>The DSRA is funded by a separate equity contribution at COD, outside the sources and uses at financial close.</li>
+          <li>Interest is calculated as balance × annual rate ÷ 2 (no day count).</li>
+        </ul>
+
+        <h3>How it is tested</h3>
+        <ul>
+          <li>Golden tests: 21 reference values recomputed independently from the Coolabah term sheet (IDC, fees, FY30 EBITDA, sculpted DSCR 1.475x, LLCR, PLCR, IRR…).</li>
+          <li>300 random deals per test run: each one must pass every integrity check, respect its own gearing and DSCR terms, and state in its term sheet the numbers the model uses.</li>
+          <li>The Excel export is recalculated by an independent spreadsheet engine and must match the web app on every reconciled output.</li>
+        </ul>
+
+        <h3>Not in this version</h3>
+        <p>Interest rate hedging, agency fees, maintenance reserve, cash sweep, P90 / P99 sizing, margin step-ups, multiple tranches and terminal value.</p>
       </div>
     </section>
 
@@ -257,23 +425,24 @@ pre.prompt { white-space: pre-wrap; font-family: var(--f-data); font-size: 12px;
           <div class="note">The whole model runs from this. Paste a new deal and apply it, or open a .json file.</div>
           <textarea class="json" id="jsonBox" spellcheck="false" aria-label="Deal JSON"></textarea>
           <div class="row-actions">
-            <button class="btn primary" id="applyJson" type="button">Apply</button>
-            <button class="btn" id="copyJson" type="button">Copy</button>
-            <label class="btn" for="fileJson">Open .json</label>
+            <button class="btn btn-primary btn-sm" id="applyJson" type="button">Apply</button>
+            <button class="btn btn-ghost btn-sm" id="copyJson" type="button">Copy</button>
+            <label class="btn btn-ghost btn-sm" for="fileJson">Open .json</label>
             <input type="file" id="fileJson" accept=".json,application/json" hidden>
             <span class="msg" id="jsonMsg"></span>
           </div>
         </div>
         <div class="card">
-          <h2>Extract a new term sheet</h2>
+          <h2>Bring your own term sheet</h2>
           <div class="note">Paste this prompt into Claude with your term sheet. It returns a deal JSON you can apply here.</div>
           <pre class="prompt" id="promptBox"></pre>
-          <div class="row-actions"><button class="btn" id="copyPrompt" type="button">Copy prompt</button><span class="msg" id="promptMsg"></span></div>
+          <div class="row-actions"><button class="btn btn-ghost btn-sm" id="copyPrompt" type="button">Copy prompt</button><span class="msg" id="promptMsg"></span></div>
         </div>
       </div>
     </section>
   </main>
 </div>
+<footer class="foot" id="foot" hidden>Fictional deals for modelling practice. Calculations run in your browser.</footer>
 
 <script>
 /*
@@ -579,11 +748,1063 @@ pre.prompt { white-space: pre-wrap; font-family: var(--f-data); font-size: 12px;
   else root.PFEngine = api;
 })(typeof window !== 'undefined' ? window : globalThis);
 
+/*
+ * Random deal generator — v1
+ * Draws a fictional Australian solar project finance deal from realistic ranges.
+ * Same seed -> same deal, so a deal can be shared by its number ("Deal #4821").
+ * The debt is sized like a real bank would: lowest of max gearing and the amount
+ * sculpted at the target DSCR, rounded down to AUD 0.5m.
+ * All names and parties are made up.
+ */
+(function (root) {
+  'use strict';
+
+  const engine = typeof module !== 'undefined' && module.exports ? require('./engine.js') : root.PFEngine;
+
+  // Small seeded random number generator (mulberry32): fast, deterministic, good enough for sampling.
+  function rng(seed) {
+    let a = seed >>> 0;
+    return function () {
+      a = (a + 0x6d2b79f5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  const NAMES = ['Banksia', 'Brolga', 'Mallee', 'Quandong', 'Bilby', 'Corella', 'Saltbush', 'Ironbark', 'Spinifex',
+    'Bluegum', 'Kurrajong', 'Myall', 'Currawong', 'Boobook', 'Gidgee', 'Mulga', 'Paperbark', 'Bimble', 'Yarran', 'Wilga'];
+  const SPONSORS = ['Ridgeline', 'Tallowwood', 'Greywater', 'Bluestone', 'Sandhill', 'Redgum', 'Stringybark', 'Glasshouse'];
+  const FUNDS = ['I', 'II', 'III', 'IV'];
+  const RATINGS = [['BBB-', 'Baa3'], ['BBB', 'Baa2'], ['BBB+', 'Baa1'], ['A-', 'A3']];
+  // Capacity factor ranges are for single-axis trackers; fixed-tilt plants get 3 points less.
+  const REGIONS = [
+    { state: 'NSW', zone: 'Central-West Orana Renewable Energy Zone', cf: [0.25, 0.29], grid: 'NEM' },
+    { state: 'NSW', zone: 'New England Renewable Energy Zone', cf: [0.25, 0.28], grid: 'NEM' },
+    { state: 'NSW', zone: 'South-West Renewable Energy Zone', cf: [0.26, 0.29], grid: 'NEM' },
+    { state: 'QLD', zone: 'Western Downs', cf: [0.27, 0.31], grid: 'NEM' },
+    { state: 'QLD', zone: 'North Queensland', cf: [0.28, 0.31], grid: 'NEM' },
+    { state: 'VIC', zone: 'Western Victoria Renewable Energy Zone', cf: [0.22, 0.25], grid: 'NEM' },
+    { state: 'VIC', zone: 'Murray River Renewable Energy Zone', cf: [0.24, 0.27], grid: 'NEM' },
+    { state: 'SA', zone: 'Riverland', cf: [0.25, 0.29], grid: 'NEM' },
+    { state: 'WA', zone: 'Mid West', cf: [0.26, 0.30], grid: 'SWIS' },
+  ];
+  const FC_DATES = ['2027-01-01', '2027-07-01', '2028-01-01', '2028-07-01'];
+
+  // Shapes of the capex drawdown (S-curve), one per construction length in semesters.
+  const PROFILES = {
+    3: [[0.25, 0.45, 0.30], [0.30, 0.45, 0.25], [0.20, 0.50, 0.30]],
+    4: [[0.15, 0.35, 0.35, 0.15], [0.10, 0.30, 0.40, 0.20], [0.20, 0.35, 0.30, 0.15]],
+  };
+
+  const iso = (d) => d.toISOString().slice(0, 10);
+  // First day of the month, n months after a YYYY-MM-01 date.
+  function addMonths(s, n) {
+    const [y, m] = s.split('-').map(Number);
+    return iso(new Date(Date.UTC(y, m - 1 + n, 1)));
+  }
+  // Last day of the month before (date + n months): COD + 20 years -> 30 June.
+  function endBefore(s, n) {
+    const [y, m] = s.split('-').map(Number);
+    return iso(new Date(Date.UTC(y, m - 1 + n, 0)));
+  }
+
+  function draw(r) {
+    const pick = (arr) => arr[Math.floor(r() * arr.length)];
+    // Uniform draw between lo and hi on a grid of `step`.
+    const between = (lo, hi, step) => {
+      const n = Math.round((hi - lo) / step);
+      return +(lo + Math.floor(r() * (n + 1)) * step).toFixed(6);
+    };
+
+    const name = pick(NAMES);
+    const region = pick(REGIONS);
+    const tracker = r() < 0.75;
+    const mw = between(50, 400, 10);
+    const nC = r() < 0.4 ? 3 : 4;
+    const fc = pick(FC_DATES);
+    const cod = addMonths(fc, 6 * nC);
+    const ppaYears = between(15, 20, 1);
+    const tailSemesters = between(2, 4, 1);
+    const ppaEnd = endBefore(cod, 12 * ppaYears);
+    const maturity = endBefore(cod, 12 * ppaYears - 6 * tailSemesters);
+    const indexed = r() < 0.7;
+    const cf = +(between(region.cf[0], region.cf[1], 0.005) - (tracker ? 0 : 0.03)).toFixed(3);
+
+    const deal = {
+      meta: {
+        name: 'Project ' + name, currency: 'AUD', units: 'k', generated: true,
+        plant: name + ' Solar Farm', state: region.state, zone: region.zone, grid: region.grid,
+        technology: tracker ? 'single-axis tracker' : 'fixed-tilt',
+        sponsor: pick(SPONSORS) + ' Renewable Partners Fund ' + pick(FUNDS),
+        offtaker_rating: pick(RATINGS), ppa_years: ppaYears,
+      },
+      timeline: { financial_close: fc, cod, ppa_end: ppaEnd, debt_maturity: maturity },
+      construction: {
+        capex_total: mw * between(1150, 1450, 10),
+        capex_profile: pick(PROFILES[nC]).slice(),
+      },
+      operations: {
+        capacity_mw: mw,
+        capacity_factor_p50: cf,
+        availability: between(0.98, 0.995, 0.005),
+        degradation: between(0.004, 0.006, 0.0005),
+        ppa_price_fc: 0, // solved below from the sponsor's target IRR
+        ppa_indexation: indexed ? 1.0 : 0.0,
+        opex_real_fc: mw * between(22, 32, 0.5),
+        cpi: between(0.02, 0.03, 0.0025),
+      },
+      tax: { rate: 0.30, depreciation_years: pick([20, 25]) },
+      senior_debt: {
+        sizing: 'lower_of',
+        amount: 0,
+        gearing: between(0.65, 0.80, 0.05),
+        base_rate: between(0.035, 0.045, 0.0025),
+        margin: between(0.015, 0.025, 0.0005),
+        upfront_fee: between(0.01, 0.02, 0.0025),
+        commitment_fee_pct_margin: pick([0.35, 0.40, 0.45]),
+        repayment: 'sculpted',
+        target_dscr: indexed ? between(1.25, 1.35, 0.05) : between(1.30, 1.40, 0.05),
+      },
+      dsra: { months_of_ds: 6 },
+      covenants: { lockup_dscr: pick([1.10, 1.15]), default_dscr: 1.05 },
+    };
+
+    // The PPA price is what makes a deal work for the sponsor: pick the lowest price on a
+    // AUD 0.50 grid that gives an equity IRR at or above a drawn target.
+    const targetIrr = between(0.055, 0.085, 0.0025);
+    const irrAt = (price) => {
+      deal.operations.ppa_price_fc = price;
+      if (!size(deal)) return -1;
+      const x = engine.run(deal);
+      return x.ok && x.summary.equityIrr !== null ? x.summary.equityIrr : -1;
+    };
+    let lo = 70, hi = 260; // price steps of AUD 0.50: 35.00 to 130.00/MWh
+    if (irrAt(hi / 2) < targetIrr) return null;
+    while (hi - lo > 1) {
+      const mid = Math.floor((lo + hi) / 2);
+      if (irrAt(mid / 2) >= targetIrr) hi = mid; else lo = mid;
+    }
+    irrAt(hi / 2);
+    deal.meta.target_irr = targetIrr;
+    deal.sources = sources(deal);
+    return deal;
+  }
+
+  // Sizes the debt like a lender: lowest of (i) max gearing, (ii) sculpted at the target DSCR on
+  // pre-tax P50 CFADS, (iii) the amount keeping the minimum post-tax DSCR at least 0.05x above lock-up.
+  // The result is rounded down to AUD 0.5m and stored as a fixed facility amount.
+  function size(deal) {
+    const D = deal.senior_debt;
+    D.sizing = 'lower_of';
+    const first = engine.run(deal);
+    if (!first.ok) return false;
+    let amount = first.summary.amount;
+    let binding = first.summary.sizingBinding;
+    const floor = deal.covenants.lockup_dscr + 0.05;
+    D.sizing = 'fixed';
+    const minPost = (a) => { D.amount = a; const x = engine.run(deal); return x.ok ? x.summary.minDscrPost : 0; };
+    if (minPost(amount) < floor) {
+      let a = 0, b = amount;
+      for (let i = 0; i < 16; i++) { const m = (a + b) / 2; if (minPost(m) >= floor) a = m; else b = m; }
+      amount = a;
+      binding = 'post-tax DSCR';
+    }
+    D.amount = Math.floor(amount / 500) * 500;
+    deal.meta.sizing_binding = binding;
+    return D.amount > 0;
+  }
+
+  // Clause references, matching the sections written by termsheet.js.
+  function sources(d) {
+    const O = d.operations, D = d.senior_debt, T = d.timeline;
+    const pct = (v, n = 2) => (v * 100).toFixed(n) + '%';
+    return {
+      'timeline.financial_close': 'Summary: financial close targeted ' + T.financial_close,
+      'timeline.cod': 'Summary: COD ' + T.cod,
+      'timeline.ppa_end': '§1 PPA: tenor ' + d.meta.ppa_years + ' years from COD, ending ' + T.ppa_end,
+      'timeline.debt_maturity': '§2 Final Maturity: ' + T.debt_maturity,
+      'construction.capex_total': '§2 Sources and uses: construction capex AUD ' + d.construction.capex_total.toLocaleString('en-US') + 'k',
+      'construction.capex_profile': '§2 Capex drawn ' + d.construction.capex_profile.map((x) => Math.round(x * 100) + '%').join(' / '),
+      'operations.capacity_mw': '§6 Base case: ' + O.capacity_mw + ' MWac',
+      'operations.capacity_factor_p50': '§6 P50 capacity factor ' + pct(O.capacity_factor_p50, 1),
+      'operations.availability': '§6 Availability ' + pct(O.availability, 1),
+      'operations.degradation': '§6 Degradation ' + pct(O.degradation) + ' p.a. from operating year 2',
+      'operations.ppa_price_fc': '§1 PPA: AUD ' + O.ppa_price_fc.toFixed(2) + '/MWh at financial close',
+      'operations.ppa_indexation': O.ppa_indexation ? '§1 PPA: indexed at 100% of CPI annually' : '§1 PPA: flat price, no indexation',
+      'operations.opex_real_fc': '§6 Operating costs AUD ' + (O.opex_real_fc / 1000).toFixed(2) + 'm p.a. real',
+      'operations.cpi': '§6 CPI ' + pct(O.cpi) + ' p.a., applied annually',
+      'tax.rate': '§6 Corporate tax 30%',
+      'tax.depreciation_years': '§6 Straight-line tax depreciation over ' + d.tax.depreciation_years + ' years',
+      'senior_debt.amount': '§2 Senior Facility AUD ' + (D.amount * 1000).toLocaleString('en-US'),
+      'senior_debt.gearing': '§4 Sizing: maximum ' + pct(D.gearing, 0) + ' of construction capex',
+      'senior_debt.base_rate': '§3 Base case BBSW ' + pct(D.base_rate),
+      'senior_debt.margin': '§3 Margin ' + pct(D.margin) + ' p.a.',
+      'senior_debt.upfront_fee': '§3 Upfront fee ' + pct(D.upfront_fee),
+      'senior_debt.commitment_fee_pct_margin': '§3 Commitment fee ' + pct(D.commitment_fee_pct_margin, 0) + ' of the Margin',
+      'senior_debt.repayment': '§4 Repayment sculpted',
+      'senior_debt.target_dscr': '§4 Target DSCR ' + D.target_dscr.toFixed(2) + 'x on P50 CFADS',
+      'dsra.months_of_ds': '§4 DSRA: next 6 months of scheduled debt service',
+      'covenants.lockup_dscr': '§4 Lock-up < ' + d.covenants.lockup_dscr.toFixed(2) + 'x',
+      'covenants.default_dscr': '§4 Event of Default < ' + d.covenants.default_dscr.toFixed(2) + 'x',
+    };
+  }
+
+  // Public entry point. Retries with the same random stream until the deal passes every model check,
+  // so a seed always gives a bankable deal.
+  function generateDeal(seed) {
+    const s = Math.max(1, Math.floor(Number(seed)) || 1);
+    const r = rng(s);
+    for (let attempt = 0; attempt < 50; attempt++) {
+      const deal = draw(r);
+      if (!deal) continue;
+      const res = engine.run(deal);
+      if (res.ok && res.checks.every((c) => c.ok) && res.summary.equityIrr !== null) {
+        deal.meta.seed = s;
+        return deal;
+      }
+    }
+    throw new Error('Could not generate a valid deal for seed ' + s);
+  }
+
+  const randomSeed = () => 1 + Math.floor(Math.random() * 9999);
+
+  const api = { generateDeal, randomSeed, rng };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.PFGenerator = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/*
+ * Term sheet writer — v1
+ * Turns a generated deal (plus the engine results, for sources & uses and base case figures)
+ * into an indicative term sheet in Markdown, laid out like docs/coolabah_term_sheet.md.
+ * Every number the model reads is written in the clause that deal.sources points to.
+ */
+(function (root) {
+  'use strict';
+
+  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const longDate = (s) => { const [y, m, d] = s.split('-').map(Number); return d + ' ' + MONTHS[m - 1] + ' ' + y; };
+  const nf = (v) => Math.round(v).toLocaleString('en-US');
+  const pct = (v, n = 2) => (v * 100).toFixed(n) + '%';
+  const m1 = (k) => (k / 1000).toFixed(1) + 'm';
+  const m2 = (k) => (k / 1000).toFixed(2) + 'm';
+
+  function termSheet(deal, res) {
+    const M = deal.meta, T = deal.timeline, C = deal.construction, O = deal.operations, D = deal.senior_debt;
+    const s = res.summary, cov = deal.covenants;
+    const nC = C.capex_profile.length;
+    const rate = D.base_rate + D.margin;
+    const debtYears = (res.meta.nM - res.meta.nC) / 2;
+    const tail = (res.meta.N - res.meta.nM) / 2;
+    const [sp, mo] = M.offtaker_rating;
+    const fy = s.firstOpYear;
+    const price1 = fy.revenue * 1000 / fy.energy;
+    const indexed = O.ppa_indexation > 0;
+    const fp = res.periods[res.meta.nC];
+    const firstRepay = (fp.month === 6 ? '30 June ' : '31 December ') + fp.year;
+    const L = [];
+
+    L.push('# ' + M.name + ' — Indicative Term Sheet', '');
+    L.push('Deal #' + M.seed + ' · generated at random for modelling practice', '');
+    L.push('Senior secured, limited-recourse financing of AUD ' + m1(D.amount) + ' for a ' + O.capacity_mw + ' MWac ' + M.technology +
+      ' solar farm in ' + M.state + ', Australia, backed by a ' + M.ppa_years + '-year ' + (indexed ? 'CPI-indexed' : 'fixed-price') +
+      ' PPA. Financial close targeted ' + longDate(T.financial_close) + '; COD ' + longDate(T.cod) + '.', '');
+    L.push('*Fictional transaction generated at random. All parties, names and figures are illustrative. Indicative terms for discussion only; not an offer or commitment to lend. All amounts in AUD unless stated.*', '');
+
+    L.push('## 1. Transaction overview', '');
+    L.push('| Term | Description |', '| --- | --- |');
+    L.push('| Project | ' + M.plant + ': ' + O.capacity_mw + ' MWac ' + M.technology + ' PV plant, ' + M.zone + ', ' + M.state + '. Connected to the ' + M.grid + '. |');
+    L.push('| Borrower | ' + M.plant.replace(' Farm', '') + ' Project Co Pty Ltd, a single-purpose company with no other business or assets. |');
+    L.push('| Sponsor | ' + M.sponsor + ' (100% equity). |');
+    L.push('| Offtaker | Investment-grade energy retailer (rated ' + sp + ' / ' + mo + '), under a ' + M.ppa_years + '-year PPA. |');
+    L.push('| PPA | Pay-as-produced, bundled energy and LGCs. AUD ' + O.ppa_price_fc.toFixed(2) + '/MWh at financial close, ' +
+      (indexed ? 'indexed at 100% of CPI annually' : 'flat price, no indexation') + '. Tenor ' + M.ppa_years + ' years from COD, ending ' + longDate(T.ppa_end) + '. |');
+    L.push('| EPC Contractor | Tier-1 contractor under a fixed-price, date-certain, lump-sum turnkey contract. |');
+    L.push('| Mandated Lead Arrangers | Bank A, Bank B and Bank C (club deal). |');
+    L.push('| Purpose | Fund construction capex, interest during construction, financing fees and commitment fees until COD. |', '');
+
+    L.push('## 2. Facilities', '');
+    L.push('| Term | Description |', '| --- | --- |');
+    L.push('| Senior Facility | AUD ' + nf(D.amount * 1000) + ' Construction Facility, converting at COD into a Term Loan Facility of the same amount. |');
+    L.push('| Availability Period | From financial close (' + longDate(T.financial_close) + ') to COD. |');
+    L.push('| Drawdowns | Semi-annual, pro rata with equity at a fixed gearing of ' + pct(s.effGearing, 1) + ' of each capex amount. Equity funds all financing costs (upfront fee, IDC, commitment fee). |');
+    L.push('| Final Maturity | ' + longDate(T.debt_maturity) + ': ' + debtYears + ' years after scheduled COD, leaving a ' + tail + '-year PPA tail. |');
+    L.push('| Currency | AUD. |', '');
+    L.push('**Sources and uses at financial close (AUD k)**', '');
+    const tot = s.projectCost;
+    const p = (v) => pct(v / tot, 1);
+    L.push('| Uses | AUD k | % | Sources | AUD k | % |', '| --- | --- | --- | --- | --- | --- |');
+    L.push('| Construction capex | ' + nf(C.capex_total) + ' | ' + p(C.capex_total) + ' | Senior Facility | ' + nf(s.amount) + ' | ' + p(s.amount) + ' |');
+    L.push('| Interest during construction | ' + nf(s.idc) + ' | ' + p(s.idc) + ' | Sponsor equity | ' + nf(s.equityAtFc) + ' | ' + p(s.equityAtFc) + ' |');
+    L.push('| Upfront fee | ' + nf(s.upfrontFee) + ' | ' + p(s.upfrontFee) + ' |  |  |  |');
+    L.push('| Commitment fee | ' + nf(s.commitmentFees) + ' | ' + p(s.commitmentFees) + ' |  |  |  |');
+    L.push('| **Total uses** | **' + nf(tot) + '** | **100.0%** | **Total sources** | **' + nf(s.amount + s.equityAtFc) + '** | **100.0%** |', '');
+    L.push('Capex is drawn ' + C.capex_profile.map((x) => Math.round(x * 100) + '%').join(' / ') + ' over the ' + nC + ' construction semesters.', '');
+
+    L.push('## 3. Pricing and fees', '');
+    L.push('All-in cost of debt is ' + pct(rate) + ' p.a. in the base case (BBSW ' + pct(D.base_rate) + ' + ' + pct(D.margin) + ' margin), flat over the life of the loan.', '');
+    L.push('| Term | Description |', '| --- | --- |');
+    L.push('| Interest Rate | 6-month BBSW plus the Margin, payable semi-annually in arrears on 30 June and 31 December. |');
+    L.push('| Margin | ' + pct(D.margin) + ' p.a. during construction and operations. |');
+    L.push('| Base case BBSW | ' + pct(D.base_rate) + ' p.a. (lenders\' planning assumption). |');
+    L.push('| Upfront Fee | ' + pct(D.upfront_fee) + ' of the Senior Facility (AUD ' + nf(s.upfrontFee) + 'k), payable on financial close. |');
+    L.push('| Commitment Fee | ' + pct(D.commitment_fee_pct_margin, 0) + ' of the Margin (' + pct(D.margin * D.commitment_fee_pct_margin) + ' p.a.) on undrawn commitments, payable semi-annually in arrears during the Availability Period. |', '');
+
+    L.push('## 4. Repayment, accounts and financial covenants', '');
+    L.push('| Term | Description |', '| --- | --- |');
+    L.push('| Repayment | ' + (res.meta.nRep) + ' semi-annual instalments from ' + firstRepay + ' to ' + longDate(T.debt_maturity) + ', sculpted to the P50 CFADS profile of the Agreed Base Case. |');
+    L.push('| Target DSCR (sculpting) | ' + D.target_dscr.toFixed(2) + 'x on P50 CFADS. |');
+    L.push('| Sizing | Senior debt is the lowest of: (i) a maximum of ' + pct(D.gearing, 0) + ' of construction capex; (ii) the amount sculpted at ' + D.target_dscr.toFixed(2) + 'x on pre-tax P50 CFADS; (iii) the amount for which the minimum post-tax DSCR of the Agreed Base Case is at least ' + (cov.lockup_dscr + 0.05).toFixed(2) + 'x. Binding constraint: ' + M.sizing_binding + '. |');
+    L.push('| Debt Service Reserve Account | Balance equal to the next 6 months of scheduled senior debt service, funded in cash by the Sponsor at COD. |', '');
+    L.push('**Financial covenants (tested semi-annually from the second calculation date after COD)**', '');
+    L.push('| Ratio | Calculation | Level |', '| --- | --- | --- |');
+    L.push('| Historic DSCR | CFADS over the last 12 months ÷ senior debt service over the same period | Lock-up < ' + cov.lockup_dscr.toFixed(2) + 'x; Event of Default < ' + cov.default_dscr.toFixed(2) + 'x |');
+    L.push('| Maximum gearing | Senior debt ÷ construction capex at financial close | ' + pct(D.gearing, 0) + ' |', '');
+    L.push('**Cash flow waterfall (operations)**', '');
+    L.push('1. Operating costs and taxes', '2. Senior interest', '3. Senior principal', '4. Top-up of the Debt Service Reserve Account', '5. Distribution Account, subject to the Distribution Conditions', '');
+    L.push('**Distribution Conditions:** no Default outstanding; historic DSCR at or above ' + cov.lockup_dscr.toFixed(2) + 'x; DSRA fully funded.', '');
+
+    L.push('## 5. Security and conditions', '');
+    L.push('| Term | Description |', '| --- | --- |');
+    L.push('| Security | First-ranking security over all assets of the Borrower, shares in the Borrower, and tripartite deeds with the Offtaker and EPC Contractor. |');
+    L.push('| Sponsor Support | Equity commitment letter for AUD ' + m1(s.equityAtFc) + ', backed by a bank letter of credit until fully contributed. |');
+    L.push('| Conditions Precedent | Finance and Project documents, satisfactory technical, legal, insurance and model audit reports, and an Agreed Base Case consistent with these terms. |', '');
+
+    L.push('## 6. Agreed Base Case', '');
+    L.push('The base case generates EBITDA of AUD ' + m2(fy.ebitda) + ' in the first year of operations, a ' + pct(fy.margin, 0) + ' margin.', '');
+    L.push('| Assumption | Base case | First operating year |', '| --- | --- | --- |');
+    L.push('| Capacity | ' + O.capacity_mw + ' MWac |  |');
+    L.push('| P50 capacity factor | ' + pct(O.capacity_factor_p50, 1) + ' (' + M.technology + ') |  |');
+    L.push('| Availability | ' + pct(O.availability, 1) + ' |  |');
+    L.push('| Degradation | ' + pct(O.degradation) + ' p.a. from operating year 2 |  |');
+    L.push('| Net energy |  | ' + nf(fy.energy) + ' MWh |');
+    L.push('| PPA price | AUD ' + O.ppa_price_fc.toFixed(2) + '/MWh at FC' + (indexed ? ', 100% CPI' : ', flat') + ' | AUD ' + price1.toFixed(2) + '/MWh |');
+    L.push('| Revenue |  | AUD ' + m2(fy.revenue) + ' |');
+    L.push('| Operating costs | AUD ' + m2(O.opex_real_fc) + ' p.a. real | AUD ' + m2(fy.opex) + ' |');
+    L.push('| EBITDA |  | AUD ' + m2(fy.ebitda) + ' |');
+    L.push('| CPI | ' + pct(O.cpi) + ' p.a., applied annually |  |');
+    L.push('| Corporate tax | 30%, straight-line tax depreciation over ' + deal.tax.depreciation_years + ' years, losses carried forward |  |');
+
+    return L.join('\n') + '\n';
+  }
+
+  const api = { termSheet };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.PFTermSheet = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/*
+ * Minimal Markdown to HTML, enough for the term sheets: headings, paragraphs, tables,
+ * bullet / numbered / checkbox lists, **bold** and *italic*. Text is HTML-escaped first.
+ */
+(function (root) {
+  'use strict';
+
+  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const inline = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>');
+  const cells = (line) => line.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
+
+  function toHtml(md) {
+    const lines = md.replace(/\r/g, '').split('\n');
+    const out = [];
+    let i = 0;
+    while (i < lines.length) {
+      const line = lines[i];
+      if (!line.trim()) { i++; continue; }
+      const h = line.match(/^(#{1,3})\s+(.*)$/);
+      if (h) { out.push('<h' + h[1].length + '>' + inline(h[2]) + '</h' + h[1].length + '>'); i++; continue; }
+      if (line.trim().startsWith('|')) {
+        const head = cells(line);
+        i += 2; // skip the | --- | separator row
+        const rows = [];
+        while (i < lines.length && lines[i].trim().startsWith('|')) rows.push(cells(lines[i++]));
+        out.push('<div class="ts-table"><table><thead><tr>' + head.map((c) => '<th>' + inline(c) + '</th>').join('') + '</tr></thead><tbody>' +
+          rows.map((r) => '<tr>' + r.map((c) => '<td>' + inline(c) + '</td>').join('') + '</tr>').join('') + '</tbody></table></div>');
+        continue;
+      }
+      if (/^\s*(- |\d+\. )/.test(line)) {
+        const ordered = /^\s*\d+\. /.test(line);
+        const items = [];
+        while (i < lines.length && /^\s*(- |\d+\. )/.test(lines[i])) {
+          const t = lines[i++].replace(/^\s*(- |\d+\. )/, '');
+          const box = t.match(/^\[( |x)\]\s*(.*)$/);
+          items.push(box ? '<li class="todo"><span class="box">' + (box[1] === 'x' ? '✓' : '') + '</span>' + inline(box[2]) + '</li>' : '<li>' + inline(t) + '</li>');
+        }
+        out.push((ordered ? '<ol>' : '<ul>') + items.join('') + (ordered ? '</ol>' : '</ul>'));
+        continue;
+      }
+      const para = [];
+      while (i < lines.length && lines[i].trim() && !/^(#{1,3}\s|\s*\||\s*- |\s*\d+\. )/.test(lines[i])) para.push(lines[i++].trim());
+      out.push('<p>' + inline(para.join(' ')) + '</p>');
+    }
+    return out.join('\n');
+  }
+
+  const api = { toHtml };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.PFMarkdown = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/*
+ * Minimal .xlsx writer, no dependencies (works in Node and in the browser).
+ * An .xlsx file is a zip of XML files. This writes only what the model export needs:
+ * several sheets, numbers / text / booleans / formulas (with a cached value), cell styles,
+ * column widths, frozen panes, defined names and drop-down lists.
+ * Files are stored in the zip without compression, which Excel accepts.
+ */
+(function (root) {
+  'use strict';
+
+  const xmlEsc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+  // Column number (1-based) <-> letters: 1 -> A, 27 -> AA.
+  function colName(n) {
+    let s = '';
+    while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); }
+    return s;
+  }
+  function colNumber(letters) {
+    return letters.split('').reduce((acc, ch) => acc * 26 + ch.charCodeAt(0) - 64, 0);
+  }
+
+  // Excel stores dates as days since 30 Dec 1899.
+  function excelDate(iso) {
+    const [y, m, d] = iso.split('-').map(Number);
+    return (Date.UTC(y, m - 1, d) - Date.UTC(1899, 11, 30)) / 86400000;
+  }
+
+  class Sheet {
+    constructor(name) {
+      this.name = name;
+      this.rows = new Map(); // row number -> Map(col number -> cell)
+      this.widths = [];
+      this.freeze = null;
+      this.lists = [];
+      this.tab = null;
+    }
+    // value: number | string | boolean | { f: 'formula without =', v: cached value } ; style: style id
+    set(ref, value, style) {
+      const m = ref.match(/^([A-Z]+)(\d+)$/);
+      const r = Number(m[2]), c = colNumber(m[1]);
+      if (!this.rows.has(r)) this.rows.set(r, new Map());
+      this.rows.get(r).set(c, { value, style: style || 0 });
+      return this;
+    }
+    width(col, w) { this.widths.push([col, w]); return this; }
+    freezeAt(ref) { this.freeze = ref; return this; }
+    dropdown(ref, options) { this.lists.push([ref, options]); return this; }
+
+    cellXml(ref, { value, style }) {
+      const s = style ? ' s="' + style + '"' : '';
+      if (value === null || value === undefined || value === '') return '<c r="' + ref + '"' + s + '/>';
+      if (typeof value === 'number') return isFinite(value) ? '<c r="' + ref + '"' + s + '><v>' + value + '</v></c>' : '<c r="' + ref + '"' + s + '/>';
+      if (typeof value === 'boolean') return '<c r="' + ref + '"' + s + ' t="b"><v>' + (value ? 1 : 0) + '</v></c>';
+      if (typeof value === 'string') return '<c r="' + ref + '"' + s + ' t="inlineStr"><is><t xml:space="preserve">' + xmlEsc(value) + '</t></is></c>';
+      // Formula, with an optional cached result so viewers that do not recalculate still show numbers.
+      const v = value.v;
+      const f = '<f>' + xmlEsc(value.f) + '</f>';
+      if (typeof v === 'number' && isFinite(v)) return '<c r="' + ref + '"' + s + '>' + f + '<v>' + v + '</v></c>';
+      if (typeof v === 'boolean') return '<c r="' + ref + '"' + s + ' t="b">' + f + '<v>' + (v ? 1 : 0) + '</v></c>';
+      if (typeof v === 'string') return '<c r="' + ref + '"' + s + ' t="str">' + f + '<v>' + xmlEsc(v) + '</v></c>';
+      return '<c r="' + ref + '"' + s + '>' + f + '</c>';
+    }
+
+    toXml() {
+      let x = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">';
+      if (this.tab) x += '<sheetPr><tabColor rgb="FF' + this.tab + '"/></sheetPr>';
+      x += '<sheetViews><sheetView workbookViewId="0" showGridLines="0">';
+      if (this.freeze) {
+        const m = this.freeze.match(/^([A-Z]+)(\d+)$/);
+        const xs = colNumber(m[1]) - 1, ys = Number(m[2]) - 1;
+        const pane = xs && ys ? 'bottomRight' : xs ? 'topRight' : 'bottomLeft';
+        x += '<pane' + (xs ? ' xSplit="' + xs + '"' : '') + (ys ? ' ySplit="' + ys + '"' : '') + ' topLeftCell="' + this.freeze + '" activePane="' + pane + '" state="frozen"/><selection pane="' + pane + '"/>';
+      }
+      x += '</sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/>';
+      if (this.widths.length) {
+        x += '<cols>' + this.widths.sort((a, b) => a[0] - b[0]).map(([c, w]) => '<col min="' + c + '" max="' + c + '" width="' + w + '" customWidth="1"/>').join('') + '</cols>';
+      }
+      x += '<sheetData>';
+      [...this.rows.keys()].sort((a, b) => a - b).forEach((r) => {
+        const cells = this.rows.get(r);
+        x += '<row r="' + r + '">' + [...cells.keys()].sort((a, b) => a - b).map((c) => this.cellXml(colName(c) + r, cells.get(c))).join('') + '</row>';
+      });
+      x += '</sheetData>';
+      if (this.lists.length) {
+        x += '<dataValidations count="' + this.lists.length + '">' + this.lists.map(([ref, opts]) =>
+          '<dataValidation type="list" allowBlank="1" showErrorMessage="1" sqref="' + ref + '"><formula1>"' + xmlEsc(opts.join(',')) + '"</formula1></dataValidation>').join('') + '</dataValidations>';
+      }
+      x += '<pageMargins left="0.7" right="0.7" top="0.75" bottom="0.75" header="0.3" footer="0.3"/></worksheet>';
+      return x;
+    }
+  }
+
+  class Workbook {
+    constructor() {
+      this.sheets = [];
+      this.names = [];
+      this.styles = [{}]; // style 0 = default
+      this.styleKeys = new Map([['{}', 0]]);
+    }
+    addSheet(name) { const s = new Sheet(name); this.sheets.push(s); return s; }
+    defineName(name, ref) { this.names.push([name, ref]); }
+
+    // Style spec: { bold, italic, color: 'RRGGBB', fill: 'RRGGBB', numFmt: '#,##0', align: 'right', border: 'top' | 'bottom', size, wrap }
+    style(spec) {
+      const key = JSON.stringify(spec);
+      if (!this.styleKeys.has(key)) { this.styleKeys.set(key, this.styles.length); this.styles.push(spec); }
+      return this.styleKeys.get(key);
+    }
+
+    stylesXml() {
+      const fonts = ['<font><sz val="10"/><name val="Arial"/></font>'], fills = ['<fill><patternFill patternType="none"/></fill>', '<fill><patternFill patternType="gray125"/></fill>'];
+      const borders = ['<border><left/><right/><top/><bottom/><diagonal/></border>'], fmts = [];
+      const idx = (list, xml) => { let i = list.indexOf(xml); if (i < 0) { list.push(xml); i = list.length - 1; } return i; };
+      const xfs = this.styles.map((s) => {
+        const font = idx(fonts, '<font>' + (s.bold ? '<b/>' : '') + (s.italic ? '<i/>' : '') + '<sz val="' + (s.size || 10) + '"/>' + (s.color ? '<color rgb="FF' + s.color + '"/>' : '') + '<name val="Arial"/></font>');
+        const fill = s.fill ? idx(fills, '<fill><patternFill patternType="solid"><fgColor rgb="FF' + s.fill + '"/><bgColor indexed="64"/></patternFill></fill>') : 0;
+        const side = (n) => (s.border === n ? '<' + n + ' style="thin"><color rgb="FF9CA3AF"/></' + n + '>' : '<' + n + '/>');
+        const border = s.border ? idx(borders, '<border><left/><right/>' + side('top') + side('bottom') + '<diagonal/></border>') : 0;
+        const fmt = s.numFmt ? 164 + idx(fmts, s.numFmt) : 0;
+        const align = s.align || s.wrap ? '<alignment' + (s.align ? ' horizontal="' + s.align + '"' : '') + (s.wrap ? ' wrapText="1" vertical="top"' : '') + '/>' : '';
+        return '<xf numFmtId="' + fmt + '" fontId="' + font + '" fillId="' + fill + '" borderId="' + border + '" xfId="0"' +
+          (fmt ? ' applyNumberFormat="1"' : '') + (font ? ' applyFont="1"' : '') + (fill ? ' applyFill="1"' : '') + (border ? ' applyBorder="1"' : '') +
+          (align ? ' applyAlignment="1">' + align + '</xf>' : '/>');
+      });
+      return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+        (fmts.length ? '<numFmts count="' + fmts.length + '">' + fmts.map((f, i) => '<numFmt numFmtId="' + (164 + i) + '" formatCode="' + xmlEsc(f) + '"/>').join('') + '</numFmts>' : '') +
+        '<fonts count="' + fonts.length + '">' + fonts.join('') + '</fonts>' +
+        '<fills count="' + fills.length + '">' + fills.join('') + '</fills>' +
+        '<borders count="' + borders.length + '">' + borders.join('') + '</borders>' +
+        '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+        '<cellXfs count="' + xfs.length + '">' + xfs.join('') + '</cellXfs>' +
+        '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+    }
+
+    files() {
+      const n = this.sheets.length;
+      const ct = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+        '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>' +
+        '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+        '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+        this.sheets.map((_, i) => '<Override PartName="/xl/worksheets/sheet' + (i + 1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>').join('') + '</Types>';
+      const rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
+      const wb = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+        '<bookViews><workbookView activeTab="0"/></bookViews><sheets>' +
+        this.sheets.map((s, i) => '<sheet name="' + xmlEsc(s.name) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>').join('') + '</sheets>' +
+        (this.names.length ? '<definedNames>' + this.names.map(([nm, ref]) => '<definedName name="' + nm + '">' + xmlEsc(ref) + '</definedName>').join('') + '</definedNames>' : '') +
+        '<calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>';
+      const wbRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+        this.sheets.map((_, i) => '<Relationship Id="rId' + (i + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' + (i + 1) + '.xml"/>').join('') +
+        '<Relationship Id="rId' + (n + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
+      const out = [['[Content_Types].xml', ct], ['_rels/.rels', rels], ['xl/workbook.xml', wb], ['xl/_rels/workbook.xml.rels', wbRels], ['xl/styles.xml', this.stylesXml()]];
+      this.sheets.forEach((s, i) => out.push(['xl/worksheets/sheet' + (i + 1) + '.xml', s.toXml()]));
+      return out;
+    }
+
+    // Returns the .xlsx file as bytes (Uint8Array).
+    toBytes() { return zip(this.files()); }
+  }
+
+  // ---- Zip (store method, no compression) ----
+  const CRC_TABLE = (() => {
+    const t = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
+    return t;
+  })();
+  function crc32(bytes) {
+    let c = 0xffffffff;
+    for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xff] ^ (c >>> 8);
+    return (c ^ 0xffffffff) >>> 0;
+  }
+
+  function zip(files) {
+    const enc = new TextEncoder();
+    const parts = [], central = [];
+    let offset = 0;
+    const DOS_TIME = 0, DOS_DATE = ((2026 - 1980) << 9) | (1 << 5) | 1;
+    for (const [name, text] of files) {
+      const nameBytes = enc.encode(name), data = enc.encode(text), crc = crc32(data);
+      const local = new DataView(new ArrayBuffer(30));
+      local.setUint32(0, 0x04034b50, true); local.setUint16(4, 20, true); local.setUint16(6, 0x0800, true);
+      local.setUint16(8, 0, true); local.setUint16(10, DOS_TIME, true); local.setUint16(12, DOS_DATE, true);
+      local.setUint32(14, crc, true); local.setUint32(18, data.length, true); local.setUint32(22, data.length, true);
+      local.setUint16(26, nameBytes.length, true); local.setUint16(28, 0, true);
+      parts.push(new Uint8Array(local.buffer), nameBytes, data);
+      const cd = new DataView(new ArrayBuffer(46));
+      cd.setUint32(0, 0x02014b50, true); cd.setUint16(4, 20, true); cd.setUint16(6, 20, true); cd.setUint16(8, 0x0800, true);
+      cd.setUint16(10, 0, true); cd.setUint16(12, DOS_TIME, true); cd.setUint16(14, DOS_DATE, true);
+      cd.setUint32(16, crc, true); cd.setUint32(20, data.length, true); cd.setUint32(24, data.length, true);
+      cd.setUint16(28, nameBytes.length, true); cd.setUint32(42, offset, true);
+      central.push(new Uint8Array(cd.buffer), nameBytes);
+      offset += 30 + nameBytes.length + data.length;
+    }
+    const cdSize = central.reduce((a, b) => a + b.length, 0);
+    const end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054b50, true); end.setUint16(8, files.length, true); end.setUint16(10, files.length, true);
+    end.setUint32(12, cdSize, true); end.setUint32(16, offset, true);
+    const all = [...parts, ...central, new Uint8Array(end.buffer)];
+    const out = new Uint8Array(all.reduce((a, b) => a + b.length, 0));
+    let p = 0;
+    for (const b of all) { out.set(b, p); p += b.length; }
+    return out;
+  }
+
+  const api = { Workbook, colName, colNumber, excelDate, crc32 };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.PFXlsx = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/*
+ * Excel export — v1
+ * Rebuilds the whole model as live Excel formulas: change an input in the Inputs sheet and
+ * every line recalculates. Sheets: Cover, Inputs, Calc, Outputs, Checks.
+ * Calc follows the same order as engine.js (see SPEC.md section 5). Each formula cell also
+ * carries the engine's value as a cached result, and the Checks sheet compares the two.
+ */
+(function (root) {
+  'use strict';
+
+  const X = typeof module !== 'undefined' && module.exports ? require('./xlsx.js') : root.PFXlsx;
+
+  const C_ACCENT = '2F5BEA', C_INPUT_BG = 'EEF2FE', C_MUTED = '6B7280', C_HEAD_BG = 'F6F7F9', C_GOOD = '15803D';
+  const F_K = '#,##0;(#,##0);"–"', F_K1 = '#,##0.0;(#,##0.0);"–"', F_X = '0.000"x"', F_PCT = '0.00%', F_PCT1 = '0.0%';
+  const F_DATE = 'dd-mmm-yyyy', F_MONTH = 'mmm-yy', F_INT = '0', F_PRICE = '#,##0.00';
+
+  function buildWorkbook(deal, res) {
+    const wb = new X.Workbook();
+    const st = {
+      title: wb.style({ bold: true, size: 16 }),
+      h: wb.style({ bold: true, size: 11, color: C_ACCENT }),
+      note: wb.style({ italic: true, color: C_MUTED }),
+      noteWrap: wb.style({ color: C_MUTED, wrap: true }),
+      bold: wb.style({ bold: true }),
+      head: wb.style({ bold: true, fill: C_HEAD_BG, border: 'bottom' }),
+      headR: wb.style({ bold: true, fill: C_HEAD_BG, border: 'bottom', align: 'right' }),
+      muted: wb.style({ color: C_MUTED }),
+      good: wb.style({ bold: true, color: C_GOOD }),
+    };
+    const inp = (numFmt) => wb.style({ color: C_ACCENT, fill: C_INPUT_BG, numFmt });
+    const calc = (numFmt, bold) => wb.style(bold ? { numFmt, bold: true } : { numFmt });
+
+    const S = res.series, P = res.periods, N = res.meta.N, sum = res.summary;
+    const FIRST = 4; // column D holds period 1
+    const col = (t) => X.colName(FIRST + t - 1);
+    const LAST = col(N);
+
+    // ---------------- Inputs ----------------
+    const wsI = wb.addSheet('Inputs');
+    wsI.tab = C_ACCENT;
+    wsI.width(1, 40).width(2, 16).width(3, 12).width(4, 80);
+    wsI.set('A1', 'Inputs', st.title);
+    wsI.set('A2', 'Blue cells are inputs: change them and the whole model recalculates. Column D gives the term sheet clause each input comes from.', st.note);
+    let r = 4;
+    const src = (path) => (deal.sources && deal.sources[path]) || '';
+    const section = (ws, title) => { r++; ws.set('A' + r, title, st.h); r++; };
+    const input = (name, label, value, fmt, unit, path, list) => {
+      wsI.set('A' + r, label);
+      wsI.set('B' + r, value, inp(fmt));
+      wsI.set('C' + r, unit || '', st.muted);
+      wsI.set('D' + r, src(path), st.muted);
+      if (list) wsI.dropdown('B' + r, list);
+      wb.defineName(name, 'Inputs!$B$' + r);
+      r++;
+    };
+    const T = deal.timeline, Cn = deal.construction, O = deal.operations, D = deal.senior_debt;
+    wsI.set('A' + r, 'Input', st.head); wsI.set('B' + r, 'Value', st.headR); wsI.set('C' + r, 'Unit', st.head); wsI.set('D' + r, 'Term sheet source', st.head); r++;
+    section(wsI, 'Timeline');
+    input('fc_date', 'Financial close', X.excelDate(T.financial_close), F_DATE, '', 'timeline.financial_close');
+    input('cod_date', 'Commercial operation date (COD)', X.excelDate(T.cod), F_DATE, '', 'timeline.cod');
+    input('maturity_date', 'Final maturity', X.excelDate(T.debt_maturity), F_DATE, '', 'timeline.debt_maturity');
+    input('ppa_end_date', 'PPA expiry', X.excelDate(T.ppa_end), F_DATE, '', 'timeline.ppa_end');
+    section(wsI, 'Construction');
+    input('capex_total', 'Construction capex', Cn.capex_total, F_K, deal.meta.currency + ' k', 'construction.capex_total');
+    const profStart = r;
+    Cn.capex_profile.forEach((x, i) => {
+      wsI.set('A' + r, 'Capex share, construction semester ' + (i + 1));
+      wsI.set('B' + r, x, inp(F_PCT1));
+      wsI.set('C' + r, '% of capex', st.muted);
+      if (i === 0) wsI.set('D' + r, src('construction.capex_profile'), st.muted);
+      r++;
+    });
+    wb.defineName('capex_profile', 'Inputs!$B$' + profStart + ':$B$' + (r - 1));
+    section(wsI, 'Operations');
+    input('capacity_mw', 'Capacity', O.capacity_mw, '#,##0.0', 'MWac', 'operations.capacity_mw');
+    input('cf_p50', 'P50 capacity factor', O.capacity_factor_p50, F_PCT, '', 'operations.capacity_factor_p50');
+    input('availability', 'Availability', O.availability, F_PCT, '', 'operations.availability');
+    input('degradation', 'Degradation', O.degradation, F_PCT, '% p.a.', 'operations.degradation');
+    input('ppa_price', 'PPA price at financial close', O.ppa_price_fc, F_PRICE, deal.meta.currency + '/MWh', 'operations.ppa_price_fc');
+    input('ppa_indexation', 'PPA indexation', O.ppa_indexation, '0%', '% of CPI', 'operations.ppa_indexation');
+    input('opex_real', 'Operating costs (real, at financial close)', O.opex_real_fc, F_K, 'k p.a.', 'operations.opex_real_fc');
+    input('cpi', 'CPI', O.cpi, F_PCT, '% p.a.', 'operations.cpi');
+    section(wsI, 'Senior debt');
+    input('sizing', 'Debt sizing', D.sizing === 'lower_of' ? 'lower_of' : 'fixed', '', 'fixed / lower_of', 'senior_debt.sizing', ['fixed', 'lower_of']);
+    input('debt_amount_input', 'Facility amount (used when sizing = fixed)', D.amount, F_K, deal.meta.currency + ' k', 'senior_debt.amount');
+    input('max_gearing', 'Maximum gearing (of capex)', D.gearing, F_PCT1, '', 'senior_debt.gearing');
+    input('base_rate', 'Base rate (BBSW)', D.base_rate, F_PCT, '', 'senior_debt.base_rate');
+    input('margin', 'Margin', D.margin, F_PCT, '', 'senior_debt.margin');
+    input('upfront_fee_pct', 'Upfront fee', D.upfront_fee, F_PCT, '% of facility', 'senior_debt.upfront_fee');
+    input('commit_fee_pct', 'Commitment fee', D.commitment_fee_pct_margin, F_PCT1, '% of margin', 'senior_debt.commitment_fee_pct_margin');
+    input('repayment', 'Repayment profile', D.repayment, '', 'sculpted / annuity / linear', 'senior_debt.repayment', ['sculpted', 'annuity', 'linear']);
+    input('target_dscr', 'Target DSCR', D.target_dscr, '0.00"x"', '', 'senior_debt.target_dscr');
+    section(wsI, 'Tax');
+    input('tax_rate', 'Corporate tax rate', deal.tax.rate, F_PCT1, '', 'tax.rate');
+    input('dep_years', 'Tax depreciation (straight line)', deal.tax.depreciation_years, F_INT, 'years', 'tax.depreciation_years');
+    section(wsI, 'Reserves and covenants');
+    input('dsra_months', 'DSRA size', deal.dsra.months_of_ds, F_INT, 'months of debt service', 'dsra.months_of_ds');
+    input('lockup_dscr', 'Lock-up DSCR (12-month historic)', deal.covenants.lockup_dscr, '0.00"x"', '', 'covenants.lockup_dscr');
+    input('default_dscr', 'Event of default DSCR', deal.covenants.default_dscr, '0.00"x"', '', 'covenants.default_dscr');
+
+    section(wsI, 'Derived (formulas, do not edit)');
+    const derived = (name, label, f, v, fmt, unit) => {
+      wsI.set('A' + r, label); wsI.set('B' + r, { f, v }, calc(fmt)); wsI.set('C' + r, unit || '', st.muted);
+      wb.defineName(name, 'Inputs!$B$' + r); r++;
+    };
+    derived('all_in_rate', 'All-in interest rate', 'base_rate+margin', res.meta.rate, F_PCT, 'p.a.');
+    derived('semi_rate', 'Interest rate per semester', 'all_in_rate/2', res.meta.rate / 2, '0.0000%', '');
+    derived('n_constr', 'Construction semesters', '((YEAR(cod_date)-YEAR(fc_date))*12+MONTH(cod_date)-MONTH(fc_date))/6', res.meta.nC, F_INT, '');
+    derived('fy_first', 'Financial year of period 1 (Jul–Jun)', 'YEAR(EDATE(fc_date,6)-1)+IF(MONTH(EDATE(fc_date,6)-1)>6,1,0)', P[0].fy, F_INT, '');
+    derived('dsra_periods', 'DSRA size in semesters', 'dsra_months/6', deal.dsra.months_of_ds / 6, F_INT, '');
+
+    // ---------------- Calc ----------------
+    // Rows are declared once with a formula template; row numbers are assigned first so that
+    // any row can refer to any other (e.g. opening debt = previous closing debt).
+    const ROWS = [];
+    const G = (title) => ROWS.push({ group: title });
+    const L = (key, label, unit, fmt, f, opt) => ROWS.push(Object.assign({ key, label, unit, fmt, f }, opt || {}));
+    const V = (key, label, unit, fmt, f, opt) => ROWS.push(Object.assign({ key, label, unit, fmt, f, scalar: true }, opt || {}));
+
+    G('Timeline');
+    L('start', 'Period start', '', F_DATE, (c) => 'EDATE(fc_date,6*(' + c.t + '-1))', { cache: (i) => X.excelDate(periodStart(P[i])) });
+    L('end', 'Period end', '', F_DATE, (c) => 'EDATE(fc_date,6*' + c.t + ')-1', { cache: (i) => X.excelDate(periodEnd(P[i])) });
+    L('f_con', 'Construction flag', 'flag', F_INT, (c) => 'IF(' + c('end') + '<cod_date,1,0)', { cache: (i) => (i < res.meta.nC ? 1 : 0) });
+    L('f_cod', 'COD flag (last construction period)', 'flag', F_INT, (c) => 'IF(AND(' + c('f_con') + '=1,' + c.n('f_con') + '=0),1,0)', { cache: (i) => (i === res.meta.nC - 1 ? 1 : 0) });
+    L('f_op', 'Operations flag', 'flag', F_INT, (c) => 'IF(AND(' + c('start') + '>=cod_date,' + c('end') + '<=ppa_end_date),1,0)', { cache: (i) => (i >= res.meta.nC ? 1 : 0) });
+    L('f_first', 'First operating period', 'flag', F_INT, (c) => 'IF(AND(' + c('f_op') + '=1,' + c.p('f_op') + '=0),1,0)', { cache: (i) => (i === res.meta.nC ? 1 : 0) });
+    L('f_last', 'Last operating period', 'flag', F_INT, (c) => 'IF(AND(' + c('f_op') + '=1,' + c.n('f_op') + '=0),1,0)', { cache: (i) => (i === N - 1 ? 1 : 0) });
+    L('f_debt', 'Debt repayment flag', 'flag', F_INT, (c) => 'IF(AND(' + c('start') + '>=cod_date,' + c('end') + '<=maturity_date),1,0)', { cache: (i) => (i >= res.meta.nC && i < res.meta.nM ? 1 : 0) });
+    L('fy', 'Financial year (Jul–Jun)', 'FY', F_INT, (c) => 'YEAR(' + c('end') + ')+IF(MONTH(' + c('end') + ')>6,1,0)', { cache: (i) => P[i].fy });
+    L('opyear', 'Operating year', '', F_INT, (c) => 'IF(' + c('f_op') + '=1,INT((' + c.t + '-n_constr-1)/2)+1,0)', { cache: (i) => P[i].opYear });
+    L('index', 'CPI index (annual steps from FC)', '', '0.0000', (c) => 'IF(' + c('f_op') + '=1,(1+cpi)^(' + c('fy') + '-fy_first),0)', { cache: (i) => S.index[i] });
+    L('degf', 'Degradation factor', '', '0.0000', (c) => 'IF(' + c('f_op') + '=1,(1-degradation)^(' + c('opyear') + '-1),0)',
+      { cache: (i) => (i >= res.meta.nC ? Math.pow(1 - O.degradation, P[i].opYear - 1) : 0) });
+
+    G('Operations');
+    L('energy', 'Net energy', 'MWh', F_K, (c) => 'IF(' + c('f_op') + '=1,capacity_mw*8760*cf_p50*availability*' + c('degf') + '/2,0)', { cache: 'energy', total: true });
+    L('price', 'PPA price', '/MWh', F_PRICE, (c) => 'IF(' + c('f_op') + '=1,ppa_price*(1+(' + c('index') + '-1)*ppa_indexation),0)',
+      { cache: (i) => (S.energy[i] ? S.revenue[i] * 1000 / S.energy[i] : 0) });
+    L('revenue', 'Revenue', 'k', F_K, (c) => c('energy') + '*' + c('price') + '/1000', { cache: 'revenue', total: true });
+    L('opex', 'Operating costs', 'k', F_K, (c) => 'IF(' + c('f_op') + '=1,opex_real*' + c('index') + '/2,0)', { cache: 'opex', total: true });
+    L('ebitda', 'EBITDA', 'k', F_K, (c) => c('revenue') + '-' + c('opex'), { cache: 'ebitda', total: true, bold: true });
+    L('cfadsPre', 'CFADS pre-tax', 'k', F_K, (c) => c('ebitda'), { cache: 'cfadsPre', total: true, bold: true });
+
+    G('Debt sizing');
+    L('pvPre', 'PV of remaining pre-tax CFADS to maturity', 'k', F_K, (c) => 'IF(' + c('f_debt') + '=1,(' + c('cfadsPre') + '+' + c.n('pvPre') + ')/(1+semi_rate),0)',
+      { cache: (i) => (res.series.llcrPre[i] != null ? res.series.llcrPre[i] * S.debtOpen[i] : 0) });
+    V('pv_cfads_debt', 'PV of pre-tax CFADS over the debt tenor, at COD', 'k', F_K, (R) => 'SUMPRODUCT(' + R('f_first') + ',' + R('pvPre') + ')', { cache: sum.capacityAtTarget * D.target_dscr });
+    V('capacity_at_target', 'Debt capacity at target DSCR', 'k', F_K, () => 'pv_cfads_debt/target_dscr', { cache: sum.capacityAtTarget });
+    V('gearing_cap', 'Debt capacity at maximum gearing', 'k', F_K, () => 'capex_total*max_gearing', { cache: Cn.capex_total * D.gearing });
+    V('debt_amount', 'Senior debt amount', 'k', F_K, () => 'IF(sizing="lower_of",MIN(gearing_cap,capacity_at_target),debt_amount_input)', { cache: sum.amount, bold: true });
+    V('eff_gearing', 'Effective gearing (of capex)', '', F_PCT, () => 'debt_amount/capex_total', { cache: sum.effGearing });
+    V('n_rep', 'Number of repayment periods', '', F_INT, (R) => 'SUM(' + R('f_debt') + ')', { cache: res.meta.nRep });
+    V('sculpt_dscr', 'Sculpted DSCR (PV of CFADS ÷ debt)', '', F_X, () => 'pv_cfads_debt/debt_amount', { cache: sum.capacityAtTarget * D.target_dscr / sum.amount });
+    V('annuity_pmt', 'Annuity payment per semester (if annuity)', 'k', F_K, () => 'debt_amount*semi_rate/(1-(1+semi_rate)^-n_rep)',
+      { cache: sum.amount * res.meta.rate / 2 / (1 - Math.pow(1 + res.meta.rate / 2, -res.meta.nRep)) });
+
+    G('Construction');
+    L('capex', 'Capex', 'k', F_K, (c) => 'IF(' + c('f_con') + '=1,capex_total*INDEX(capex_profile,' + c.t + '),0)', { cache: 'capex', total: true });
+    L('draw', 'Debt drawdown', 'k', F_K, (c) => c('capex') + '*eff_gearing', { cache: 'draw', total: true });
+    L('idc', 'Interest during construction', 'k', F_K, (c) => 'IF(' + c('f_con') + '=1,' + c('debtOpen') + '*semi_rate,0)', { cache: 'idc', total: true });
+    L('commit', 'Commitment fee', 'k', F_K, (c) => 'IF(' + c('f_con') + '=1,(debt_amount-' + c('debtOpen') + ')*margin*commit_fee_pct/2,0)', { cache: 'commit', total: true });
+    L('upfront', 'Upfront fee', 'k', F_K, (c) => 'IF(' + c.t + '=1,debt_amount*upfront_fee_pct,0)', { cache: 'upfront', total: true });
+    L('equityIn', 'Equity contribution', 'k', F_K, (c) => c('capex') + '-' + c('draw') + '+' + c('idc') + '+' + c('commit') + '+' + c('upfront'), { cache: 'equityIn', total: true, bold: true });
+    V('project_cost', 'Total project cost', 'k', F_K, (R) => 'capex_total+SUM(' + R('idc') + ')+SUM(' + R('commit') + ')+SUM(' + R('upfront') + ')', { cache: sum.projectCost, bold: true });
+
+    G('Senior debt');
+    L('debtOpen', 'Opening balance', 'k', F_K, (c) => (c.first ? '0' : c.p('debtClose')), { cache: 'debtOpen' });
+    L('interest', 'Interest', 'k', F_K, (c) => 'IF(' + c('f_debt') + '=1,' + c('debtOpen') + '*semi_rate,0)', { cache: 'interest', total: true });
+    L('dsSched', 'Scheduled debt service (sculpted or annuity)', 'k', F_K,
+      (c) => 'IF(' + c('f_debt') + '=1,IF(repayment="sculpted",' + c('cfadsPre') + '/sculpt_dscr,IF(repayment="annuity",annuity_pmt,0)),0)',
+      { cache: (i) => (D.repayment === 'linear' ? 0 : S.debtService[i]) });
+    L('principal', 'Principal', 'k', F_K, (c) => 'IF(' + c('f_debt') + '=1,IF(repayment="linear",debt_amount/n_rep,' + c('dsSched') + '-' + c('interest') + '),0)', { cache: 'principal', total: true });
+    L('debtService', 'Debt service', 'k', F_K, (c) => c('interest') + '+' + c('principal'), { cache: 'debtService', total: true, bold: true });
+    L('debtClose', 'Closing balance', 'k', F_K, (c) => c('debtOpen') + '+' + c('draw') + '-' + c('principal'), { cache: 'debtClose' });
+
+    G('Tax');
+    L('depreciation', 'Tax depreciation', 'k', F_K, (c) => 'IF(AND(' + c('f_op') + '=1,' + c.t + '-n_constr<=dep_years*2),project_cost/dep_years/2,0)', { cache: 'depreciation', total: true });
+    L('taxable', 'Taxable income', 'k', F_K, (c) => 'IF(' + c('f_op') + '=1,' + c('ebitda') + '-' + c('depreciation') + '-' + c('interest') + ',0)', { cache: 'taxable', total: true });
+    L('lossUsed', 'Tax losses used', 'k', F_K, (c) => 'IF(' + c('taxable') + '>0,MIN(' + c.p('lossBal') + ',' + c('taxable') + '),0)', { cache: 'lossUsed', total: true });
+    L('lossBal', 'Tax losses carried forward', 'k', F_K, (c) => c.p('lossBal') + '+MAX(0,-' + c('taxable') + ')-' + c('lossUsed'), { cache: 'lossBal' });
+    L('tax', 'Cash tax', 'k', F_K, (c) => 'IF(' + c('taxable') + '>0,(' + c('taxable') + '-' + c('lossUsed') + ')*tax_rate,0)', { cache: 'tax', total: true });
+    L('cfadsPost', 'CFADS post-tax', 'k', F_K, (c) => c('ebitda') + '-' + c('tax'), { cache: 'cfadsPost', total: true, bold: true });
+
+    G('Ratios');
+    L('dscrPre', 'DSCR pre-tax', 'x', F_X, (c) => 'IF(' + c('f_debt') + '=1,' + c('cfadsPre') + '/' + c('debtService') + ',"")', { cache: 'dscrPre' });
+    L('dscrPost', 'DSCR post-tax', 'x', F_X, (c) => 'IF(' + c('f_debt') + '=1,' + c('cfadsPost') + '/' + c('debtService') + ',"")', { cache: 'dscrPost', bold: true });
+    L('hDscr', '12-month historic DSCR (tested)', 'x', F_X,
+      (c) => (c.first ? '""' : 'IF(AND(' + c('f_debt') + '=1,' + c.p('f_debt') + '=1),(' + c('cfadsPost') + '+' + c.p('cfadsPost') + ')/(' + c('debtService') + '+' + c.p('debtService') + '),"")'),
+      { cache: 'hDscr' });
+    L('pvPost', 'PV of remaining post-tax CFADS to maturity', 'k', F_K, (c) => 'IF(' + c('f_debt') + '=1,(' + c('cfadsPost') + '+' + c.n('pvPost') + ')/(1+semi_rate),0)',
+      { cache: (i) => (res.series.llcrPost[i] != null ? res.series.llcrPost[i] * S.debtOpen[i] : 0) });
+    L('llcrPre', 'LLCR pre-tax', 'x', F_X, (c) => 'IF(' + c('f_debt') + '=1,' + c('pvPre') + '/' + c('debtOpen') + ',"")', { cache: 'llcrPre' });
+    L('llcrPost', 'LLCR post-tax', 'x', F_X, (c) => 'IF(' + c('f_debt') + '=1,' + c('pvPost') + '/' + c('debtOpen') + ',"")', { cache: 'llcrPost' });
+    L('pvPpa', 'PV of remaining pre-tax CFADS to PPA expiry', 'k', F_K, (c) => 'IF(' + c('f_op') + '=1,(' + c('cfadsPre') + '+' + c.n('pvPpa') + ')/(1+semi_rate),0)');
+    V('llcr_cod_pre', 'LLCR at COD, pre-tax', 'x', F_X, (R) => 'SUMPRODUCT(' + R('f_first') + ',' + R('pvPre') + ')/debt_amount', { cache: sum.llcrCodPre });
+    V('llcr_cod_post', 'LLCR at COD, post-tax', 'x', F_X, (R) => 'SUMPRODUCT(' + R('f_first') + ',' + R('pvPost') + ')/debt_amount', { cache: sum.llcrCodPost });
+    V('plcr_cod', 'PLCR at COD, pre-tax', 'x', F_X, (R) => 'SUMPRODUCT(' + R('f_first') + ',' + R('pvPpa') + ')/debt_amount', { cache: sum.plcrCod });
+
+    G('Debt service reserve account (DSRA)');
+    L('dsraTarget', 'Target balance (next 6 or 12 months of debt service)', 'k', F_K,
+      (c) => 'IF(' + c.t + '>=n_constr,IF(dsra_periods>=1,' + c.n('debtService') + ',0)+IF(dsra_periods>=2,' + c.n2('debtService') + ',0),0)', { cache: 'dsraTarget' });
+    L('dsraFund', 'Initial funding by equity at COD', 'k', F_K, (c) => 'IF(' + c('f_cod') + '=1,' + c('dsraTarget') + ',0)', { cache: 'dsraFund', total: true });
+    L('cashAfterDs', 'Cash after debt service', 'k', F_K, (c) => 'IF(' + c('f_op') + '=1,' + c('cfadsPost') + '-' + c('debtService') + ',0)', { cache: 'cashAfterDs', total: true });
+    L('dsraDraw', 'DSRA drawing to cover a shortfall', 'k', F_K, (c) => 'IF(' + c('cashAfterDs') + '<0,MIN(' + c.p('dsraBal') + ',-' + c('cashAfterDs') + '),0)', { cache: 'dsraDraw', total: true });
+    L('shortfall', 'Debt service shortfall after DSRA', 'k', F_K, (c) => 'MAX(0,-' + c('cashAfterDs') + '-' + c('dsraDraw') + ')', { cache: 'shortfall', total: true });
+    L('cash1', 'Cash after DSRA drawing', 'k', F_K, (c) => 'MAX(0,' + c('cashAfterDs') + '+' + c('dsraDraw') + ')');
+    L('dsraTopUp', 'Top-up from cash flow', 'k', F_K, (c) => 'IF(' + c('f_op') + '=1,MAX(0,MIN(' + c('dsraTarget') + '-(' + c.p('dsraBal') + '-' + c('dsraDraw') + '),' + c('cash1') + ')),0)', { cache: 'dsraTopUp', total: true });
+    L('dsraRel', 'Release of excess over target', 'k', F_K, (c) => 'IF(' + c('f_op') + '=1,MAX(0,(' + c.p('dsraBal') + '-' + c('dsraDraw') + ')-' + c('dsraTarget') + '),0)', { total: true });
+    L('dsraAfter', 'Balance after top-up and release', 'k', F_K, (c) => 'IF(' + c('f_op') + '=1,' + c.p('dsraBal') + '-' + c('dsraDraw') + '+' + c('dsraTopUp') + '-' + c('dsraRel') + ',0)');
+    L('dsraFinal', 'Final release at PPA expiry', 'k', F_K, (c) => 'IF(' + c('f_last') + '=1,' + c('dsraAfter') + ',0)', { total: true });
+    L('dsraBal', 'DSRA closing balance', 'k', F_K, (c) => 'IF(' + c('f_cod') + '=1,' + c('dsraFund') + ',IF(' + c('f_op') + '=1,' + c('dsraAfter') + '-' + c('dsraFinal') + ',0))', { cache: 'dsraBal', bold: true });
+
+    G('Cash flow waterfall and equity');
+    L('cashAvail', 'Cash available after DSRA', 'k', F_K, (c) => c('cash1') + '-' + c('dsraTopUp') + '+' + c('dsraRel'), { total: true });
+    L('lockup', 'Lock-up flag (12m DSCR below lock-up)', 'flag', F_INT, (c) => 'IF(' + c('hDscr') + '="",0,IF(' + c('hDscr') + '<lockup_dscr,1,0))', { cache: (i) => (S.lockup[i] ? 1 : 0), total: true });
+    L('defaultF', 'Default flag (12m DSCR below default level)', 'flag', F_INT, (c) => 'IF(' + c('hDscr') + '="",0,IF(' + c('hDscr') + '<default_dscr,1,0))', { cache: (i) => (S.defaultFlag[i] ? 1 : 0), total: true });
+    L('blocked', 'Distribution blocked (lock-up or DSRA not full)', 'flag', F_INT, (c) => 'IF(' + c('f_op') + '=1,IF(OR(' + c('lockup') + '=1,' + c('dsraAfter') + '<' + c('dsraTarget') + '-0.000001),1,0),0)');
+    L('trapped', 'Cash trapped this period', 'k', F_K, (c) => 'IF(' + c('blocked') + '=1,' + c('cashAvail') + ',0)', { cache: 'trapped', total: true });
+    L('trapBal', 'Trapped cash balance', 'k', F_K, (c) => 'IF(' + c('f_last') + '=1,0,IF(' + c('blocked') + '=1,' + c.p('trapBal') + '+' + c('cashAvail') + ',0))', { cache: 'trapBal' });
+    L('distributions', 'Distributions to equity', 'k', F_K,
+      (c) => 'IF(' + c('f_op') + '=1,IF(' + c('blocked') + '=1,0,' + c('cashAvail') + '+' + c.p('trapBal') + ')+IF(' + c('f_last') + '=1,IF(' + c('blocked') + '=1,' + c.p('trapBal') + '+' + c('cashAvail') + ',0)+' + c('dsraFinal') + ',0),0)',
+      { cache: 'distributions', total: true, bold: true });
+    L('equityFlows', 'Equity cash flow', 'k', F_K, (c) => '-' + c('equityIn') + '-' + c('dsraFund') + '+' + c('distributions'), { cache: 'equityFlows', total: true, bold: true });
+    V('equity_irr', 'Equity IRR (post-tax, nominal, annualised)', '', F_PCT, (R) => '(1+IRR(' + R('equityFlows') + '))^2-1', { cache: sum.equityIrr, bold: true });
+
+    // Assign row numbers: rows 1-6 hold the title and the timeline header.
+    const ROW = {};
+    let rr = 8;
+    for (const row of ROWS) {
+      if (row.group) { row.r = ++rr; rr++; continue; }
+      row.r = rr++;
+      ROW[row.key] = row.r;
+    }
+    ROW.t = 4;
+
+    const wsC = wb.addSheet('Calc');
+    wsC.width(1, 46).width(2, 7).width(3, 14);
+    for (let t = 1; t <= N; t++) wsC.width(FIRST + t - 1, 11);
+    wsC.freezeAt('D7');
+    wsC.set('A1', 'Calculations', st.title);
+    wsC.set('A2', 'Semi-annual periods across. ' + deal.meta.currency + ' thousands unless stated. Every cell is a formula; inputs come from the Inputs sheet by name.', st.note);
+    wsC.set('A4', 'Period', st.head); wsC.set('B4', '', st.head); wsC.set('C4', 'Total / value', st.headR);
+    wsC.set('A5', 'Period start', st.muted); wsC.set('A6', 'Period end', st.bold);
+    const hdr = wb.style({ bold: true, fill: C_HEAD_BG, border: 'bottom', align: 'right', numFmt: F_INT });
+    const dStart = wb.style({ numFmt: F_MONTH, color: C_MUTED, align: 'right' });
+    const dEnd = wb.style({ numFmt: F_MONTH, bold: true, align: 'right' });
+    for (let t = 1; t <= N; t++) wsC.set(col(t) + '4', t, hdr);
+
+    const rangeOf = (key) => '$' + col(1) + '$' + ROW[key] + ':$' + LAST + '$' + ROW[key];
+    for (const row of ROWS) {
+      if (row.group) { wsC.set('A' + row.r, row.group, st.h); continue; }
+      const lab = row.bold ? st.bold : 0;
+      wsC.set('A' + row.r, row.label, lab);
+      wsC.set('B' + row.r, row.unit, st.muted);
+      if (row.scalar) {
+        wsC.set('C' + row.r, { f: row.f((key) => 'Calc!' + rangeOf(key)), v: row.cache }, calc(row.fmt, true));
+        wb.defineName(row.key, 'Calc!$C$' + row.r);
+        continue;
+      }
+      const style = row.key === 'start' ? dStart : row.key === 'end' ? dEnd : calc(row.fmt, row.bold);
+      for (let t = 1; t <= N; t++) {
+        const cl = col(t), i = t - 1;
+        const ref = (key) => cl + ROW[key];
+        ref.t = cl + '$4';
+        ref.first = t === 1;
+        ref.p = (key) => (t === 1 ? '0' : col(t - 1) + ROW[key]);
+        ref.n = (key) => col(t + 1) + ROW[key]; // the column after the last period is empty, i.e. 0
+        ref.n2 = (key) => col(t + 2) + ROW[key];
+        let v;
+        if (typeof row.cache === 'string') v = S[row.cache][i];
+        else if (typeof row.cache === 'function') v = row.cache(i);
+        if (v === null) v = '';
+        if (typeof v === 'boolean') v = v ? 1 : 0;
+        wsC.set(cl + row.r, { f: row.f(ref), v }, style);
+      }
+      if (row.total) {
+        const tv = typeof row.cache === 'string' ? S[row.cache].reduce((a, b) => a + (b || 0), 0) : undefined;
+        wsC.set('C' + row.r, { f: 'SUM(' + col(1) + row.r + ':' + LAST + row.r + ')', v: tv }, calc(row.fmt, true));
+      }
+    }
+    const R = (key) => 'Calc!' + rangeOf(key);
+
+    // ---------------- Outputs ----------------
+    const wsO = wb.addSheet('Outputs');
+    wsO.width(1, 44).width(2, 16).width(3, 4).width(4, 34).width(5, 16);
+    wsO.set('A1', 'Outputs', st.title);
+    wsO.set('A2', 'Key results, all linked to the Calc sheet.', st.note);
+    const out = (ws, row, label, f, v, fmt, colL, colV) => { ws.set((colL || 'A') + row, label); ws.set((colV || 'B') + row, { f, v }, calc(fmt, false)); };
+    wsO.set('A4', 'Uses', st.head); wsO.set('B4', deal.meta.currency + ' k', st.headR);
+    wsO.set('D4', 'Sources', st.head); wsO.set('E4', deal.meta.currency + ' k', st.headR);
+    out(wsO, 5, 'Construction capex', 'capex_total', Cn.capex_total, F_K);
+    out(wsO, 6, 'Interest during construction', 'SUM(' + R('idc') + ')', sum.idc, F_K);
+    out(wsO, 7, 'Upfront fee', 'SUM(' + R('upfront') + ')', sum.upfrontFee, F_K);
+    out(wsO, 8, 'Commitment fee', 'SUM(' + R('commit') + ')', sum.commitmentFees, F_K);
+    wsO.set('A9', 'Total uses', st.bold); wsO.set('B9', { f: 'SUM(B5:B8)', v: sum.projectCost }, calc(F_K, true));
+    out(wsO, 5, 'Senior debt', 'debt_amount', sum.amount, F_K, 'D', 'E');
+    out(wsO, 6, 'Sponsor equity at financial close', 'SUM(' + R('equityIn') + ')', sum.equityAtFc, F_K, 'D', 'E');
+    wsO.set('D9', 'Total sources', st.bold); wsO.set('E9', { f: 'E5+E6', v: sum.amount + sum.equityAtFc }, calc(F_K, true));
+    wsO.set('A10', 'The DSRA is funded by a further equity contribution at COD:', st.muted);
+    wsO.set('B10', { f: 'SUM(' + R('dsraFund') + ')', v: sum.dsraAtCod }, calc(F_K));
+
+    wsO.set('A12', 'Debt and cover ratios', st.head); wsO.set('B12', '', st.headR);
+    const ratio = [
+      ['Senior debt', 'debt_amount', sum.amount, F_K],
+      ['Effective gearing (of capex)', 'eff_gearing', sum.effGearing, F_PCT1],
+      ['Sculpted DSCR (pre-tax)', 'IF(repayment="sculpted",sculpt_dscr,"n/a")', D.repayment === 'sculpted' ? sum.sculptDscr : 'n/a', F_X],
+      ['Minimum DSCR pre-tax', 'MIN(' + R('dscrPre') + ')', sum.minDscrPre, F_X],
+      ['Average DSCR pre-tax', 'AVERAGE(' + R('dscrPre') + ')', sum.avgDscrPre, F_X],
+      ['Minimum DSCR post-tax', 'MIN(' + R('dscrPost') + ')', sum.minDscrPost, F_X],
+      ['Average DSCR post-tax', 'AVERAGE(' + R('dscrPost') + ')', sum.avgDscrPost, F_X],
+      ['LLCR at COD, pre-tax', 'llcr_cod_pre', sum.llcrCodPre, F_X],
+      ['LLCR at COD, post-tax', 'llcr_cod_post', sum.llcrCodPost, F_X],
+      ['PLCR at COD, pre-tax', 'plcr_cod', sum.plcrCod, F_X],
+      ['Debt capacity at target DSCR', 'capacity_at_target', sum.capacityAtTarget, F_K],
+      ['Headroom vs senior debt', 'capacity_at_target/debt_amount-1', sum.headroom, F_PCT1],
+      ['Lock-up tests failed', 'SUM(' + R('lockup') + ')', sum.lockupPeriods, F_INT],
+      ['Default tests failed', 'SUM(' + R('defaultF') + ')', sum.defaultPeriods, F_INT],
+    ];
+    ratio.forEach(([l, f, v, fmt], i) => out(wsO, 13 + i, l, f, v, fmt));
+    let ro = 13 + ratio.length + 1;
+    wsO.set('A' + ro, 'First operating year', st.head); wsO.set('B' + ro, '', st.headR); ro++;
+    const fy = sum.firstOpYear;
+    const firstYear = (key) => 'SUMIF(' + R('opyear') + ',1,' + R(key) + ')';
+    out(wsO, ro++, 'Net energy (MWh)', firstYear('energy'), fy.energy, F_K);
+    out(wsO, ro++, 'Revenue', firstYear('revenue'), fy.revenue, F_K);
+    out(wsO, ro++, 'Operating costs', firstYear('opex'), fy.opex, F_K);
+    out(wsO, ro++, 'EBITDA', firstYear('ebitda'), fy.ebitda, F_K);
+    ro++;
+    wsO.set('A' + ro, 'Equity', st.head); wsO.set('B' + ro, '', st.headR); ro++;
+    out(wsO, ro++, 'Equity IRR (post-tax, nominal)', 'equity_irr', sum.equityIrr, F_PCT);
+    out(wsO, ro++, 'Total distributions', 'SUM(' + R('distributions') + ')', sum.totalDistributions, F_K);
+
+    // ---------------- Checks ----------------
+    const wsK = wb.addSheet('Checks');
+    wsK.width(1, 52).width(2, 16).width(3, 16).width(4, 14).width(5, 10);
+    wsK.set('A1', 'Checks', st.title);
+    wsK.set('A2', 'TRUE means the check passes. Part 2 compares this workbook with the web app at the time of export.', st.note);
+    const okStyle = wb.style({ bold: true, align: 'center' });
+    wsK.set('A4', 'Model integrity', st.head); wsK.set('B4', 'Result', wb.style({ bold: true, fill: C_HEAD_BG, border: 'bottom', align: 'center' }));
+    const lastCol = (key) => 'Calc!$' + LAST + '$' + ROW[key];
+    const integrity = [
+      ['Debt fully drawn at COD', 'ABS(SUM(' + R('draw') + ')-debt_amount)<0.01'],
+      ['Debt repaid at maturity', 'ABS(' + lastCol('debtClose') + ')<0.01'],
+      ['Sources equal uses', 'ABS(debt_amount+SUM(' + R('equityIn') + ')-project_cost)<0.01'],
+      ['Gearing within limit', 'eff_gearing<=max_gearing+0.000000001'],
+      ['No debt service shortfall', 'SUM(' + R('shortfall') + ')<0.01'],
+      ['No principal re-borrowing', 'MIN(' + R('principal') + ')>=-0.000000001'],
+      ['Capex profile adds up to 100%', 'ABS(SUM(capex_profile)-1)<0.000001'],
+      ['One capex share per construction semester', 'COUNT(capex_profile)=n_constr'],
+      ['Timeline ends at PPA expiry (columns fixed at export)', lastCol('end') + '=ppa_end_date'],
+      ['DSRA of 0, 6 or 12 months (as built)', 'OR(dsra_months=0,dsra_months=6,dsra_months=12)'],
+    ];
+    integrity.forEach(([l, f], i) => { wsK.set('A' + (5 + i), l); wsK.set('B' + (5 + i), { f, v: true }, okStyle); });
+    let rk = 5 + integrity.length;
+    wsK.set('A' + rk, 'All integrity checks pass', st.bold);
+    wsK.set('B' + rk, { f: 'AND(B5:B' + (rk - 1) + ')', v: true }, wb.style({ bold: true, align: 'center', color: C_GOOD }));
+    rk += 2;
+    wsK.set('A' + rk, 'Reconciliation with the web app', st.head);
+    wsK.set('B' + rk, 'Web app', st.headR); wsK.set('C' + rk, 'This workbook', st.headR); wsK.set('D' + rk, 'Difference', st.headR);
+    wsK.set('E' + rk, 'Match', wb.style({ bold: true, fill: C_HEAD_BG, border: 'bottom', align: 'center' }));
+    rk++;
+    wsK.set('A' + rk, 'App values are frozen at export. If you change an input, differences here are expected.', st.note); rk++;
+    const recon = [
+      ['Senior debt', sum.amount, 'debt_amount', F_K],
+      ['Total project cost', sum.projectCost, 'project_cost', F_K],
+      ['Interest during construction', sum.idc, 'SUM(' + R('idc') + ')', F_K],
+      ['Equity at financial close', sum.equityAtFc, 'SUM(' + R('equityIn') + ')', F_K],
+      ['First-year EBITDA', fy.ebitda, firstYear('ebitda'), F_K],
+      ['Debt capacity at target DSCR', sum.capacityAtTarget, 'capacity_at_target', F_K],
+      ['Minimum DSCR post-tax', sum.minDscrPost, 'MIN(' + R('dscrPost') + ')', F_X],
+      ['Average DSCR post-tax', sum.avgDscrPost, 'AVERAGE(' + R('dscrPost') + ')', F_X],
+      ['LLCR at COD, pre-tax', sum.llcrCodPre, 'llcr_cod_pre', F_X],
+      ['LLCR at COD, post-tax', sum.llcrCodPost, 'llcr_cod_post', F_X],
+      ['PLCR at COD', sum.plcrCod, 'plcr_cod', F_X],
+      ['DSRA at COD', sum.dsraAtCod, 'SUM(' + R('dsraFund') + ')', F_K],
+      ['Total cash tax', S.tax.reduce((a, b) => a + b, 0), 'SUM(' + R('tax') + ')', F_K],
+      ['Total distributions', sum.totalDistributions, 'SUM(' + R('distributions') + ')', F_K],
+      ['Equity IRR', sum.equityIrr, 'equity_irr', F_PCT],
+    ];
+    const reconStart = rk;
+    recon.forEach(([l, app, f, fmt]) => {
+      wsK.set('A' + rk, l);
+      wsK.set('B' + rk, app, calc(fmt));
+      wsK.set('C' + rk, { f, v: app }, calc(fmt));
+      wsK.set('D' + rk, { f: 'C' + rk + '-B' + rk, v: 0 }, calc(fmt === F_K ? '#,##0.000;(#,##0.000);"–"' : '0.000000'));
+      wsK.set('E' + rk, { f: 'ABS(D' + rk + ')<=MAX(0.001,ABS(B' + rk + ')*0.000001)', v: true }, okStyle);
+      rk++;
+    });
+    wsK.set('A' + rk, 'Workbook matches the web app', st.bold);
+    wsK.set('E' + rk, { f: 'AND(E' + reconStart + ':E' + (rk - 1) + ')', v: true }, wb.style({ bold: true, align: 'center', color: C_GOOD }));
+    const reconAll = 'Checks!$E$' + rk;
+    const integrityAll = 'Checks!$B$' + (5 + integrity.length);
+
+    // ---------------- Cover (first tab) ----------------
+    const wsV = wb.addSheet('Cover'); // built last (it links to the other sheets), then moved to the front
+    wsV.width(1, 34).width(2, 70);
+    wsV.set('A1', deal.meta.name, st.title);
+    wsV.set('A2', 'Project finance model generated from the term sheet by the Model Builder web app.', st.note);
+    const cover = [
+      ['Deal', deal.meta.name + (deal.meta.seed ? ' (random deal #' + deal.meta.seed + ', fictional)' : '')],
+      ['Asset', O.capacity_mw + ' MWac solar' + (deal.meta.state ? ', ' + deal.meta.state + ', Australia' : '')],
+      ['Currency and units', deal.meta.currency + ' thousands, semi-annual periods'],
+      ['Timeline', P[0].label + ' to ' + P[N - 1].label + ' (' + N + ' periods; the number of columns is fixed at export)'],
+    ];
+    cover.forEach(([k, v], i) => { wsV.set('A' + (4 + i), k, st.bold); wsV.set('B' + (4 + i), v); });
+    wsV.set('A9', 'Key outputs (live)', st.h);
+    const live = [
+      ['Senior debt', 'debt_amount', sum.amount, F_K],
+      ['Minimum DSCR post-tax', 'MIN(' + R('dscrPost') + ')', sum.minDscrPost, F_X],
+      ['LLCR at COD, post-tax', 'llcr_cod_post', sum.llcrCodPost, F_X],
+      ['Equity IRR', 'equity_irr', sum.equityIrr, F_PCT],
+      ['Integrity checks pass', integrityAll, true, ''],
+      ['Matches the web app', reconAll, true, ''],
+    ];
+    live.forEach(([k, f, v, fmt], i) => { wsV.set('A' + (10 + i), k); wsV.set('B' + (10 + i), { f, v }, wb.style({ numFmt: fmt || undefined, bold: true, align: 'left' })); });
+    wsV.set('A17', 'How the workbook is built', st.h);
+    const guide = [
+      ['Inputs', 'Every assumption, in blue, with the term sheet clause it comes from. Named cells (e.g. margin, target_dscr) are used in all formulas.'],
+      ['Calc', 'The full semi-annual model: timeline flags, operations, debt sizing and sculpting, construction funding, debt schedule, tax with losses carried forward, ratios, DSRA and the distribution waterfall.'],
+      ['Outputs', 'Sources and uses, DSCR / LLCR / PLCR, debt capacity, first-year figures, equity IRR.'],
+      ['Checks', 'Integrity checks (debt drawn and repaid, sources = uses, no shortfall) and a reconciliation against the web app.'],
+      ['Colour code', 'Blue on light blue = input. Black = formula. Nothing is hard-coded in Calc.'],
+      ['Simplifications (v1)', 'Interest = balance × rate / 2 (no day count). No hedging, agency fees, MRA, cash sweep or terminal value. See the Methodology tab of the web app.'],
+    ];
+    guide.forEach(([k, v], i) => { wsV.set('A' + (18 + i), k, st.bold); wsV.set('B' + (18 + i), v, st.noteWrap); });
+    wb.sheets.unshift(wb.sheets.pop());
+
+    return wb;
+  }
+
+  function periodEnd(p) { return p.year + '-' + String(p.month).padStart(2, '0') + '-' + (p.month === 6 ? '30' : '31'); }
+  function periodStart(p) {
+    const m = p.month === 6 ? 1 : 7;
+    return p.year + '-' + String(m).padStart(2, '0') + '-01';
+  }
+
+  // Returns the .xlsx file as bytes.
+  function exportXlsx(deal, res) { return buildWorkbook(deal, res).toBytes(); }
+
+  const api = { buildWorkbook, exportXlsx };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.PFExcel = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
 </script>
 <script>
 (function () {
   'use strict';
-  const BASE = {
+  const COOLABAH = {
   "meta": { "name": "Project Coolabah", "currency": "AUD", "units": "k" },
   "timeline": {
     "financial_close": "2027-07-01",
@@ -652,13 +1873,14 @@ pre.prompt { white-space: pre-wrap; font-family: var(--f-data); font-size: 12px;
     "covenants.default_dscr": "§4 Event of Default < 1.05x"
   }
 };
+  const COOLABAH_TS = "# Project Coolabah — Indicative Term Sheet\n\nOct 26, 2026 · @Jean\n\nSenior secured, limited-recourse financing of AUD 98.0m for a 100 MWac single-axis tracker solar farm in NSW, Australia, backed by a 20-year CPI-indexed PPA. Financial close targeted 1 July 2027; COD 1 July 2029.\n\n*Strictly private and confidential. Indicative terms for discussion only; not an offer or commitment to lend. Any commitment is subject to credit approval, satisfactory due diligence and agreed documentation. All amounts in AUD unless stated. Fictional transaction built for modelling practice; all parties are illustrative.*\n\n## 1. Transaction overview\n\n| Term | Description |\n| --- | --- |\n| Project | Coolabah Solar Farm: 100 MWac / c.130 MWdc single-axis tracker PV plant, Central-West Orana Renewable Energy Zone, NSW. Connection to the NEM via a 132 kV TransGrid line. |\n| Borrower | Coolabah Solar Project Co Pty Ltd, a newly incorporated single-purpose company with no other business or assets. |\n| Holdco | Coolabah Solar Holdings Pty Ltd, 100% owner of the Borrower. |\n| Sponsor | Wattlebank Renewable Partners Fund II (100% equity). |\n| Offtaker | Investment-grade NSW energy retailer (rated BBB+ / Baa1), under a 20-year fixed-price PPA. |\n| PPA | Pay-as-produced, bundled energy and LGCs. AUD 60.00/MWh at financial close, indexed at 100% of CPI annually. Tenor 20 years from COD, ending 30 June 2049. |\n| EPC Contractor | Tier-1 EPC contractor under a fixed-price, date-certain, lump-sum turnkey contract with parent company guarantee. |\n| O&M Contractor | Affiliate of the EPC Contractor, 5-year initial term with availability guarantee of 99.0%. |\n| Mandated Lead Arrangers | Bank A, Bank B and Bank C (club deal, equal hold of AUD 32.7m each). |\n| Facility Agent / Security Trustee | Bank A. |\n| Purpose | Fund construction capex, interest during construction, financing fees and commitment fees until COD. |\n| Recourse | Limited recourse to the Sponsor until financial completion; non-recourse thereafter. |\n\n## 2. Facilities\n\n| Term | Description |\n| --- | --- |\n| Senior Facility | AUD 98,000,000 Construction Facility, converting at COD into a Term Loan Facility of the same amount (mini-perm not used). |\n| DSRA LC Facility | AUD 5,000,000 letter of credit facility, available from COD to back the Debt Service Reserve Account in lieu of cash (optional; not reflected in model v1, where the DSRA is cash-funded at COD). |\n| Availability Period | From financial close (1 July 2027) to the earlier of COD and the Sunset Date (31 December 2029). Undrawn commitments are cancelled at the end of the Availability Period. |\n| Drawdowns | Semi-annual, pro rata with equity at a fixed gearing of 70% of each capex amount. Equity funds all financing costs (upfront fee, IDC, commitment fee). Minimum drawdown AUD 2.0m. |\n| Final Maturity | 30 June 2047: 18 years after scheduled COD, leaving a 2-year PPA tail. |\n| Total Tenor | 20 years from financial close (2-year construction + 18-year amortisation). |\n| Currency | AUD. |\n\n**Sources and uses at financial close (AUD k)**\n\n| Uses | AUD k | % | Sources | AUD k | % |\n| --- | --- | --- | --- | --- | --- |\n| Construction capex (EPC + owner's costs) | 140,000 | 95.5% | Senior Facility | 98,000 | 66.9% |\n| Interest during construction | 4,226 | 2.9% | Sponsor equity | 48,554 | 33.1% |\n| Upfront fee | 1,470 | 1.0% |  |  |  |\n| Commitment fee | 858 | 0.6% |  |  |  |\n| **Total uses** | **146,554** | **100.0%** | **Total sources** | **146,554** | **100.0%** |\n\nCapex is drawn 15% / 35% / 35% / 15% over the four construction semesters. Gearing is 70% of capex and 66.9% of total project cost.\n\n## 3. Pricing and fees\n\nAll-in cost of debt is 5.75% p.a. in the base case (BBSW 4.00% + 1.75% margin), flat over the life of the loan.\n\n| Term | Description |\n| --- | --- |\n| Interest Rate | 6-month BBSW (floored at 0%) plus the Margin, payable semi-annually in arrears on 30 June and 31 December. Day count actual/365. |\n| Margin | 1.75% p.a. during construction and operations. The Lenders reserve the right to propose margin step-ups from year 10 at credit approval. |\n| Base case BBSW | 4.00% p.a. (lenders' planning assumption). |\n| Upfront Fee | 1.50% of the Senior Facility (AUD 1,470k), payable on financial close. |\n| Commitment Fee | 40% of the Margin (0.70% p.a.) on undrawn and uncancelled commitments, payable semi-annually in arrears during the Availability Period. |\n| Agency Fee | AUD 50k p.a. (Facility Agent) and AUD 25k p.a. (Security Trustee), payable annually in advance. Not in model v1. |\n| Interest Rate Hedging | The Borrower must hedge at least 75% of projected debt outstanding for at least 10 years from financial close, through interest rate swaps with the Lenders on a pari passu basis. Model v1 assumes unhedged BBSW. |\n| Default Interest | 2.00% p.a. above the applicable rate. |\n| Break Costs | Payable on prepayment other than on an interest payment date. |\n| Taxes and Increased Costs | Standard gross-up and increased cost provisions (LMA / APLMA form). |\n\n## 4. Repayment, accounts and financial covenants\n\nDebt is sculpted to a 1.30x DSCR on P50 CFADS, with lock-up at 1.10x and default at 1.05x.\n\n| Term | Description |\n| --- | --- |\n| Repayment | 36 semi-annual instalments from 31 December 2029 to 30 June 2047, sculpted so that the projected DSCR equals the Target DSCR in each period of the Agreed Base Case. |\n| Target DSCR (sculpting) | 1.30x on P50 CFADS. |\n| Sizing constraints | Senior debt is the lowest of: (i) 70% of construction capex; (ii) the amount sculpted at 1.30x on P50 CFADS; (iii) the amount sculpted at 1.00x on one-year P99 CFADS. Model v1 holds debt as a fixed input of AUD 98.0m. |\n| Voluntary Prepayment | Permitted on any interest payment date with 10 business days' notice, minimum AUD 5.0m, applied in inverse order of maturity. Break costs apply. |\n| Mandatory Prepayment | Insurance and compensation proceeds not reinvested, EPC liquidated damages for performance, PPA termination payments, and disposal proceeds. |\n| Debt Service Reserve Account | Balance equal to the next 6 months of scheduled senior debt service, funded at COD by cash or by the DSRA LC Facility. |\n| Maintenance Reserve Account | Funded from cash flow to cover inverter replacement in years 10 to 12, per the Independent Engineer's schedule. Not in model v1. |\n\n**Financial covenants (tested semi-annually from the second calculation date after COD)**\n\n| Ratio | Calculation | Level |\n| --- | --- | --- |\n| Historic DSCR | CFADS over the last 12 months ÷ senior debt service over the same period | Lock-up < 1.10x; Event of Default < 1.05x |\n| Projected DSCR | Next 12 months, per the updated Base Case | Lock-up < 1.10x |\n| Maximum gearing | Senior debt ÷ construction capex at financial close | 70% |\n\n**Cash flow waterfall (operations)**\n\n1. Operating costs, taxes and statutory payments\n2. Agency and Security Trustee fees, senior hedging periodic payments\n3. Senior interest and commitment fees\n4. Senior principal and hedge termination payments (pari passu)\n5. Top-up of the Debt Service Reserve Account\n6. Top-up of the Maintenance Reserve Account\n7. Distribution Account, subject to the Distribution Conditions\n\n**Distribution Conditions:** no Default outstanding; historic and projected DSCR at or above 1.10x; DSRA and MRA fully funded; first repayment instalment paid. Cash trapped for 4 consecutive periods is applied to prepay the Senior Facility (cash sweep).\n\n## 5. Security, conditions and undertakings\n\n| Term | Description |\n| --- | --- |\n| Security | First-ranking security over all present and after-acquired property of the Borrower (General Security Deed); specific security over Holdco's shares in the Borrower; real property mortgage over the site lease; tripartite deeds with the Offtaker, EPC Contractor, O&M Contractor and grid connection provider; assignment of insurances and of all Project accounts. |\n| Sponsor Support | Equity commitment letter for AUD 48.6m, backed by an LC from an A- rated bank until fully contributed. Cost overrun facility of 10% of capex (AUD 14.0m) until financial completion. |\n| Conditions Precedent to financial close | Executed finance documents and Project documents; legal, technical (Independent Engineer), insurance, model audit and tax due diligence reports satisfactory to the Lenders; Agreed Base Case showing minimum DSCR of 1.30x; development approval and grid connection agreement (GPS registration under NER clause 5.3.4A); hedging executed; KYC; legal opinions; equity commitment in place. |\n| Conditions Precedent to each drawdown | IE drawdown certificate; pro rata equity contributed; no Default; representations true; cost-to-complete test satisfied. |\n| Financial Completion | COD reached, IE completion certificate, 6-month reliability run at 97% availability, DSRA funded, and first historic DSCR at or above 1.20x. Sponsor support falls away on Financial Completion. |\n| Representations | Customary for a limited-recourse financing: status, power, authorisations, no default, ranking of security, accuracy of information and Base Case, environmental compliance, sanctions and anti-corruption. |\n| Undertakings | Single-purpose activity; no additional financial indebtedness (permitted basket AUD 2.0m); no disposal; maintain Project documents and insurances; semi-annual compliance certificate; annual audited accounts within 120 days; quarterly construction and semi-annual operating reports; updated Base Case each calculation date. |\n| Events of Default | Non-payment (3 business days grace); historic DSCR below 1.05x; breach of other obligations (30 days); misrepresentation; cross-default of the Borrower; insolvency; termination or material breach of the PPA, EPC or grid connection agreement without replacement within 90 days; loss of authorisations; abandonment; COD not reached by the Sunset Date; change of control before Financial Completion. |\n| Insurance | Construction all risks, delay in start-up (12 months), operating all risks with business interruption (18 months), third-party liability. Lenders named as co-insured and loss payees. |\n\n## 6. Agreed Base Case and general terms\n\nThe base case generates EBITDA of AUD 11.4m in the first year of operations, a 77% margin. Debt capacity sculpted at 1.30x on pre-tax P50 CFADS is c.AUD 111m, leaving c.12% headroom over the AUD 98.0m facility before tax.\n\n| Assumption | Base case | First operating year (FY30) |\n| --- | --- | --- |\n| Capacity | 100 MWac |  |\n| P50 capacity factor | 27.0% (single-axis tracker) |  |\n| Availability | 99.0% |  |\n| Degradation | 0.5% p.a. from operating year 2 |  |\n| Net energy |  | 234,155 MWh |\n| PPA price | AUD 60.00/MWh at FC, 100% CPI | AUD 63.04/MWh |\n| Revenue |  | AUD 14.76m |\n| Operating costs (O&M AUD 18k/MW, land lease, insurance, asset management) | AUD 3.20m p.a. real | AUD 3.36m |\n| EBITDA |  | AUD 11.40m |\n| CPI | 2.5% p.a., applied annually |  |\n| Corporate tax | 30%, straight-line tax depreciation over 20 years, losses carried forward |  |\n\n| Term | Description |\n| --- | --- |\n| Lenders' advisers | Independent Engineer, Legal Counsel, Insurance Adviser and Model Auditor, appointed by the Lenders at the Borrower's cost. |\n| Transfers | Lenders may assign or transfer to banks and financial institutions with Borrower consent (not unreasonably withheld; deemed after 10 business days). No consent needed after an Event of Default. |\n| Majority Lenders | 66⅔% of commitments or outstanding loans. |\n| Expenses | All reasonable costs of the Lenders and their advisers borne by the Borrower, whether or not financial close occurs. |\n| Governing law | New South Wales, Australia. Documentation based on APLMA templates. |\n| Validity | These indicative terms expire on 31 January 2027. |\n\n**Open points before credit approval**\n\n- [ ] Extend model v1 to operations, debt sculpting and tax to confirm after-tax DSCR and LLCR.\n- [ ] Obtain P90 and P99 energy yield from the Independent Engineer for the sizing constraints.\n- [ ] Add hedging, agency fees, DSRA funding and the Maintenance Reserve Account to the model.\n- [ ] Confirm the Offtaker's credit rating and PPA termination payment regime.\n";
   const $ = (id) => document.getElementById(id);
   const clone = (o) => JSON.parse(JSON.stringify(o));
   const get = (o, path) => path.split('.').reduce((a, k) => (a == null ? a : a[k]), o);
   const set = (o, path, v) => { const ks = path.split('.'); const last = ks.pop(); ks.reduce((a, k) => a[k], o)[last] = v; };
 
-  let deal = clone(BASE);
-  try { const saved = localStorage.getItem('pf-deal'); if (saved) deal = JSON.parse(saved); } catch (e) {}
+  let base = null; // the deal as issued (term sheet), used by Reset and the "edited" markers
+  let deal = null; // the deal being modelled, with any edits
   let res = null;
   const cur = () => (deal.meta && deal.meta.currency) || 'AUD';
 
@@ -669,6 +1891,7 @@ pre.prompt { white-space: pre-wrap; font-family: var(--f-data); font-size: 12px;
   const x2 = (v) => (v == null || !isFinite(v) ? '–' : v.toFixed(2) + 'x');
   const x3 = (v) => (v == null || !isFinite(v) ? '–' : v.toFixed(3) + 'x');
   const pc = (v, d = 1) => (v == null || !isFinite(v) ? '–' : (v * 100).toFixed(d) + '%');
+  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
   // ---------- Inputs ----------
   const SECTIONS = [
@@ -749,10 +1972,10 @@ pre.prompt { white-space: pre-wrap; font-family: var(--f-data); font-size: 12px;
         } else {
           ctl = '<input id="' + id + '" type="' + (type === 'date' ? 'date' : 'text') + '" inputmode="' + (type === 'date' ? '' : 'decimal') + '">';
         }
-        const src = deal.sources && deal.sources[path] ? deal.sources[path] : (BASE.sources && BASE.sources[path]) || '';
+        const src = (deal.sources && deal.sources[path]) || (base.sources && base.sources[path]) || '';
         wrap.innerHTML = '<label for="' + id + '">' + label + '</label><div class="ctl">' + ctl +
           (u && type !== 'date' && type !== 'select' ? '<span class="unit">' + (type === 'k' ? cur() + ' k' : u) + '</span>' : '') + '</div>' +
-          (src ? '<div class="src">' + src.replace(/</g, '&lt;') + '</div>' : '');
+          (src ? '<div class="src">' + esc(src) + '</div>' : '');
         d.appendChild(wrap);
         const el = wrap.querySelector('input,select');
         el.value = toDisplay(type, get(deal, path));
@@ -771,7 +1994,7 @@ pre.prompt { white-space: pre-wrap; font-family: var(--f-data); font-size: 12px;
   function markEdited() {
     document.querySelectorAll('.field').forEach((w) => {
       const p = w.dataset.path;
-      w.classList.toggle('edited', JSON.stringify(get(deal, p)) !== JSON.stringify(get(BASE, p)) && deal.meta.name === BASE.meta.name);
+      w.classList.toggle('edited', JSON.stringify(get(deal, p)) !== JSON.stringify(get(base, p)));
     });
   }
 
@@ -781,7 +2004,7 @@ pre.prompt { white-space: pre-wrap; font-family: var(--f-data); font-size: 12px;
   // ---------- SVG chart ----------
   function chart(host, cfg) {
     const W = Math.max(320, host.clientWidth || 700), H = cfg.height || 260;
-    const m = { l: 52, r: 12, t: 10, b: 26 };
+    const m = { l: 56, r: 12, t: 10, b: 26 };
     const n = cfg.labels.length;
     const iw = W - m.l - m.r, ih = H - m.t - m.b;
     const stackTop = cfg.labels.map((_, i) => (cfg.bars || []).reduce((a, b) => a + Math.max(0, b.values[i] || 0), 0));
@@ -797,10 +2020,10 @@ pre.prompt { white-space: pre-wrap; font-family: var(--f-data); font-size: 12px;
     const x = (i) => m.l + bw * i + bw / 2;
     let s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + cfg.title + '">';
     for (let v = yMin; v <= yMax + 1e-9; v += step) {
-      s += '<g class="tick"><line x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + y(v) + '" y2="' + y(v) + '"/><text x="' + (m.l - 6) + '" y="' + (y(v) + 3) + '" text-anchor="end">' + cfg.yFmt(v) + '</text></g>';
+      s += '<g class="tick"><line x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + y(v) + '" y2="' + y(v) + '"/><text x="' + (m.l - 8) + '" y="' + (y(v) + 4) + '" text-anchor="end">' + cfg.yFmt(v) + '</text></g>';
     }
     const every = Math.ceil(n / Math.max(4, Math.floor(iw / 64)));
-    cfg.labels.forEach((lab, i) => { if (i % every === 0) s += '<text x="' + x(i) + '" y="' + (H - 8) + '" text-anchor="middle">' + lab + '</text>'; });
+    cfg.labels.forEach((lab, i) => { if (i % every === 0) s += '<text x="' + x(i) + '" y="' + (H - 6) + '" text-anchor="middle">' + lab + '</text>'; });
     const gap = Math.min(2, bw * 0.15);
     const barW = Math.max(1, bw - gap * 2);
     (cfg.bars || []).forEach((b, bi) => {
@@ -810,30 +2033,30 @@ pre.prompt { white-space: pre-wrap; font-family: var(--f-data); font-size: 12px;
         if (v <= 0) return;
         const y0 = y(below), y1 = y(below + v);
         const h = Math.max(0, y0 - y1 - (bi > 0 ? 1 : 0));
-        s += '<rect x="' + (x(i) - barW / 2) + '" y="' + y1 + '" width="' + barW + '" height="' + h + '" fill="' + b.color + '" rx="' + Math.min(2, barW / 3) + '"/>';
+        s += '<rect x="' + (x(i) - barW / 2) + '" y="' + y1 + '" width="' + barW + '" height="' + h + '" fill="' + b.color + '" rx="' + Math.min(4, barW / 3) + '"/>';
       });
     });
     (cfg.refs || []).forEach((r) => {
-      s += '<line x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + y(r.y) + '" y2="' + y(r.y) + '" stroke="var(--ref)" stroke-width="1" stroke-dasharray="4 3"/>' +
-        '<text x="' + (W - m.r - 2) + '" y="' + (y(r.y) - 4) + '" text-anchor="end">' + r.label + '</text>';
+      s += '<line x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + y(r.y) + '" y2="' + y(r.y) + '" stroke="' + r.color + '" stroke-width="1"' + (r.dash ? ' stroke-dasharray="4 3"' : '') + '/>' +
+        '<text x="' + (W - m.r - 2) + '" y="' + (y(r.y) - 4) + '" text-anchor="end" style="fill:' + r.color + '">' + r.label + '</text>';
     });
     (cfg.lines || []).forEach((l) => {
       let d = '', pen = false;
       l.values.forEach((v, i) => { if (v == null) { pen = false; return; } d += (pen ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1); pen = true; });
-      s += '<path d="' + d + '" fill="none" stroke="' + l.color + '" stroke-width="2" stroke-linejoin="round"' + (l.dash ? ' stroke-dasharray="5 4"' : '') + '/>';
+      s += '<path d="' + d + '" fill="none" stroke="' + l.color + '" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"' + (l.dash ? ' stroke-dasharray="5 4"' : '') + '/>';
     });
-    s += '<line id="xh" x1="0" x2="0" y1="' + m.t + '" y2="' + (m.t + ih) + '" stroke="var(--ink-2)" stroke-width="1" opacity="0"/>';
-    s += '<rect x="' + m.l + '" y="' + m.t + '" width="' + iw + '" height="' + ih + '" fill="transparent" class="hit"/>';
+    s += '<line class="xh" x1="0" x2="0" y1="' + m.t + '" y2="' + (m.t + ih) + '" stroke="var(--muted)" stroke-width="1" opacity="0"/>';
+    s += '<rect x="' + m.l + '" y="' + m.t + '" width="' + iw + '" height="' + ih + '" fill="transparent"/>';
     s += '</svg><div class="tip" hidden></div>';
     host.innerHTML = s;
-    const svg = host.querySelector('svg'), tip = host.querySelector('.tip'), xh = host.querySelector('#xh');
-    const series = [...(cfg.bars || []), ...(cfg.lines || [])];
+    const svg = host.querySelector('svg'), tip = host.querySelector('.tip'), xh = host.querySelector('.xh');
+    const series = [...(cfg.bars || []).map((b) => Object.assign({ kind: '' }, b)), ...(cfg.lines || []).map((l) => Object.assign({ kind: l.dash ? 'dash' : 'line' }, l))];
     function move(ev) {
       const pt = svg.getBoundingClientRect();
       const sx = ((ev.clientX - pt.left) / pt.width) * W;
       const i = Math.max(0, Math.min(n - 1, Math.floor((sx - m.l) / bw)));
       xh.setAttribute('x1', x(i)); xh.setAttribute('x2', x(i)); xh.setAttribute('opacity', '0.5');
-      tip.innerHTML = '<b>' + cfg.labels[i] + '</b>' + series.map((se) => '<div class="r"><span><i class="sw' + (se.dash ? ' dash' : se.values && cfg.lines && cfg.lines.includes(se) ? ' line' : '') + '" style="background:' + se.color + ';border-color:' + se.color + '"></i> ' + se.name + '</span><span>' + (se.values[i] == null ? '–' : cfg.tipFmt(se.values[i])) + '</span></div>').join('');
+      tip.innerHTML = '<b>' + cfg.labels[i] + '</b>' + series.map((se) => '<div class="r"><span><i class="sw ' + se.kind + '" style="background:' + se.color + ';border-color:' + se.color + '"></i> ' + se.name + '</span><span>' + (se.values[i] == null ? '–' : cfg.tipFmt(se.values[i])) + '</span></div>').join('');
       tip.hidden = false;
       const px = (x(i) / W) * pt.width;
       tip.style.left = Math.min(pt.width - tip.offsetWidth - 4, Math.max(0, px + 12)) + 'px';
@@ -854,36 +2077,36 @@ pre.prompt { white-space: pre-wrap; font-family: var(--f-data); font-size: 12px;
 
   // ---------- Render ----------
   function recalc() {
-    try { localStorage.setItem('pf-deal', JSON.stringify(deal)); } catch (e) {}
     markEdited();
     res = PFEngine.run(deal);
     const eb = $('errorBox');
-    if (!res.ok) { eb.hidden = false; eb.innerHTML = '<b>The model can\'t run with these inputs.</b><br>' + res.errors.join('<br>'); return; }
+    if (!res.ok) { eb.hidden = false; eb.innerHTML = '<b>The model can\'t run with these inputs.</b><br>' + res.errors.map(esc).join('<br>'); return; }
     eb.hidden = true;
     renderHeader(); renderOverview(); renderDebt(); renderCashflow(); renderSens(); renderJson();
   }
 
   function renderHeader() {
     const s = res.summary, o = deal.operations;
-    $('dealName').textContent = deal.meta.name;
-    $('dealSub').textContent = o.capacity_mw + ' MWac · ' + cur() + ' ' + mn(s.amount) + ' senior debt · COD ' + res.periods[res.meta.nC - 1].label.replace('Jun', 'Jul').replace('Dec', 'Jan') + ' · maturity ' + res.meta.maturityLabel;
+    $('dealName').textContent = deal.meta.name + (deal.meta.seed ? ' · Deal #' + deal.meta.seed : '');
+    $('dealSub').textContent = o.capacity_mw + ' MWac solar' + (deal.meta.state ? ', ' + deal.meta.state : '') + ' · ' + cur() + ' ' + mn(s.amount) + ' senior debt · maturity ' + res.meta.maturityLabel;
     const fails = res.checks.filter((c) => !c.ok).length;
     const p = $('checkPill');
     p.className = 'pill ' + (fails ? 'crit' : 'good');
-    p.innerHTML = '<span class="ic">' + (fails ? '✕' : '✓') + '</span>' + (fails ? fails + ' check' + (fails > 1 ? 's' : '') + ' failing' : 'All checks pass');
+    p.textContent = (fails ? '✕ ' + fails + ' check' + (fails > 1 ? 's' : '') + ' failing' : '✓ All checks pass');
     document.querySelectorAll('.cur').forEach((e) => (e.textContent = cur()));
   }
 
-  function kpi(k, v, d) { return '<div class="kpi"><div class="k">' + k + '</div><div class="v">' + v + '</div><div class="d">' + d + '</div></div>'; }
+  function kpi(k, v, d, tone) { return '<div class="kpi' + (tone ? ' ' + tone : '') + '"><div class="k">' + k + '</div><div class="v">' + v + '</div><div class="d">' + d + '</div></div>'; }
 
   function renderOverview() {
     const s = res.summary, D = deal.senior_debt, C = deal.covenants;
+    const dscrTone = s.minDscrPost < C.lockup_dscr ? 'crit' : s.minDscrPost < D.target_dscr ? 'warn' : 'good';
     $('kpis').innerHTML =
       kpi('Senior debt', cur() + ' ' + mn(s.amount), pc(s.effGearing) + ' of capex · ' + pc(s.amount / s.projectCost) + ' of cost') +
       kpi('DSCR pre-tax', D.repayment === 'sculpted' ? x2(s.sculptDscr) : x2(s.minDscrPre), D.repayment === 'sculpted' ? 'Constant, sculpted' : 'Minimum · avg ' + x2(s.avgDscrPre)) +
-      kpi('Min DSCR post-tax', x2(s.minDscrPost), s.minDscrPostLabel + ' · avg ' + x2(s.avgDscrPost)) +
+      kpi('Min DSCR post-tax', x2(s.minDscrPost), s.minDscrPostLabel + ' · avg ' + x2(s.avgDscrPost), dscrTone) +
       kpi('LLCR at COD', x2(s.llcrCodPost), 'Post-tax · pre-tax ' + x2(s.llcrCodPre)) +
-      kpi('Debt capacity at ' + x2(D.target_dscr), cur() + ' ' + mn(s.capacityAtTarget), (s.headroom >= 0 ? '+' : '') + pc(s.headroom) + ' vs facility') +
+      kpi('Capacity at ' + x2(D.target_dscr), cur() + ' ' + mn(s.capacityAtTarget), (s.headroom >= 0 ? '+' : '') + pc(s.headroom) + ' vs facility') +
       kpi('Equity IRR', pc(s.equityIrr, 2), 'Post-tax, nominal, no terminal value');
 
     const flags = [];
@@ -891,68 +2114,65 @@ pre.prompt { white-space: pre-wrap; font-family: var(--f-data); font-size: 12px;
     if (D.repayment === 'sculpted') {
       if (s.sculptDscr > tgt + 0.005) flags.push(['good', '✓', 'Sculpted at ' + x2(s.sculptDscr) + ' pre-tax, above the ' + x2(tgt) + ' target. At ' + x2(tgt) + ' the cash flows would carry ' + cur() + ' ' + mn(s.capacityAtTarget) + ', so the facility sits ' + pc(s.headroom, 0) + ' inside DSCR capacity.']);
       else if (s.sculptDscr < tgt - 0.005) flags.push(['crit', '✕', 'Sculpted DSCR is ' + x2(s.sculptDscr) + ', below the ' + x2(tgt) + ' target. The facility is ' + pc(-s.headroom, 0) + ' larger than the cash flows support at target; DSCR sizing would cut it to ' + cur() + ' ' + mn(s.capacityAtTarget) + '.']);
-      else flags.push(['good', '✓', 'Debt sized exactly at the ' + x2(tgt) + ' target DSCR (' + s.sizingBinding + ' constraint binds).']);
+      else flags.push(['good', '✓', 'Debt sized at the ' + x2(tgt) + ' target DSCR.']);
     }
     if (s.minDscrPost < tgt) {
-      const sev = s.minDscrPost < C.default_dscr ? 'crit' : s.minDscrPost < C.lockup_dscr ? 'crit' : 'warn';
+      const sev = s.minDscrPost < C.lockup_dscr ? 'crit' : 'warn';
       flags.push([sev, sev === 'warn' ? '!' : '✕', 'Post-tax DSCR falls to ' + x2(s.minDscrPost) + ' (' + s.minDscrPostLabel + ')' + (s.firstTaxLabel ? ' once tax losses run out and cash tax starts in ' + s.firstTaxLabel : '') + '. That is below the ' + x2(tgt) + ' sculpting target' + (sev === 'warn' ? ' but clears lock-up at ' + x2(C.lockup_dscr) + '.' : ' and through a covenant level.') + ' Sculpting on pre-tax CFADS hides this.']);
     }
     if (s.lockupPeriods > 0) flags.push(['crit', '✕', s.lockupPeriods + ' semi-annual test' + (s.lockupPeriods > 1 ? 's' : '') + ' below the ' + x2(C.lockup_dscr) + ' lock-up' + (s.defaultPeriods ? ', ' + s.defaultPeriods + ' below the ' + x2(C.default_dscr) + ' default level' : '') + '.']);
     else flags.push(['good', '✓', 'No lock-up across the base case: the 12-month historic DSCR stays at or above ' + x2(C.lockup_dscr) + '.']);
     const tailYears = (res.meta.N - res.meta.nM) / 2;
     flags.push([tailYears >= 2 ? 'good' : 'warn', tailYears >= 2 ? '✓' : '!', 'PPA tail of ' + tailYears + ' year' + (tailYears === 1 ? '' : 's') + ' after final maturity. PLCR at COD ' + x2(s.plcrCod) + '.']);
-    if (s.equityIrr != null && s.equityIrr < 0.07) flags.push(['warn', '!', 'Equity IRR of ' + pc(s.equityIrr, 1) + ' looks thin for a greenfield sponsor. The model gives no value after PPA expiry, so merchant tail or refinancing would lift it.']);
-    $('flags').innerHTML = flags.map(([c, i, t]) => '<li><span class="pill ' + c + '"><span class="ic">' + i + '</span></span><p>' + t + '</p></li>').join('');
+    if (s.equityIrr != null && s.equityIrr < 0.07) flags.push(['warn', '!', 'Equity IRR of ' + pc(s.equityIrr, 1) + ' looks thin for a greenfield sponsor. The model gives no value after PPA expiry, so a merchant tail or a refinancing would lift it.']);
+    $('flags').innerHTML = flags.map(([c, i, t]) => '<li><span class="pill ' + c + '">' + i + '</span><p>' + t + '</p></li>').join('');
 
-    const rows = [
-      ['Construction capex', s.capex, 'Senior debt', s.amount],
-      ['Interest during construction', s.idc, 'Sponsor equity', s.equityAtFc],
-      ['Upfront fee', s.upfrontFee, '', null],
-      ['Commitment fee', s.commitmentFees, '', null],
-    ];
     const tot = s.projectCost;
-    $('su').innerHTML = '<thead><tr><th>Uses</th><th class="n">' + cur() + 'k</th><th class="n">%</th><th>Sources</th><th class="n">' + cur() + 'k</th><th class="n">%</th></tr></thead><tbody>' +
-      rows.map((r) => '<tr><td>' + r[0] + '</td><td class="n">' + k0(r[1]) + '</td><td class="n">' + pc(r[1] / tot) + '</td><td>' + r[2] + '</td><td class="n">' + (r[3] == null ? '' : k0(r[3])) + '</td><td class="n">' + (r[3] == null ? '' : pc(r[3] / tot)) + '</td></tr>').join('') +
-      '<tr class="tot"><td>Total</td><td class="n">' + k0(tot) + '</td><td class="n">100.0%</td><td>Total</td><td class="n">' + k0(s.amount + s.equityAtFc) + '</td><td class="n">100.0%</td></tr></tbody>';
+    const block = (title, rows, total) => '<thead><tr><th>' + title + '</th><th class="n">' + cur() + 'k</th><th class="n">%</th></tr></thead><tbody>' +
+      rows.map(([l, v]) => '<tr><td>' + l + '</td><td class="n">' + k0(v) + '</td><td class="n">' + pc(v / tot) + '</td></tr>').join('') +
+      '<tr class="tot"><td>Total ' + title.toLowerCase() + '</td><td class="n">' + k0(total) + '</td><td class="n">100.0%</td></tr></tbody>';
+    $('su').innerHTML = block('Uses', [['Construction capex', s.capex], ['Interest during construction', s.idc], ['Upfront fee', s.upfrontFee], ['Commitment fee', s.commitmentFees]], tot) +
+      '<tbody><tr><td colspan="3" style="border:0;height:10px"></td></tr></tbody>' +
+      block('Sources', [['Senior debt', s.amount], ['Sponsor equity', s.equityAtFc]], s.amount + s.equityAtFc);
     $('suNote').textContent = 'At financial close. The DSRA (' + cur() + ' ' + k0(s.dsraAtCod) + 'k) is funded by a further equity injection at COD.';
 
     const S = res.series, nC = res.meta.nC;
     const op = (arr) => arr.slice(nC);
     const labels = res.periods.slice(nC).map((p) => p.label);
-    const c1 = css('--s1'), c2 = css('--s3'), c3 = css('--s2');
-    legend($('lg1'), [{ name: 'Principal', color: c1 }, { name: 'Interest', color: c2 }, { name: 'CFADS post-tax', color: c3, kind: 'line' }, { name: 'CFADS pre-tax', color: css('--ref'), kind: 'dash' }]);
+    const cA = css('--accent'), cB = css('--accent-2'), cT = css('--text'), cM = css('--muted');
+    legend($('lg1'), [{ name: 'Principal', color: cA }, { name: 'Interest', color: cB }, { name: 'CFADS post-tax', color: cT, kind: 'line' }, { name: 'CFADS pre-tax', color: cM, kind: 'dash' }]);
     chart($('ch1'), {
       title: 'CFADS against debt service', labels, yMin: 0,
-      bars: [{ name: 'Principal', color: c1, values: op(S.principal) }, { name: 'Interest', color: c2, values: op(S.interest) }],
-      lines: [{ name: 'CFADS post-tax', color: c3, values: op(S.cfadsPost) }, { name: 'CFADS pre-tax', color: css('--ref'), values: op(S.cfadsPre), dash: true }],
+      bars: [{ name: 'Principal', color: cA, values: op(S.principal) }, { name: 'Interest', color: cB, values: op(S.interest) }],
+      lines: [{ name: 'CFADS post-tax', color: cT, values: op(S.cfadsPost) }, { name: 'CFADS pre-tax', color: cM, values: op(S.cfadsPre), dash: true }],
       yFmt: (v) => nf0.format(v), tipFmt: (v) => k0(v),
     });
-    $('checks').innerHTML = res.checks.map((c) => '<span class="pill ' + (c.ok ? 'good' : 'crit') + '"><span class="ic">' + (c.ok ? '✓' : '✕') + '</span>' + c.name + '</span>').join('');
+    $('checks').innerHTML = res.checks.map((c) => '<span class="pill ' + (c.ok ? 'good' : 'crit') + '">' + (c.ok ? '✓ ' : '✕ ') + c.name + '</span>').join('');
   }
 
   function renderDebt() {
     const S = res.series, nC = res.meta.nC, nM = res.meta.nM, C = deal.covenants;
     const labels = res.periods.slice(nC, nM).map((p) => p.label);
     const sl = (a) => a.slice(nC, nM);
-    const c1 = css('--s1'), c2 = css('--s2'), c3 = css('--s3');
-    legend($('lg2'), [{ name: 'DSCR post-tax', color: c1, kind: 'line' }, { name: '12m historic (tested)', color: c3, kind: 'line' }, { name: 'DSCR pre-tax', color: c2, kind: 'dash' }]);
+    const cA = css('--accent'), cB = css('--sponsor'), cM = css('--muted');
+    legend($('lg2'), [{ name: 'DSCR post-tax', color: cA, kind: 'line' }, { name: '12m historic (tested)', color: cB, kind: 'line' }, { name: 'DSCR pre-tax', color: cM, kind: 'dash' }]);
     const all = [...sl(S.dscrPost), ...sl(S.dscrPre)].filter((v) => v != null);
     chart($('ch2'), {
       title: 'DSCR by period', labels, yMin: Math.max(0, Math.floor((Math.min(...all, C.default_dscr) - 0.1) * 10) / 10),
-      lines: [{ name: 'DSCR post-tax', color: c1, values: sl(S.dscrPost) }, { name: '12m historic', color: c3, values: sl(S.hDscr) }, { name: 'DSCR pre-tax', color: c2, values: sl(S.dscrPre), dash: true }],
-      refs: [{ y: deal.senior_debt.target_dscr, label: 'Target ' + x2(deal.senior_debt.target_dscr) }, { y: C.lockup_dscr, label: 'Lock-up ' + x2(C.lockup_dscr) }, { y: C.default_dscr, label: 'Default ' + x2(C.default_dscr) }],
+      lines: [{ name: 'DSCR post-tax', color: cA, values: sl(S.dscrPost) }, { name: '12m historic', color: cB, values: sl(S.hDscr) }, { name: 'DSCR pre-tax', color: cM, values: sl(S.dscrPre), dash: true }],
+      refs: [{ y: deal.senior_debt.target_dscr, label: 'Target ' + x2(deal.senior_debt.target_dscr), color: css('--text'), dash: true }, { y: C.lockup_dscr, label: 'Lock-up ' + x2(C.lockup_dscr), color: css('--warn') }, { y: C.default_dscr, label: 'Default ' + x2(C.default_dscr), color: css('--bad') }],
       yFmt: (v) => v.toFixed(2) + 'x', tipFmt: (v) => x3(v),
     });
     chart($('ch3'), {
       title: 'Senior debt balance', labels: res.periods.slice(0, nM).map((p) => p.label), yMin: 0, height: 200,
-      bars: [{ name: 'Closing balance', color: c1, values: S.debtClose.slice(0, nM) }],
+      bars: [{ name: 'Closing balance', color: cA, values: S.debtClose.slice(0, nM) }],
       yFmt: (v) => nf0.format(v), tipFmt: (v) => k0(v),
     });
     const head = '<thead><tr><th class="row">Period</th><th>Opening</th><th>Interest</th><th>Principal</th><th>Debt service</th><th>Closing</th><th>CFADS post-tax</th><th>DSCR pre</th><th>DSCR post</th><th>12m DSCR</th><th>LLCR post</th><th>DSRA</th></tr></thead>';
     let body = '';
     for (let i = nC; i < nM; i++) {
-      const lk = res.series.lockup[i];
-      body += '<tr><td class="row">' + res.periods[i].label + '</td><td class="n">' + k0(S.debtOpen[i]) + '</td><td>' + k0(S.interest[i]) + '</td><td>' + k0(S.principal[i]) + '</td><td>' + k0(S.debtService[i]) + '</td><td>' + k0(S.debtClose[i]) + '</td><td>' + k0(S.cfadsPost[i]) + '</td><td>' + x3(S.dscrPre[i]) + '</td><td>' + x3(S.dscrPost[i]) + '</td><td' + (lk ? ' class="lk"' : '') + '>' + x3(S.hDscr[i]) + '</td><td>' + x3(S.llcrPost[i]) + '</td><td>' + k0(S.dsraBal[i]) + '</td></tr>';
+      const lk = S.lockup[i];
+      body += '<tr><td class="row">' + res.periods[i].label + '</td><td>' + k0(S.debtOpen[i]) + '</td><td>' + k0(S.interest[i]) + '</td><td>' + k0(S.principal[i]) + '</td><td>' + k0(S.debtService[i]) + '</td><td>' + k0(S.debtClose[i]) + '</td><td>' + k0(S.cfadsPost[i]) + '</td><td>' + x3(S.dscrPre[i]) + '</td><td>' + x3(S.dscrPost[i]) + '</td><td' + (lk ? ' class="lk"' : '') + '>' + x3(S.hDscr[i]) + '</td><td>' + x3(S.llcrPost[i]) + '</td><td>' + k0(S.dsraBal[i]) + '</td></tr>';
     }
     $('debtTable').innerHTML = head + '<tbody>' + body + '</tbody>';
   }
@@ -973,10 +2193,6 @@ pre.prompt { white-space: pre-wrap; font-family: var(--f-data); font-size: 12px;
     ['g', 'Tax workings'],
     ['depreciation', 'Tax depreciation', 'k'], ['taxable', 'Taxable income', 'k'], ['lossUsed', 'Losses used', 'k'], ['lossBal', 'Losses carried forward', 'b'],
   ];
-  function cfCell(kind, v) {
-    if (kind === 'x') return v == null ? '' : x3(v);
-    return k0(v);
-  }
   function renderCashflow() {
     const S = res.series, P = res.periods, nC = res.meta.nC;
     let h = '<thead><tr class="ph"><th class="row"></th>' + P.map((p) => '<th class="' + (p.phase === 'construction' ? 'constr' : '') + '">' + (p.phase === 'construction' ? 'Constr.' : 'Op yr ' + p.opYear) + '</th>').join('') + '<th>Total</th></tr>';
@@ -985,19 +2201,9 @@ pre.prompt { white-space: pre-wrap; font-family: var(--f-data); font-size: 12px;
       if (key === 'g') { h += '<tr class="grp"><td class="row">' + label + '</td><td colspan="' + (P.length + 1) + '"></td></tr>'; continue; }
       const arr = S[key];
       const tot = kind === 'k' ? arr.reduce((a, b) => a + b, 0) : null;
-      h += '<tr class="' + (strong ? 'key' : '') + '"><td class="row">' + label + '</td>' + arr.map((v, i) => '<td class="n' + (i < nC ? ' constr' : '') + (kind === 'x' && key === 'hDscr' && S.lockup[i] ? ' lk' : '') + (kind !== 'x' && Math.abs(v || 0) < 0.5 ? ' zero' : '') + '">' + cfCell(kind, v) + '</td>').join('') + '<td class="n tot">' + (tot == null ? '' : k0(tot)) + '</td></tr>';
+      h += '<tr class="' + (strong ? 'key' : '') + '"><td class="row">' + label + '</td>' + arr.map((v, i) => '<td class="' + (i < nC ? 'constr' : '') + (kind === 'x' && key === 'hDscr' && S.lockup[i] ? ' lk' : '') + (kind !== 'x' && Math.abs(v || 0) < 0.5 ? ' zero' : '') + '">' + (kind === 'x' ? (v == null ? '' : x3(v)) : k0(v)) + '</td>').join('') + '<td class="tot">' + (tot == null ? '' : k0(tot)) + '</td></tr>';
     }
     $('cfTable').innerHTML = h + '</tbody>';
-  }
-
-  function toTsv() {
-    const S = res.series, P = res.periods;
-    const lines = [['Line'].concat(P.map((p) => p.label)).join('\t')];
-    for (const [key, label, kind] of CF_ROWS) {
-      if (key === 'g') { lines.push(label); continue; }
-      lines.push([label].concat(S[key].map((v) => (v == null ? '' : kind === 'x' ? v.toFixed(4) : v.toFixed(2)))).join('\t'));
-    }
-    return lines.join('\n');
   }
 
   // ---------- Sensitivities ----------
@@ -1023,7 +2229,7 @@ pre.prompt { white-space: pre-wrap; font-family: var(--f-data); font-size: 12px;
   function sensRow(label, r, shockCell, cls) {
     if (!r.ok) return '<tr><td>' + label + '</td><td>' + shockCell + '</td><td colspan="6">Inputs out of range</td></tr>';
     const s = r.summary, st = statusFor(s.minDscrPost);
-    return '<tr class="' + (cls || '') + '"><td>' + label + '</td><td>' + shockCell + '</td><td>' + mn(s.amount) + '</td><td>' + x2(s.minDscrPost) + '</td><td>' + x2(s.avgDscrPost) + '</td><td>' + x2(s.llcrCodPost) + '</td><td>' + pc(s.equityIrr, 2) + '</td><td><span class="pill ' + st[0] + '"><span class="ic">' + st[1] + '</span>' + st[2] + (s.lockupPeriods ? ' · ' + s.lockupPeriods + ' tests' : '') + '</span></td></tr>';
+    return '<tr class="' + (cls || '') + '"><td>' + label + '</td><td>' + shockCell + '</td><td>' + mn(s.amount) + '</td><td>' + x2(s.minDscrPost) + '</td><td>' + x2(s.avgDscrPost) + '</td><td>' + x2(s.llcrCodPost) + '</td><td>' + pc(s.equityIrr, 2) + '</td><td><span class="pill ' + st[0] + '">' + st[1] + ' ' + st[2] + (s.lockupPeriods ? ' · ' + s.lockupPeriods + ' tests' : '') + '</span></td></tr>';
   }
   function renderSens() {
     let h = '<thead><tr><th>Case</th><th>Shock</th><th>Debt</th><th>Min DSCR post-tax</th><th>Avg DSCR post-tax</th><th>LLCR at COD</th><th>Equity IRR</th><th>Covenant</th></tr></thead><tbody>';
@@ -1056,12 +2262,23 @@ pre.prompt { white-space: pre-wrap; font-family: var(--f-data); font-size: 12px;
     const fmtBe = (k, unitFn) => (k == null ? 'Already below' : unitFn(k));
     const p0 = deal.operations.ppa_price_fc, cf0 = deal.operations.capacity_factor_p50;
     const rows = [
-      ['PPA price for min DSCR = ' + x2(C.lockup_dscr) + ' (lock-up)', fmtBe(bePrice(C.lockup_dscr), (k) => cur() + ' ' + (p0 * k).toFixed(2) + '/MWh · ' + pc(k - 1) )],
+      ['PPA price for min DSCR = ' + x2(C.lockup_dscr) + ' (lock-up)', fmtBe(bePrice(C.lockup_dscr), (k) => cur() + ' ' + (p0 * k).toFixed(2) + '/MWh · ' + pc(k - 1))],
       ['PPA price for min DSCR = 1.00x', fmtBe(bePrice(1.0), (k) => cur() + ' ' + (p0 * k).toFixed(2) + '/MWh · ' + pc(k - 1))],
       ['Capacity factor for min DSCR = ' + x2(C.lockup_dscr), fmtBe(beYield(C.lockup_dscr), (k) => pc(cf0 * k) + ' · ' + pc(k - 1) + ' yield')],
       ['Capacity factor for min DSCR = 1.00x', fmtBe(beYield(1.0), (k) => pc(cf0 * k) + ' · ' + pc(k - 1) + ' yield')],
     ];
     $('beTable').innerHTML = '<tbody>' + rows.map((r) => '<tr><td>' + r[0] + '</td><td class="n">' + r[1] + '</td></tr>').join('') + '</tbody>';
+  }
+
+  // ---------- Term sheet ----------
+  function termSheetMd() {
+    return base.meta.generated ? PFTermSheet.termSheet(base, PFEngine.run(base)) : COOLABAH_TS;
+  }
+  function renderTermSheet() {
+    $('tsDoc').innerHTML = PFMarkdown.toHtml(termSheetMd());
+    $('tsCallout').innerHTML = base.meta.generated
+      ? '<p><b>Random deal #' + base.meta.seed + '.</b> The term sheet below and the model inputs come from the same random draw; each input on the left cites the clause it maps to. Change any input and the model reruns; the term sheet stays as issued.</p><p>Share this exact deal with the link to this page: it opens deal #' + base.meta.seed + ' again.</p>'
+      : '<p><b>Reference deal.</b> The engine is tested against values recomputed independently from this term sheet (IDC, FY30 EBITDA, sculpted DSCR 1.475x, LLCR, PLCR, equity IRR…). Each input on the left cites its clause.</p>';
   }
 
   // ---------- JSON & prompt ----------
@@ -1096,13 +2313,57 @@ TERM SHEET:
     try { await navigator.clipboard.writeText(text); flash(msgId, 'Copied.'); }
     catch (e) { flash(msgId, 'Copy blocked here. Select the text and copy it manually.'); }
   }
+  function download(name, bytesOrText, type) {
+    const blob = new Blob([bytesOrText], { type });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }
+  const slug = () => deal.meta.name.replace(/^Project\s+/i, '').replace(/[^A-Za-z0-9]+/g, '_') + (deal.meta.seed ? '_deal' + deal.meta.seed : '');
+
+  // ---------- Opening a deal ----------
+  function openDeal(d, tab) {
+    base = clone(d);
+    deal = clone(d);
+    $('landing').hidden = true;
+    $('workspace').hidden = false; $('foot').hidden = false;
+    $('dealId').hidden = false; $('topActions').hidden = false;
+    const q = base.meta.generated ? 'deal=' + base.meta.seed : 'deal=coolabah';
+    try { history.replaceState(null, '', '?' + q + '#' + (tab || 'termsheet')); } catch (e) {}
+    buildInputs(); renderTermSheet(); recalc();
+    showTab(tab || 'termsheet');
+    window.scrollTo(0, 0);
+  }
+  function openSeed(seed) { openDeal(PFGenerator.generateDeal(seed), 'termsheet'); }
+  function showLanding() {
+    $('landing').hidden = false;
+    $('workspace').hidden = true; $('foot').hidden = true;
+    $('dealId').hidden = true; $('topActions').hidden = true;
+    try { history.replaceState(null, '', location.pathname); } catch (e) {}
+  }
   function loadDeal(obj, msgId) {
     const test = PFEngine.run(obj);
     if (!test.ok) { flash(msgId, 'Not applied: ' + test.errors[0]); return false; }
-    deal = obj; buildInputs(); recalc(); flash(msgId, 'Applied. Model rebuilt from ' + (obj.meta && obj.meta.name || 'the new deal') + '.'); return true;
+    deal = obj;
+    if (!obj.meta || !obj.meta.generated) base = clone(obj);
+    buildInputs(); recalc(); flash(msgId, 'Applied. Model rebuilt from ' + (obj.meta && obj.meta.name || 'the new deal') + '.'); return true;
   }
 
   // ---------- Wiring ----------
+  $('openExample').addEventListener('click', () => openDeal(COOLABAH, 'termsheet'));
+  $('openRandom').addEventListener('click', () => openSeed(PFGenerator.randomSeed()));
+  $('randomBtn').addEventListener('click', () => openSeed(PFGenerator.randomSeed()));
+  $('seedForm').addEventListener('submit', (ev) => { ev.preventDefault(); const n = parseInt($('seedIn').value, 10); openSeed(n > 0 ? n : PFGenerator.randomSeed()); });
+  $('homeBtn').addEventListener('click', showLanding);
+  $('tsToModel').addEventListener('click', () => { showTab('overview'); window.scrollTo(0, 0); });
+  $('tsDownload').addEventListener('click', () => download(slug() + '_term_sheet.md', termSheetMd(), 'text/markdown'));
+  const xlsx = () => {
+    if (!res || !res.ok) return;
+    download(slug() + '_model.xlsx', PFExcel.exportXlsx(deal, res), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  };
+  $('xlsxBtn').addEventListener('click', xlsx);
+  $('xlsxBtn2').addEventListener('click', xlsx);
   $('promptBox').textContent = PROMPT;
   $('copyPrompt').addEventListener('click', () => copy(PROMPT, 'promptMsg'));
   $('copyJson').addEventListener('click', () => copy(JSON.stringify(deal, null, 2), 'jsonMsg'));
@@ -1115,29 +2376,27 @@ TERM SHEET:
     rd.onload = () => { try { loadDeal(JSON.parse(rd.result), 'jsonMsg'); } catch (e) { flash('jsonMsg', 'That file is not valid JSON.'); } };
     rd.readAsText(f);
   });
-  $('copyTsv').addEventListener('click', async () => {
-    const b = $('copyTsv');
-    try { await navigator.clipboard.writeText(toTsv()); b.textContent = 'Copied, paste into Excel'; }
-    catch (e) { b.textContent = 'Copy blocked in this view'; }
-    setTimeout(() => (b.textContent = 'Copy cash flows for Excel'), 2500);
-  });
-  $('resetBtn').addEventListener('click', () => { deal = clone(BASE); buildInputs(); recalc(); });
+  $('resetBtn').addEventListener('click', () => { deal = clone(base); buildInputs(); recalc(); });
 
+  const TABS = ['termsheet', 'overview', 'debt', 'cashflow', 'sens', 'method', 'json'];
   function showTab(name) {
     document.querySelectorAll('.tab').forEach((t) => t.setAttribute('aria-selected', t.dataset.tab === name ? 'true' : 'false'));
     document.querySelectorAll('[data-panel]').forEach((p) => (p.hidden = p.dataset.panel !== name));
+    try { history.replaceState(null, '', location.search + '#' + name); } catch (e) {}
     if (res && res.ok) { if (name === 'overview') renderOverview(); if (name === 'debt') renderDebt(); }
   }
-  document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => { showTab(t.dataset.tab); try { history.replaceState(null, '', '#' + t.dataset.tab); } catch (e) {} }));
-  const fromHash = () => { const h = location.hash.slice(1); return ['overview', 'debt', 'cashflow', 'sens', 'json'].includes(h) ? h : 'overview'; };
-  window.addEventListener('hashchange', () => showTab(fromHash()));
+  document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => showTab(t.dataset.tab)));
+  window.addEventListener('hashchange', () => { const h = location.hash.slice(1); if (deal && TABS.includes(h)) showTab(h); });
 
   let rz = null;
-  new ResizeObserver(() => { clearTimeout(rz); rz = setTimeout(() => { if (res && res.ok) { renderOverview(); renderDebt(); } }, 150); }).observe(document.querySelector('.sheet'));
-  if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => res && res.ok && (renderOverview(), renderDebt()));
+  new ResizeObserver(() => { clearTimeout(rz); rz = setTimeout(() => { if (res && res.ok && !$('workspace').hidden) { renderOverview(); renderDebt(); } }, 150); }).observe(document.querySelector('.sheet'));
 
-  buildInputs();
-  showTab(fromHash());
-  recalc();
+  // Start: ?deal=coolabah or ?deal=4821 opens that deal directly; otherwise the start page.
+  const params = new URLSearchParams(location.search);
+  const want = params.get('deal');
+  const tab = TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'termsheet';
+  if (want === 'coolabah') openDeal(COOLABAH, tab);
+  else if (want && parseInt(want, 10) > 0) openDeal(PFGenerator.generateDeal(parseInt(want, 10)), tab);
+  else showLanding();
 })();
 </script>
