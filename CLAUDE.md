@@ -7,7 +7,7 @@ Web app: project finance term sheet → semi-annual model → Excel with live fo
 - Random deals: solar only, Australia. Same seed = same deal (`?deal=4821`).
 - Everything in English (site, term sheet, Excel).
 - Excel = real model with formulas, not values.
-- GitHub: private repo while building, public + GitHub Pages at the end (Pages is free only for public repos). Ask Jean before pushing or making it public.
+- GitHub: public repo https://github.com/JeanGLT/coolabah-model, live at https://jeanglt.github.io/coolabah-model/ (GitHub Pages from main, root). Pushing to main updates the live site: ask Jean before pushing.
 - Design: "Credit Approved" style (Inter + DM Serif Display, one blue accent #2f5bea, white cards on #f6f7f9). Source: `/Users/jean/Credit-Approved/DESIGN.md`.
 - No dependencies. npm install was not used; the .xlsx writer is hand-written (`src/xlsx.js`).
 
@@ -23,6 +23,5 @@ Web app: project finance term sheet → semi-annual model → Excel with live fo
 - `index.html` is generated: edit `src/app.html`, never `index.html`.
 
 ## Still to do
-- Push to GitHub (private), then make public + enable Pages.
 - Jean to open one exported .xlsx in Excel to confirm it opens without a repair prompt.
 - Next features: see README "Next steps".
