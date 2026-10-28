@@ -105,7 +105,7 @@
     L.push('| Net energy |  | ' + nf(fy.energy) + ' MWh |');
     L.push('| PPA price | AUD ' + O.ppa_price_fc.toFixed(2) + '/MWh at FC' + (indexed ? ', 100% CPI' : ', flat') + ' | AUD ' + price1.toFixed(2) + '/MWh |');
     L.push('| Revenue |  | AUD ' + m2(fy.revenue) + ' |');
-    L.push('| Operating costs | AUD ' + m2(O.opex_real_fc) + ' p.a. real | AUD ' + m2(fy.opex) + ' |');
+    L.push('| Operating costs | AUD ' + (O.opex_real_fc / 1000).toFixed(3) + 'm p.a. real | AUD ' + m2(fy.opex) + ' |');
     L.push('| EBITDA |  | AUD ' + m2(fy.ebitda) + ' |');
     L.push('| CPI | ' + pct(O.cpi) + ' p.a., applied annually |  |');
     L.push('| Corporate tax | 30%, straight-line tax depreciation over ' + deal.tax.depreciation_years + ' years, losses carried forward |  |');

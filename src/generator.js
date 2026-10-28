@@ -183,7 +183,7 @@
       'operations.degradation': '§6 Degradation ' + pct(O.degradation) + ' p.a. from operating year 2',
       'operations.ppa_price_fc': '§1 PPA: AUD ' + O.ppa_price_fc.toFixed(2) + '/MWh at financial close',
       'operations.ppa_indexation': O.ppa_indexation ? '§1 PPA: indexed at 100% of CPI annually' : '§1 PPA: flat price, no indexation',
-      'operations.opex_real_fc': '§6 Operating costs AUD ' + (O.opex_real_fc / 1000).toFixed(2) + 'm p.a. real',
+      'operations.opex_real_fc': '§6 Operating costs AUD ' + (O.opex_real_fc / 1000).toFixed(3) + 'm p.a. real',
       'operations.cpi': '§6 CPI ' + pct(O.cpi) + ' p.a., applied annually',
       'tax.rate': '§6 Corporate tax 30%',
       'tax.depreciation_years': '§6 Straight-line tax depreciation over ' + d.tax.depreciation_years + ' years',

@@ -3,7 +3,9 @@
 Web app: project finance term sheet → semi-annual model → Excel with live formulas. Goal: a portfolio piece for Jean's CV, sent to recruiters as a link. Read `SPEC.md` first.
 
 ## Decisions (28 Oct 2026)
-- v1 = Coolabah example + random deal mode. No in-app term sheet extraction yet (would need a backend holding an API key).
+- v1 = Coolabah example + random deal mode + drop zone (front page layout A).
+- Drop zone (option 3): reads Model Builder term sheets (.md/.txt) and deal JSON locally with `src/parser.js`; PDF / Word / free text get a guided Claude prompt step. Automatic Claude reading (serverless backend + API key) comes later.
+- Author line: Jean Grollet · jean@grollet.com.
 - Random deals: solar only, Australia. Same seed = same deal (`?deal=4821`).
 - Everything in English (site, term sheet, Excel).
 - Excel = real model with formulas, not values.
@@ -12,7 +14,7 @@ Web app: project finance term sheet → semi-annual model → Excel with live fo
 - No dependencies. npm install was not used; the .xlsx writer is hand-written (`src/xlsx.js`).
 
 ## Workflow
-- `node --test` must stay green (22 tests). `node build.js` after any change in `src/` or `deal.json`, then commit `index.html` too.
+- `node --test` must stay green (28 tests). `node build.js` after any change in `src/` or `deal.json`, then commit `index.html` too.
 - Excel formulas: check with `test/verify-excel.html` served over http (see README).
 - Add a golden test before each new feature.
 
@@ -24,4 +26,5 @@ Web app: project finance term sheet → semi-annual model → Excel with live fo
 
 ## Still to do
 - Jean to open one exported .xlsx in Excel to confirm it opens without a repair prompt.
+- Repo rename to `model-builder` (URL would change): waiting for Jean's answer.
 - Next features: see README "Next steps".

@@ -197,7 +197,7 @@ These were recomputed independently from the term sheet inputs. The engine must 
 
 ## 9. Tech stack
 
-**Status (28 Oct 2026):** v1 is built in plain JavaScript, no build tool and no dependencies. `src/engine.js` holds the engine, `index.html` the app (built by `node build.js`). Steps 1–9 of the build order below are done, plus the random deal generator (section 11). `node --test` runs 22 tests, all green. Step 10 (GitHub Pages) is waiting for the repository to be made public. Moving to the stack below is optional; it is not planned, because the plain version is simpler to maintain.
+**Status (28 Oct 2026):** v1 is built in plain JavaScript, no build tool and no dependencies. `src/engine.js` holds the engine, `index.html` the app (built by `node build.js`). Steps 1–9 of the build order below are done, plus the random deal generator (section 11). `node --test` runs 28 tests, all green. Step 10 (GitHub Pages) is waiting for the repository to be made public. Moving to the stack below is optional; it is not planned, because the plain version is simpler to maintain.
 
 Target stack:
 - Vite + TypeScript, plain React
@@ -243,3 +243,13 @@ Purpose: someone without a term sheet (e.g. a recruiter) can still test the mode
 - Each formula cell carries the engine's value as a cached result; Excel recalculates on opening (`fullCalcOnLoad`).
 - Limits: the number of period columns is fixed at export (a Checks line flags a changed PPA end date); the DSRA formula supports 0, 6 or 12 months.
 - Verified with `test/verify-excel.html` (HyperFormula recalculation): all reconciled outputs match the engine to the last decimal for Coolabah and three random deals.
+
+## 13. Drop zone and term sheet reader (added 28 Oct 2026)
+
+- The start page leads with a drop zone. By file type:
+  - `.md` / `.txt` in the Model Builder layout → `src/parser.js` reads it locally (each input found by its table row label, with the clause kept as its source). Core terms missing → listed to the user. Minor terms missing (availability, degradation, CPI, tax, fees, DSRA, covenants) → market-standard assumption, source marked `ASSUMED`.
+  - `.json` → used as the deal directly.
+  - PDF, Word or text in another layout → guided step: copy the extraction prompt (with the text already inside when it is a text file), run it in Claude, paste the JSON back.
+- Files are read in the browser and never uploaded.
+- The Coolabah term sheet doubles as the downloadable template.
+- Tests (`test/parser.test.js`): Coolabah term sheet → exactly `deal.json`; 100 generated term sheets read back to the same deal and the same IRR; edits are picked up; missing terms reported; free text rejected.

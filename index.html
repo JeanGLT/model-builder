@@ -75,6 +75,19 @@ a { color: var(--accent); }
 .cta { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
 .seed-form { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); }
 .seed-form input { width: 92px; }
+.drop { margin-top: 28px; border: 2px dashed var(--accent-2); background: var(--surface); border-radius: var(--radius); padding: 36px 24px; text-align: center; cursor: pointer; transition: border-color .15s, background .15s; }
+.drop:hover, .drop.over { border-color: var(--accent); background: var(--accent-soft); }
+.drop svg { width: 36px; height: 36px; color: var(--accent); }
+.drop b { display: block; font-size: 18px; font-weight: 600; margin-top: 8px; }
+.drop span { display: block; font-size: 13px; color: var(--muted); margin-top: 4px; }
+.alt { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 16px; font-size: 14px; color: var(--muted); }
+.drop-msg { margin-top: 12px; }
+.guide { margin-top: 16px; }
+.guide ol { list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 14px; }
+.guide li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 12px; align-items: start; }
+.guide li > .num { width: 28px; height: 28px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 14px; display: grid; place-items: center; }
+.guide p { margin: 2px 0 8px; color: var(--body); font-size: 14px; }
+.guide textarea { width: 100%; min-height: 110px; font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; font-size: 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 10px; resize: vertical; }
 .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 56px; }
 .step .num { width: 28px; height: 28px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 14px; display: inline-grid; place-items: center; margin-bottom: 12px; }
 .step p { margin: 6px 0 0; color: var(--body); font-size: 14px; }
@@ -236,23 +249,44 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
   <section class="hero">
     <div class="eyebrow">Project finance · term sheet → model</div>
     <h1>From term sheet to bankable model.</h1>
-    <p class="lead">Model Builder reads the terms of a project finance deal and builds the full semi-annual model: construction funding, operations, sculpted debt, tax, DSRA, covenants and equity returns. Every input cites its clause, and the whole model downloads as an Excel file with live formulas.</p>
-    <div class="cta">
-      <button class="btn btn-primary btn-lg" id="openExample" type="button">Open the Coolabah example</button>
-      <button class="btn btn-ghost btn-lg" id="openRandom" type="button">Generate a random deal</button>
+    <p class="lead">Drop a project finance term sheet and get the full semi-annual model: construction funding, sculpted debt, tax, DSRA, covenants and equity returns. Every input cites its clause, and the model downloads as an Excel file with live formulas.</p>
+
+    <div class="drop" id="drop" role="button" tabindex="0" aria-label="Drop or choose a term sheet file">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><path d="M7 9l5-5 5 5"/><path d="M12 4v12"/></svg>
+      <b>Drop your term sheet here</b>
+      <span>or click to choose a file · Model Builder term sheet (.md, .txt), deal JSON, PDF or Word</span>
+      <input type="file" id="dropFile" accept=".md,.markdown,.txt,.json,.pdf,.doc,.docx" hidden>
+    </div>
+    <div class="drop-msg" id="dropMsg" hidden></div>
+
+    <div class="card guide" id="guide" hidden>
+      <h2 id="guideTitle">One reading step for this file</h2>
+      <div class="note" id="guideNote"></div>
+      <ol>
+        <li><span class="num">1</span><div><p>Copy the extraction prompt.</p><button class="btn btn-ghost btn-sm" id="guideCopy" type="button">Copy prompt</button> <span class="msg" id="guideMsg"></span></div></li>
+        <li><span class="num">2</span><div><p id="guideStep2">Open <a href="https://claude.ai/new" target="_blank" rel="noopener">Claude</a>, attach your term sheet and paste the prompt. Claude returns a deal JSON.</p></div></li>
+        <li><span class="num">3</span><div><p>Paste the JSON here. The model is built in your browser.</p><textarea id="guideJson" spellcheck="false" aria-label="Deal JSON returned by Claude" placeholder="{ &quot;meta&quot;: { &quot;name&quot;: &quot;Project …&quot; }, … }"></textarea><div class="row-actions"><button class="btn btn-primary btn-sm" id="guideBuild" type="button">Build the model</button><span class="msg" id="guideBuildMsg"></span></div></div></li>
+      </ol>
+    </div>
+
+    <div class="alt">
+      <span>No term sheet at hand?</span>
+      <button class="btn btn-primary" id="openRandom" type="button">Generate a random deal</button>
+      <button class="btn btn-ghost" id="openExample" type="button">Open the Coolabah example</button>
       <form class="seed-form" id="seedForm">
-        <label for="seedIn">or open deal #</label>
+        <label for="seedIn">or deal #</label>
         <input class="plain" id="seedIn" inputmode="numeric" placeholder="4821" aria-label="Deal number">
         <button class="btn btn-ghost btn-sm" type="submit">Open</button>
       </form>
     </div>
+    <p class="muted" style="margin:12px 0 0;font-size:13px">Want to try your own numbers? <a href="#" id="templateLink">Download the term sheet template</a>, edit it and drop it above.</p>
   </section>
 
   <section class="steps" aria-label="How it works">
     <div class="card step">
       <span class="num">1</span>
-      <h3>Read the term sheet</h3>
-      <p>Start from the reference deal (a 100 MW solar farm in NSW) or draw a new fictional deal: a full indicative term sheet is written for it.</p>
+      <h3>Bring a term sheet</h3>
+      <p>Drop your own, start from the reference deal (a 100 MW solar farm in NSW), or draw a fictional deal with its full indicative term sheet.</p>
     </div>
     <div class="card step">
       <span class="num">2</span>
@@ -273,7 +307,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     <div class="fact"><b>0 hard-codes</b><span>in the Excel calculation sheet</span></div>
   </section>
 
-  <p class="fineprint">All deals are fictional and for modelling practice only. Built by Jean. Calculations run in your browser; nothing is sent anywhere.</p>
+  <p class="fineprint">Built by Jean Grollet · <a href="mailto:jean@grollet.com">jean@grollet.com</a><br>Generated deals are fictional. Calculations run in your browser; files you drop are read locally and never uploaded.</p>
 </main>
 
 <!-- Workspace -->
@@ -449,7 +483,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     </section>
   </main>
 </div>
-<footer class="foot" id="foot" hidden>Fictional deals for modelling practice. Calculations run in your browser.</footer>
+<footer class="foot" id="foot" hidden>Model Builder · built by Jean Grollet · <a href="mailto:jean@grollet.com">jean@grollet.com</a> · calculations run in your browser.</footer>
 
 <script>
 /*
@@ -940,7 +974,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       'operations.degradation': '§6 Degradation ' + pct(O.degradation) + ' p.a. from operating year 2',
       'operations.ppa_price_fc': '§1 PPA: AUD ' + O.ppa_price_fc.toFixed(2) + '/MWh at financial close',
       'operations.ppa_indexation': O.ppa_indexation ? '§1 PPA: indexed at 100% of CPI annually' : '§1 PPA: flat price, no indexation',
-      'operations.opex_real_fc': '§6 Operating costs AUD ' + (O.opex_real_fc / 1000).toFixed(2) + 'm p.a. real',
+      'operations.opex_real_fc': '§6 Operating costs AUD ' + (O.opex_real_fc / 1000).toFixed(3) + 'm p.a. real',
       'operations.cpi': '§6 CPI ' + pct(O.cpi) + ' p.a., applied annually',
       'tax.rate': '§6 Corporate tax 30%',
       'tax.depreciation_years': '§6 Straight-line tax depreciation over ' + d.tax.depreciation_years + ' years',
@@ -1089,7 +1123,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     L.push('| Net energy |  | ' + nf(fy.energy) + ' MWh |');
     L.push('| PPA price | AUD ' + O.ppa_price_fc.toFixed(2) + '/MWh at FC' + (indexed ? ', 100% CPI' : ', flat') + ' | AUD ' + price1.toFixed(2) + '/MWh |');
     L.push('| Revenue |  | AUD ' + m2(fy.revenue) + ' |');
-    L.push('| Operating costs | AUD ' + m2(O.opex_real_fc) + ' p.a. real | AUD ' + m2(fy.opex) + ' |');
+    L.push('| Operating costs | AUD ' + (O.opex_real_fc / 1000).toFixed(3) + 'm p.a. real | AUD ' + m2(fy.opex) + ' |');
     L.push('| EBITDA |  | AUD ' + m2(fy.ebitda) + ' |');
     L.push('| CPI | ' + pct(O.cpi) + ' p.a., applied annually |  |');
     L.push('| Corporate tax | 30%, straight-line tax depreciation over ' + deal.tax.depreciation_years + ' years, losses carried forward |  |');
@@ -1152,6 +1186,145 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
   const api = { toHtml };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.PFMarkdown = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/*
+ * Term sheet reader — v1
+ * Reads a term sheet written in the Model Builder layout (Markdown tables, as in
+ * docs/coolabah_term_sheet.md or a generated deal) and returns a deal JSON.
+ * No AI: each input is found by the label of its table row (e.g. "| Margin | 1.75% p.a. |").
+ * Free-form term sheets (PDF, Word, other layouts) go through the Claude prompt instead.
+ */
+(function (root) {
+  'use strict';
+
+  const MONTHS = { january: 1, february: 2, march: 3, april: 4, may: 5, june: 6, july: 7, august: 8, september: 9, october: 10, november: 11, december: 12 };
+  const num = (s) => parseFloat(String(s).replace(/,/g, ''));
+  const pct = (s) => num(s) / 100;
+
+  // "1 July 2027" or "2027-07-01" -> "2027-07-01"
+  function isoDate(s) {
+    let m = s.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return m[0];
+    m = s.match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/);
+    if (m && MONTHS[m[2].toLowerCase()]) return m[3] + '-' + String(MONTHS[m[2].toLowerCase()]).padStart(2, '0') + '-' + String(m[1]).padStart(2, '0');
+    return null;
+  }
+  const DATE = '(\\d{1,2}\\s+[A-Za-z]+\\s+\\d{4}|\\d{4}-\\d{2}-\\d{2})';
+
+  // Splits the document into table rows, remembering the section ("§2") each row sits in.
+  function rowsOf(md) {
+    const rows = [];
+    let section = 'Summary';
+    for (const line of md.replace(/\r/g, '').split('\n')) {
+      const h = line.match(/^##\s+(\d+)\./);
+      if (h) { section = '§' + h[1]; continue; }
+      if (!line.trim().startsWith('|') || /^\|\s*-/.test(line.trim())) continue;
+      const cells = line.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim().replace(/\*\*/g, ''));
+      rows.push({ section, label: cells[0], cells, text: cells.slice(1).join(' | ') });
+    }
+    return rows;
+  }
+
+  function parseTermSheet(md) {
+    const rows = rowsOf(md);
+    const flat = md.replace(/\*\*/g, '');
+    const deal = {
+      meta: { name: 'Uploaded deal', currency: 'AUD', units: 'k', uploaded: true },
+      timeline: {}, construction: {}, operations: {}, tax: {}, senior_debt: { sizing: 'fixed', repayment: 'sculpted' },
+      dsra: {}, covenants: {}, sources: {},
+    };
+    const missing = [], assumed = [];
+    const short = (s) => (s.length > 90 ? s.slice(0, 88) + '…' : s);
+
+    // Finds the first row whose label matches, then reads a value from its text with a regex.
+    function take(path, labelRe, valueRe, convert, opts) {
+      opts = opts || {};
+      for (const r of rows) {
+        if (!labelRe.test(r.label)) continue;
+        const m = (opts.cells ? r.cells.slice(1).join(' | ') : r.text).match(valueRe);
+        if (!m) continue;
+        const v = convert(m[1], m);
+        if (v === null || v === undefined || (typeof v === 'number' && isNaN(v))) continue;
+        setPath(path, v);
+        deal.sources[path] = r.section + ' ' + r.label + ': ' + short(m[0]);
+        return true;
+      }
+      return false;
+    }
+    function fromText(path, re, convert, where) {
+      const m = flat.match(re);
+      if (!m) return false;
+      setPath(path, convert(m[1], m));
+      deal.sources[path] = (where || 'Summary') + ': ' + short(m[0].trim());
+      return true;
+    }
+    function setPath(path, v) { const [a, b] = path.split('.'); deal[a][b] = v; }
+    function need(path, found, what) { if (!found) missing.push(what); }
+    function assume(path, value, why) {
+      setPath(path, value);
+      deal.sources[path] = 'ASSUMED: ' + why;
+      assumed.push(path);
+    }
+
+    const title = md.match(/^#\s+(.+)$/m);
+    if (title) deal.meta.name = title[1].split(/\s+[—–-]\s+/)[0].trim();
+    const seed = md.match(/Deal #(\d+)/);
+    if (seed) deal.meta.from_deal = Number(seed[1]);
+
+    // Timeline
+    need('timeline.financial_close', fromText('timeline.financial_close', new RegExp('[Ff]inancial close (?:targeted |on )?' + DATE), isoDate), 'financial close date');
+    need('timeline.cod', fromText('timeline.cod', new RegExp('COD (?:on |of )?' + DATE), isoDate), 'COD date');
+    need('timeline.ppa_end', take('timeline.ppa_end', /^PPA$/i, new RegExp('ending ' + DATE), isoDate), 'PPA end date (PPA row: "ending …")');
+    need('timeline.debt_maturity', take('timeline.debt_maturity', /final maturity/i, new RegExp(DATE), isoDate), 'final maturity');
+
+    // Construction
+    need('construction.capex_total', take('construction.capex_total', /^construction capex/i, /^([\d,]+(?:\.\d+)?)/, num), 'construction capex (sources and uses table, AUD k)');
+    const prof = flat.match(/[Cc]apex is drawn ((?:\d+(?:\.\d+)?%\s*\/\s*)+\d+(?:\.\d+)?%)/);
+    if (prof) {
+      deal.construction.capex_profile = prof[1].split('/').map((x) => pct(x));
+      deal.sources['construction.capex_profile'] = '§2 Capex drawn ' + prof[1];
+    } else missing.push('capex drawdown profile ("Capex is drawn 15% / 35% / …")');
+
+    // Operations
+    need('operations.capacity_mw', take('operations.capacity_mw', /^capacity$/i, /([\d,.]+)\s*MWac/, num), 'capacity (MWac)');
+    need('operations.capacity_factor_p50', take('operations.capacity_factor_p50', /capacity factor/i, /([\d.]+)%/, pct), 'P50 capacity factor');
+    if (!take('operations.availability', /^availability$/i, /([\d.]+)%/, pct)) assume('operations.availability', 0.99, 'availability 99%, market standard');
+    if (!take('operations.degradation', /^degradation$/i, /([\d.]+)%/, pct)) assume('operations.degradation', 0.005, 'degradation 0.5% p.a., market standard');
+    need('operations.ppa_price_fc', take('operations.ppa_price_fc', /^PPA$/i, /AUD\s*([\d.]+)\/MWh/, num), 'PPA price (PPA row: "AUD …/MWh")');
+    if (!take('operations.ppa_indexation', /^PPA$/i, /indexed at (\d+(?:\.\d+)?)% of CPI/i, pct)) {
+      if (!take('operations.ppa_indexation', /^PPA$/i, /(flat price|no indexation)/i, () => 0)) assume('operations.ppa_indexation', 1, 'PPA indexed at 100% of CPI');
+    }
+    need('operations.opex_real_fc', take('operations.opex_real_fc', /^operating costs/i, /AUD\s*([\d.]+)m p\.a\. real/, (v) => num(v) * 1000), 'operating costs ("AUD …m p.a. real")');
+    if (!take('operations.cpi', /^CPI$/i, /([\d.]+)%/, pct)) assume('operations.cpi', 0.025, 'CPI 2.5% p.a.');
+
+    // Tax
+    if (!take('tax.rate', /corporate tax/i, /^([\d.]+)%/, pct)) assume('tax.rate', 0.30, 'Australian corporate tax rate 30%');
+    if (!take('tax.depreciation_years', /corporate tax/i, /over (\d+) years/, num)) assume('tax.depreciation_years', 20, 'straight-line tax depreciation over 20 years');
+
+    // Senior debt
+    need('senior_debt.amount', take('senior_debt.amount', /^senior facility$/i, /AUD\s*([\d,]+)/, (v) => num(v) / 1000), 'Senior Facility amount ("AUD 98,000,000")');
+    need('senior_debt.gearing', take('senior_debt.gearing', /maximum gearing/i, /(\d+(?:\.\d+)?)%\s*$/, pct), 'maximum gearing');
+    need('senior_debt.base_rate', take('senior_debt.base_rate', /base case bbsw/i, /([\d.]+)%/, pct), 'base case BBSW');
+    need('senior_debt.margin', take('senior_debt.margin', /^margin$/i, /([\d.]+)%/, pct), 'margin');
+    if (!take('senior_debt.upfront_fee', /upfront fee/i, /([\d.]+)% of the (?:Senior )?Facility/i, pct)) assume('senior_debt.upfront_fee', 0.015, 'upfront fee 1.50%');
+    if (!take('senior_debt.commitment_fee_pct_margin', /commitment fee/i, /(\d+(?:\.\d+)?)% of the Margin/i, pct)) assume('senior_debt.commitment_fee_pct_margin', 0.40, 'commitment fee 40% of the margin');
+    if (take('senior_debt.repayment', /^repayment$/i, /(sculpted|annuity|linear|straight-line|equal)/i, (v) => ({ 'straight-line': 'linear', equal: 'annuity' }[v.toLowerCase()] || v.toLowerCase())) === false) {
+      deal.sources['senior_debt.repayment'] = 'ASSUMED: sculpted repayment';
+    }
+    need('senior_debt.target_dscr', take('senior_debt.target_dscr', /target dscr/i, /([\d.]+)x/, num), 'target DSCR');
+
+    // Reserves and covenants
+    if (!take('dsra.months_of_ds', /debt service reserve/i, /next (\d+) months/, num)) assume('dsra.months_of_ds', 6, 'DSRA of 6 months of debt service');
+    if (!take('covenants.lockup_dscr', /historic dscr/i, /Lock-up\s*<\s*([\d.]+)x/i, num)) assume('covenants.lockup_dscr', 1.10, 'lock-up at 1.10x');
+    if (!take('covenants.default_dscr', /historic dscr/i, /Default\s*<\s*([\d.]+)x/i, num)) assume('covenants.default_dscr', 1.05, 'event of default at 1.05x');
+
+    return { ok: missing.length === 0, deal, missing, assumed };
+  }
+
+  const api = { parseTermSheet };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.PFParser = api;
 })(typeof window !== 'undefined' ? window : globalThis);
 
 /*
@@ -1889,6 +2062,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
   let base = null; // the deal as issued (term sheet), used by Reset and the "edited" markers
   let deal = null; // the deal being modelled, with any edits
   let res = null;
+  let uploaded = null; // { name, md, assumed } when the deal was read from a dropped file
   const cur = () => (deal.meta && deal.meta.currency) || 'AUD';
 
   // ---------- Formatting ----------
@@ -2279,10 +2453,20 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
 
   // ---------- Term sheet ----------
   function termSheetMd() {
-    return base.meta.generated ? PFTermSheet.termSheet(base, PFEngine.run(base)) : COOLABAH_TS;
+    if (base.meta.generated) return PFTermSheet.termSheet(base, PFEngine.run(base));
+    if (uploaded) return uploaded.md;
+    return base.meta.uploaded ? null : COOLABAH_TS;
   }
   function renderTermSheet() {
-    $('tsDoc').innerHTML = PFMarkdown.toHtml(termSheetMd());
+    const md = termSheetMd();
+    $('tsDoc').innerHTML = md ? PFMarkdown.toHtml(md) : '<p class="muted">This deal was opened from a deal JSON, so there is no term sheet document. The clause behind each input is shown under it on the left.</p>';
+    $('tsDownload').hidden = !md;
+    const nAssumed = uploaded ? uploaded.assumed.length : Object.values(base.sources || {}).filter((v) => /^ASSUMED/.test(v)).length;
+    const assumedNote = nAssumed ? ' ' + nAssumed + ' input' + (nAssumed > 1 ? 's were' : ' was') + ' not in the document and use a market-standard assumption, marked ASSUMED under the field.' : '';
+    if (base.meta.uploaded) {
+      $('tsCallout').innerHTML = '<p><b>Read from ' + esc(uploaded ? uploaded.name : 'your deal JSON') + '.</b> Each input on the left cites the clause it was read from.' + assumedNote + '</p><p>The file was read in your browser and never uploaded. Check the inputs, then see the model.</p>';
+      return;
+    }
     $('tsCallout').innerHTML = base.meta.generated
       ? '<p><b>Random deal #' + base.meta.seed + '.</b> The term sheet below and the model inputs come from the same random draw; each input on the left cites the clause it maps to. Change any input and the model reruns; the term sheet stays as issued.</p><p>Share this exact deal with the link to this page: it opens deal #' + base.meta.seed + ' again.</p>'
       : '<p><b>Reference deal.</b> The engine is tested against values recomputed independently from this term sheet (IDC, FY30 EBITDA, sculpted DSCR 1.475x, LLCR, PLCR, equity IRR…). Each input on the left cites its clause.</p>';
@@ -2330,14 +2514,15 @@ TERM SHEET:
   const slug = () => deal.meta.name.replace(/^Project\s+/i, '').replace(/[^A-Za-z0-9]+/g, '_') + (deal.meta.seed ? '_deal' + deal.meta.seed : '');
 
   // ---------- Opening a deal ----------
-  function openDeal(d, tab) {
+  function openDeal(d, tab, file) {
+    uploaded = file || null;
     base = clone(d);
     deal = clone(d);
     $('landing').hidden = true;
     $('workspace').hidden = false; $('foot').hidden = false;
     $('dealId').hidden = false; $('topActions').hidden = false;
-    const q = base.meta.generated ? 'deal=' + base.meta.seed : 'deal=coolabah';
-    try { history.replaceState(null, '', '?' + q + '#' + (tab || 'termsheet')); } catch (e) {}
+    const q = base.meta.uploaded ? '' : '?' + (base.meta.generated ? 'deal=' + base.meta.seed : 'deal=coolabah');
+    try { history.replaceState(null, '', location.pathname + q + '#' + (tab || 'termsheet')); } catch (e) {}
     buildInputs(); renderTermSheet(); recalc();
     showTab(tab || 'termsheet');
     window.scrollTo(0, 0);
@@ -2345,6 +2530,7 @@ TERM SHEET:
   function openSeed(seed) { openDeal(PFGenerator.generateDeal(seed), 'termsheet'); }
   function showLanding() {
     $('landing').hidden = false;
+    dropMessage('', ''); $('guide').hidden = true;
     $('workspace').hidden = true; $('foot').hidden = true;
     $('dealId').hidden = true; $('topActions').hidden = true;
     try { history.replaceState(null, '', location.pathname); } catch (e) {}
@@ -2356,6 +2542,75 @@ TERM SHEET:
     if (!obj.meta || !obj.meta.generated) base = clone(obj);
     buildInputs(); recalc(); flash(msgId, 'Applied. Model rebuilt from ' + (obj.meta && obj.meta.name || 'the new deal') + '.'); return true;
   }
+
+  // ---------- Dropped files ----------
+  let guideText = null; // text of a free-form term sheet, inserted into the prompt
+  function dropMessage(kind, html) {
+    const m = $('dropMsg');
+    m.hidden = !html; m.className = 'drop-msg callout callout-' + kind; m.innerHTML = html || '';
+  }
+  function showGuide(title, note, text) {
+    guideText = text || null;
+    $('guideTitle').textContent = title;
+    $('guideNote').textContent = note;
+    $('guideStep2').innerHTML = text
+      ? 'Open <a href="https://claude.ai/new" target="_blank" rel="noopener">Claude</a> and paste the prompt: it already contains your term sheet. Claude returns a deal JSON.'
+      : 'Open <a href="https://claude.ai/new" target="_blank" rel="noopener">Claude</a>, attach your term sheet and paste the prompt. Claude returns a deal JSON.';
+    $('guide').hidden = false;
+    $('guide').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  // Pulls the JSON object out of a reply that may wrap it in ``` fences or text.
+  function jsonFrom(text) {
+    const a = text.indexOf('{'), b = text.lastIndexOf('}');
+    if (a < 0 || b <= a) throw new Error('no JSON object found');
+    return JSON.parse(text.slice(a, b + 1));
+  }
+  function openJson(obj, name) {
+    obj.meta = Object.assign({ name: 'Uploaded deal', currency: 'AUD', units: 'k' }, obj.meta || {}, { uploaded: true });
+    delete obj.meta.generated;
+    const r = PFEngine.run(obj);
+    if (!r.ok) throw new Error(r.errors[0]);
+    openDeal(obj, 'termsheet', null);
+  }
+  function handleFile(file) {
+    dropMessage('', ''); $('guide').hidden = true;
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    if (['pdf', 'doc', 'docx'].includes(ext)) {
+      showGuide('One reading step for this ' + ext.toUpperCase() + ' file', 'The app reads term sheets in the Model Builder layout on its own. For a ' + ext.toUpperCase() + ', Claude extracts the terms into a deal JSON first (automatic reading in the app is planned).', null);
+      return;
+    }
+    const rd = new FileReader();
+    rd.onload = () => {
+      const text = String(rd.result);
+      if (ext === 'json') {
+        try { openJson(jsonFrom(text), file.name); } catch (e) { dropMessage('warn', 'That JSON could not be used: ' + esc(e.message) + '.'); }
+        return;
+      }
+      const p = PFParser.parseTermSheet(text);
+      const run = p.ok ? PFEngine.run(p.deal) : null;
+      if (p.ok && run.ok) { openDeal(p.deal, 'termsheet', { name: file.name, md: text, assumed: p.assumed }); return; }
+      if (p.missing.length <= 4 && !p.ok) {
+        dropMessage('warn', '<p><b>Almost there.</b> This looks like a Model Builder term sheet, but these terms are missing: ' + p.missing.map(esc).join('; ') + '.</p><p>Add them to the file and drop it again, or use the reading step below.</p>');
+      } else if (p.ok && !run.ok) {
+        dropMessage('warn', '<p><b>The terms were read, but the model can\'t run with them:</b> ' + esc(run.errors[0]) + '</p>');
+      }
+      showGuide('One reading step for this document', 'This document is not in the Model Builder layout, so Claude extracts the terms into a deal JSON first.', text);
+    };
+    rd.readAsText(file);
+  }
+  const drop = $('drop');
+  drop.addEventListener('click', () => $('dropFile').click());
+  drop.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); $('dropFile').click(); } });
+  drop.addEventListener('dragover', (ev) => { ev.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (ev) => { ev.preventDefault(); drop.classList.remove('over'); const f = ev.dataTransfer.files[0]; if (f) handleFile(f); });
+  $('dropFile').addEventListener('change', (ev) => { const f = ev.target.files[0]; if (f) handleFile(f); ev.target.value = ''; });
+  $('guideCopy').addEventListener('click', () => copy(guideText ? PROMPT.replace('<paste here>', guideText) : PROMPT.replace('<paste here>', '(attached)'), 'guideMsg'));
+  $('guideBuild').addEventListener('click', () => {
+    try { openJson(jsonFrom($('guideJson').value), 'deal JSON'); }
+    catch (e) { flash('guideBuildMsg', 'Not built: ' + e.message + '.'); }
+  });
+  $('templateLink').addEventListener('click', (ev) => { ev.preventDefault(); download('model_builder_term_sheet_template.md', COOLABAH_TS, 'text/markdown'); });
 
   // ---------- Wiring ----------
   $('openExample').addEventListener('click', () => openDeal(COOLABAH, 'termsheet'));
@@ -2389,7 +2644,7 @@ TERM SHEET:
   function showTab(name) {
     document.querySelectorAll('.tab').forEach((t) => t.setAttribute('aria-selected', t.dataset.tab === name ? 'true' : 'false'));
     document.querySelectorAll('[data-panel]').forEach((p) => (p.hidden = p.dataset.panel !== name));
-    try { history.replaceState(null, '', location.search + '#' + name); } catch (e) {}
+    try { history.replaceState(null, '', location.pathname + location.search + '#' + name); } catch (e) {}
     if (res && res.ok) { if (name === 'overview') renderOverview(); if (name === 'debt') renderDebt(); }
   }
   document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => showTab(t.dataset.tab)));
