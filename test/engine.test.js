@@ -88,3 +88,31 @@ test('bad inputs are rejected with a clear message', () => {
   assert.strictEqual(x.ok, false);
   assert.ok(x.errors.some((e) => e.includes('100%')));
 });
+
+test('quarterly periods give the same deal on a finer grid', () => {
+  const base = require('../deal.json');
+  const semi = engine.run(base);
+  const q = engine.run(Object.assign({}, base, { timeline: Object.assign({}, base.timeline, { periodicity: 'quarterly' }) }));
+  assert.ok(q.ok, q.errors && q.errors.join('; '));
+  assert.strictEqual(q.meta.N, semi.meta.N * 2);
+  assert.strictEqual(q.periods[0].label, 'Sep-27');
+  assert.ok(q.checks.every((c) => c.ok), q.checks.filter((c) => !c.ok).map((c) => c.name).join(', '));
+  // Same capex and the same first-year operations, only cut in quarters.
+  assert.ok(Math.abs(q.series.capex.reduce((a, b) => a + b, 0) - 140000) < 1e-6);
+  assert.ok(Math.abs(q.summary.firstOpYear.ebitda - semi.summary.firstOpYear.ebitda) < 1e-6);
+  // Interest compounds quarterly, so IDC is a little higher; ratios stay close.
+  assert.ok(q.summary.idc > semi.summary.idc);
+  assert.ok(Math.abs(q.summary.minDscrPost - semi.summary.minDscrPost) < 0.02);
+  assert.ok(Math.abs(q.summary.equityIrr - semi.summary.equityIrr) < 0.002);
+});
+
+test('random deals pass every check when modelled quarterly', () => {
+  const { generateDeal } = require('../src/generator.js');
+  for (let seed = 1; seed <= 100; seed++) {
+    const d = generateDeal(seed);
+    d.timeline.periodicity = 'quarterly';
+    const r = engine.run(d);
+    assert.ok(r.ok, 'seed ' + seed + ': ' + (r.errors || []).join('; '));
+    assert.ok(r.checks.every((c) => c.ok), 'seed ' + seed + ': ' + r.checks.filter((c) => !c.ok).map((c) => c.name).join(', '));
+  }
+});

@@ -51,7 +51,7 @@ function evaluate(deal) {
   const calc = hf.getSheetId('Calc'), calcSheet = wb.sheets.find((s) => s.name === 'Calc');
   const irrRow = [...calcSheet.rows.entries()].find(([r, cells]) => cells.get(1) && cells.get(1).value === 'Equity cash flow')[0];
   const flows = []; for (let c = 3; c < 3 + res.meta.N; c++) flows.push(hf.getCellValue({ sheet: calc, row: irrRow - 1, col: c }));
-  const irr = Math.pow(1 + PFEngine.irr(flows), 2) - 1;
+  const irr = Math.pow(1 + PFEngine.irr(flows), res.meta.ppy) - 1;
   lines.push('IRR from recalculated equity flows: ' + irr + ' vs app ' + res.summary.equityIrr + ' -> ' + (Math.abs(irr - res.summary.equityIrr) < 1e-9 ? 'match' : 'MISMATCH'));
   return lines.join('\n') + '\nformula errors: ' + errors + (firstErr ? ' (first: ' + firstErr + ')' : '');
 }
@@ -60,6 +60,9 @@ let text = '';
 try {
   text += '=== Coolabah ===\n' + evaluate(DEAL) + '\n\n';
   for (const seed of [4821, 7, 1234]) text += '=== Deal #' + seed + ' ===\n' + evaluate(PFGenerator.generateDeal(seed)) + '\n\n';
+  const quarterly = (d) => Object.assign({}, d, { timeline: Object.assign({}, d.timeline, { periodicity: 'quarterly' }) });
+  text += '=== Coolabah, quarterly ===\n' + evaluate(quarterly(DEAL)) + '\n\n';
+  for (const seed of [4821, 1234]) text += '=== Deal #' + seed + ', quarterly ===\n' + evaluate(quarterly(PFGenerator.generateDeal(seed))) + '\n\n';
 } catch (e) { text += 'ERROR ' + e.message + '\n' + e.stack; }
 document.getElementById('out').textContent = text;
 </script>

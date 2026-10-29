@@ -6,7 +6,8 @@
 </head>
 <body>
 <title>Model Builder · Term sheet to project finance model</title>
-<meta name="description" content="Turns a project finance term sheet into a semi-annual cash flow model with sculpted debt, DSCR / LLCR, equity IRR and a live-formula Excel export.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='2' y='2' width='60' height='60' rx='14' fill='white' stroke='%232f5bea' stroke-width='4'/%3E%3Ccircle cx='42' cy='21' r='8' fill='%232f5bea'/%3E%3Cpath d='M10 52 C22 52 27 39 36 39 S51 46 55 31' fill='none' stroke='%231b2333' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
+<meta name="description" content="Turns a project finance term sheet into a semi-annual or quarterly cash flow model with sculpted debt, DSCR / LLCR, equity IRR and a live-formula Excel export.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Serif+Display&display=swap">
@@ -61,7 +62,8 @@ a { color: var(--accent); }
 /* Top bar */
 .top { position: sticky; top: 0; z-index: 20; background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
 .top-in { max-width: 1360px; margin: 0 auto; padding: 12px 32px; display: flex; align-items: center; gap: 12px 20px; flex-wrap: wrap; }
-.brand { font-family: "DM Serif Display", Georgia, serif; font-size: 22px; color: var(--text); background: none; border: 0; padding: 0; cursor: pointer; }
+.brand { font-family: "DM Serif Display", Georgia, serif; font-size: 22px; color: var(--text); background: none; border: 0; padding: 0; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; }
+.brand .logo { width: 30px; height: 30px; flex: none; }
 .brand span { color: var(--accent); }
 .deal-id { display: flex; flex-direction: column; min-width: 0; border-left: 1px solid var(--border); padding-left: 16px; }
 .deal-id b { font-size: 15px; font-weight: 600; }
@@ -96,7 +98,37 @@ a { color: var(--accent); }
 .fact b { display: block; font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
 .fact span { font-size: 12px; color: var(--muted); }
 .fineprint { margin-top: 32px; font-size: 12px; color: var(--faint); }
+.get-excel { margin-top: 40px; display: flex; gap: 20px; align-items: center; justify-content: space-between; flex-wrap: wrap; border-left: 4px solid var(--accent); border-radius: 0 var(--radius) var(--radius) 0; }
+.get-excel h2 { font-family: "DM Serif Display", Georgia, serif; font-weight: 400; font-size: 26px; line-height: 1.15; }
+.get-excel p { margin: 6px 0 0; color: var(--body); font-size: 14px; max-width: 58ch; }
 @media (max-width: 860px) { .steps, .facts { grid-template-columns: minmax(0, 1fr); } .hero h1 { font-size: 40px; } .landing { padding: 40px 16px 56px; } }
+
+/* Loading screen (about half a second, when a model is generated) */
+.loader { position: fixed; inset: 0; z-index: 50; background: rgba(246, 247, 249, 0.88); display: grid; place-items: center; }
+.loader .box { display: grid; justify-items: center; gap: 12px; font-weight: 600; }
+.loader small { font-weight: 400; color: var(--muted); }
+.spin { width: 36px; height: 36px; border: 3px solid var(--accent-soft); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Control center */
+.shell.wide { grid-template-columns: minmax(0, 1fr); }
+.shell.wide .rail { display: none; }
+.seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); overflow: hidden; }
+.seg button { border: 0; background: var(--surface); padding: 7px 16px; font-weight: 600; font-size: 14px; cursor: pointer; color: var(--muted); }
+.seg button + button { border-left: 1px solid var(--border-strong); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.cc-top { display: flex; gap: 16px 28px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
+.cc-top .pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.cc td, .cc th { padding: 7px 10px; border-bottom: 1px solid var(--border); text-align: left; font-size: 14px; vertical-align: middle; }
+.cc th { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.cc tr.grp td { background: var(--accent-soft); color: #1e3a8a; font-weight: 600; font-size: 13px; }
+.cc td.src { font-size: 12px; color: var(--muted); max-width: 46ch; }
+.cc .ctl { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.cc input, .cc select { width: 150px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--accent); border-radius: var(--radius-sm); padding: 5px 8px; font-size: 13px; font-weight: 500; text-align: right; }
+.cc select, .cc input[type="date"] { text-align: left; }
+.cc .unit { font-size: 11px; color: var(--muted); }
+.cc tr.bad input { border-color: var(--bad); }
+.cc-foot { display: flex; gap: 12px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
 
 /* Workspace */
 .shell { max-width: 1360px; margin: 0 auto; padding: 24px 32px 56px; display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 24px; align-items: start; }
@@ -231,7 +263,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
 
 <header class="top">
   <div class="top-in">
-    <button class="brand" id="homeBtn" type="button" aria-label="Back to the start page">Model <span>Builder</span></button>
+    <button class="brand" id="homeBtn" type="button" aria-label="Back to the start page"><svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="60" height="60" rx="14" fill="none" stroke="#2f5bea" stroke-width="3"/><circle cx="42" cy="21" r="8" fill="#2f5bea"/><path d="M10 52 C22 52 27 39 36 39 S51 46 55 31" fill="none" stroke="#1b2333" stroke-width="4" stroke-linecap="round"/></svg><span style="color:var(--text)">Model <span>Builder</span></span></button>
     <div class="deal-id" id="dealId" hidden>
       <b id="dealName"></b>
       <small id="dealSub"></small>
@@ -248,13 +280,13 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
 <main class="landing" id="landing">
   <section class="hero">
     <div class="eyebrow">Project finance · term sheet → model</div>
-    <h1>From term sheet to bankable model.</h1>
-    <p class="lead">Drop a project finance term sheet and get the full semi-annual model: construction funding, sculpted debt, tax, DSRA, covenants and equity returns. Every input cites its clause, and the model downloads as an Excel file with live formulas.</p>
+    <h1>Drop a term sheet. Get a bankable model.</h1>
+    <p class="lead">Drop a project finance term sheet and get the full semi-annual or quarterly model: construction funding, sculpted debt, tax, DSRA, covenants and equity returns. Every input cites its clause, and the model downloads as an Excel file with live formulas.</p>
 
     <div class="drop" id="drop" role="button" tabindex="0" aria-label="Drop or choose a term sheet file">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><path d="M7 9l5-5 5 5"/><path d="M12 4v12"/></svg>
       <b>Drop your term sheet here</b>
-      <span>or click to choose a file · Model Builder term sheet (.md, .txt), deal JSON, PDF or Word</span>
+      <span>or click to choose a file · Word (.docx), Markdown (.md), deal JSON, or any PDF</span>
       <input type="file" id="dropFile" accept=".md,.markdown,.txt,.json,.pdf,.doc,.docx" hidden>
     </div>
     <div class="drop-msg" id="dropMsg" hidden></div>
@@ -279,7 +311,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
         <button class="btn btn-ghost btn-sm" type="submit">Open</button>
       </form>
     </div>
-    <p class="muted" style="margin:12px 0 0;font-size:13px">Want to try your own numbers? <a href="#" id="templateLink">Download the term sheet template</a>, edit it and drop it above.</p>
+    <p class="muted" style="margin:12px 0 0;font-size:13px">Want to try your own numbers? <a href="#" id="templateLink">Download the term sheet template (Word)</a>, change the numbers and drop it above.</p>
   </section>
 
   <section class="steps" aria-label="How it works">
@@ -301,10 +333,22 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
   </section>
 
   <section class="facts" aria-label="What the model covers">
-    <div class="fact"><b>Semi-annual</b><span>periods from financial close to PPA expiry</span></div>
+    <div class="fact"><b>Semi-annual or quarterly</b><span>periods from financial close to PPA expiry</span></div>
     <div class="fact"><b>Sculpted</b><span>debt, sized on gearing and DSCR</span></div>
-    <div class="fact"><b>9 checks</b><span>debt drawn and repaid, sources = uses…</span></div>
+    <div class="fact"><b>6 checks</b><span>debt drawn and repaid, sources = uses… (10 in the Excel)</span></div>
     <div class="fact"><b>0 hard-codes</b><span>in the Excel calculation sheet</span></div>
+  </section>
+
+  <section class="card get-excel" aria-label="Download the Excel model">
+    <div>
+      <div class="eyebrow">See the output first</div>
+      <h2>Download the Excel model</h2>
+      <p>The full Coolabah model as an Excel file: inputs with their term sheet clause, every calculation as a live formula, outputs and checks.</p>
+    </div>
+    <div class="cta">
+      <button class="btn btn-primary btn-lg" id="landingXlsx" type="button">Download the Excel model</button>
+      <button class="btn btn-ghost" id="landingDocx" type="button">Term sheet (Word)</button>
+    </div>
   </section>
 
   <p class="fineprint">Built by Jean Grollet · <a href="mailto:jean@grollet.com">jean@grollet.com</a><br>Generated deals are fictional. Calculations run in your browser; files you drop are read locally and never uploaded.</p>
@@ -323,6 +367,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
 
   <main class="sheet">
     <div class="tabs" role="tablist">
+      <button class="tab" role="tab" data-tab="control">Control center</button>
       <button class="tab" role="tab" data-tab="termsheet">Term sheet</button>
       <button class="tab" role="tab" data-tab="overview">Overview</button>
       <button class="tab" role="tab" data-tab="debt">Debt &amp; ratios</button>
@@ -333,13 +378,37 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     </div>
     <div id="errorBox" class="errors" hidden></div>
 
-    <section class="panel" data-panel="termsheet">
+    <section class="panel" data-panel="control" hidden>
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>Control center</h2>
+            <div class="note" style="margin-bottom:0">Every input the model uses, with the term sheet clause it was read from. Check them, change any, then generate the model.</div>
+          </div>
+          <button class="btn btn-primary" id="ccGenerate" type="button">Generate model →</button>
+        </div>
+        <div class="cc-top">
+          <div><div class="label" style="margin-bottom:6px">Model periods</div>
+            <div class="seg" role="group" aria-label="Model periods"><button type="button" data-per="semi-annual">Semi-annual</button><button type="button" data-per="quarterly">Quarterly</button></div></div>
+          <div><div class="label" style="margin-bottom:6px">Inputs</div><div class="pills" id="ccPills"></div></div>
+        </div>
+      </div>
+      <div class="card" style="padding:0">
+        <div style="overflow-x:auto"><table class="cc" id="ccTable"></table></div>
+      </div>
+      <div class="cc-foot">
+        <button class="btn btn-ghost" id="ccReset" type="button">Reset to the term sheet</button>
+        <button class="btn btn-primary btn-lg" id="ccGenerate2" type="button">Generate model →</button>
+      </div>
+    </section>
+
+    <section class="panel" data-panel="termsheet" hidden>
       <div class="callout callout-info" id="tsCallout"></div>
       <div class="card">
         <div class="card-head">
           <div class="label">Indicative term sheet</div>
           <div class="row-actions" style="margin-top:0">
-            <button class="btn btn-ghost btn-sm" id="tsDownload" type="button">Download .md</button>
+            <button class="btn btn-ghost btn-sm" id="tsDownload" type="button">Download Word</button>
             <button class="btn btn-primary btn-sm" id="tsToModel" type="button">See the model →</button>
           </div>
         </div>
@@ -363,7 +432,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       </div>
       <div class="card">
         <h2>CFADS against debt service</h2>
-        <div class="note">Semi-annual, <span class="cur"></span>k. Bars are debt service; lines are cash flow available for debt service.</div>
+        <div class="note"><span class="perw">Semi-annual</span>, <span class="cur"></span>k. Bars are debt service; lines are cash flow available for debt service.</div>
         <div class="chart-legend" id="lg1"></div>
         <div class="chart" id="ch1"></div>
       </div>
@@ -388,7 +457,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       </div>
       <div class="card">
         <h2>Debt schedule</h2>
-        <div class="note">Semi-annual, <span class="cur"></span>k.</div>
+        <div class="note"><span class="perw">Semi-annual</span>, <span class="cur"></span>k.</div>
         <div class="scroll"><table class="cf" id="debtTable"></table></div>
       </div>
     </section>
@@ -398,7 +467,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
         <div class="card-head">
           <div>
             <h2>Cash flow model</h2>
-            <div class="note" style="margin-bottom:0">Semi-annual periods across, <span class="cur"></span>k unless stated. Shaded columns are construction. Totals on the right.</div>
+            <div class="note" style="margin-bottom:0"><span class="perw">Semi-annual</span> periods across, <span class="cur"></span>k unless stated. Shaded columns are construction. Totals on the right.</div>
           </div>
           <button class="btn btn-ghost btn-sm" id="xlsxBtn2" type="button">Download Excel model</button>
         </div>
@@ -426,15 +495,15 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
 
         <h3>Calculation order</h3>
         <ol>
-          <li><b>Timeline.</b> Semi-annual periods ending 30 June and 31 December, from financial close to PPA expiry. Australian financial year (July–June).</li>
-          <li><b>Operations.</b> Energy = MW × 8,760 × P50 capacity factor × availability × degradation. Revenue = energy × PPA price, indexed to CPI in annual steps from financial close. Opex is indexed the same way. Annual figures are split 50/50 between the two semesters.</li>
+          <li><b>Timeline.</b> Semi-annual periods ending 30 June and 31 December (or quarterly periods, chosen in the Control center), from financial close to PPA expiry. Australian financial year (July–June).</li>
+          <li><b>Operations.</b> Energy = MW × 8,760 × P50 capacity factor × availability × degradation. Revenue = energy × PPA price, indexed to CPI in annual steps from financial close. Opex is indexed the same way. Annual figures are split equally between the periods of the year.</li>
           <li><b>Debt sizing.</b> CFADS (pre-tax) is discounted at the all-in rate over the debt tenor. Capacity at the target DSCR = PV of CFADS ÷ target DSCR. With "lower of" sizing, the debt is the lower of that capacity and maximum gearing × capex.</li>
           <li><b>Construction.</b> Capex follows the drawdown profile; debt is drawn pro rata at the effective gearing. Equity pays its share of capex plus IDC, commitment fee and the upfront fee.</li>
           <li><b>Repayment.</b> Sculpted: debt service in each period = CFADS ÷ the constant DSCR that repays the debt exactly at maturity (PV of CFADS ÷ debt). Annuity and linear profiles are also available.</li>
           <li><b>Tax.</b> Straight-line depreciation of the total project cost from COD; taxable income = EBITDA − depreciation − interest; losses carried forward; 30% corporate tax.</li>
           <li><b>Ratios.</b> DSCR pre- and post-tax per period, 12-month historic DSCR (tested from the second calculation date), LLCR and PLCR from a backward PV recursion.</li>
           <li><b>DSRA and waterfall.</b> DSRA target = next 6 months of debt service, funded by equity at COD, topped up from cash flow and released when the target falls. Distributions are blocked during lock-up or while the DSRA is short; trapped cash is released once the test is passed again.</li>
-          <li><b>Equity returns.</b> Equity IRR on semi-annual flows (contributions, DSRA funding, distributions), annualised as (1 + IRR)² − 1. No terminal value after the PPA.</li>
+          <li><b>Equity returns.</b> Equity IRR on the period flows (contributions, DSRA funding, distributions), annualised as (1 + IRR)² − 1, or (1 + IRR)⁴ − 1 when quarterly. No terminal value after the PPA.</li>
         </ol>
 
         <h3>Random deals</h3>
@@ -444,7 +513,8 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
         <ul>
           <li>Sculpting follows the term sheet on <b>pre-tax</b> CFADS. The post-tax DSCR is shown next to it, because tax can push it below the sculpting target once tax losses run out.</li>
           <li>The DSRA is funded by a separate equity contribution at COD, outside the sources and uses at financial close.</li>
-          <li>Interest is calculated as balance × annual rate ÷ 2 (no day count).</li>
+          <li>Interest is calculated as balance × annual rate ÷ 2, or ÷ 4 when quarterly (no day count).</li>
+          <li>In a quarterly model, the capex of each construction semester is spread equally over its two quarters.</li>
         </ul>
 
         <h3>How it is tested</h3>
@@ -483,13 +553,15 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     </section>
   </main>
 </div>
+<div class="loader" id="loader" hidden role="status" aria-live="polite"><div class="box"><div class="spin"></div><div id="loaderText">Building the model…</div><small>Sizing the debt · sculpting · running the checks</small></div></div>
 <footer class="foot" id="foot" hidden>Model Builder · built by Jean Grollet · <a href="mailto:jean@grollet.com">jean@grollet.com</a> · calculations run in your browser.</footer>
 
 <script>
 /*
  * Project finance engine — v1
  * Pure functions: deal JSON in, time series and ratios out. No UI, no LLM.
- * Units: thousands of currency (k). Rates are decimals. Periods are semi-annual.
+ * Units: thousands of currency (k). Rates are decimals. Periods are semi-annual (default) or quarterly
+ * (deal.timeline.periodicity = 'quarterly').
  * See SPEC.md for the calculation order and the decisions taken where the term sheet is silent.
  */
 (function (root) {
@@ -513,6 +585,9 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
 
   function sum(a) { return a.reduce((x, y) => x + y, 0); }
 
+  // Months in one model period: 6 (semi-annual, the default) or 3 (quarterly).
+  function monthsPerPeriod(deal) { return deal.timeline.periodicity === 'quarterly' ? 3 : 6; }
+
   function irr(flows) {
     const npv = (r) => flows.reduce((acc, f, i) => acc + f / Math.pow(1 + r, i), 0);
     let lo = -0.99, hi = 1.0;
@@ -529,15 +604,17 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     const p = deal.construction.capex_profile;
     if (Math.abs(sum(p) - 1) > 1e-6) errors.push('Capex profile must add up to 100% (now ' + (sum(p) * 100).toFixed(1) + '%).');
     const fc = parseDate(deal.timeline.financial_close);
-    const nC = monthsFrom(fc, deal.timeline.cod) / 6;
-    if (!Number.isInteger(nC) || nC <= 0) errors.push('COD must fall a whole number of semesters after financial close.');
-    else if (p.length !== nC) errors.push('Capex profile has ' + p.length + ' entries but construction lasts ' + nC + ' semesters.');
+    const pm = monthsPerPeriod(deal);
+    // Dates and the capex profile are given in semesters, whatever the model periodicity.
+    const nS = monthsFrom(fc, deal.timeline.cod) / 6;
+    if (!Number.isInteger(nS) || nS <= 0) errors.push('COD must fall a whole number of semesters after financial close.');
+    else if (p.length !== nS) errors.push('Capex profile has ' + p.length + ' entries but construction lasts ' + nS + ' semesters.');
     const nM = monthsFrom(fc, deal.timeline.debt_maturity) / 6;
     const nT = monthsFrom(fc, deal.timeline.ppa_end) / 6;
-    if (!Number.isInteger(nM) || nM <= nC) errors.push('Debt maturity must be a semester end after COD.');
+    if (!Number.isInteger(nM) || nM <= nS) errors.push('Debt maturity must be a semester end after COD.');
     if (!Number.isInteger(nT) || nT < nM) errors.push('PPA end must be a semester end on or after debt maturity.');
-    const k = deal.dsra.months_of_ds / 6;
-    if (!Number.isInteger(k) || k < 0) errors.push('DSRA months must be a multiple of 6.');
+    const k = deal.dsra.months_of_ds / pm;
+    if (!Number.isInteger(k) || k < 0) errors.push('DSRA months must be a multiple of ' + pm + '.');
     return errors;
   }
 
@@ -547,23 +624,25 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
 
     const C = deal.construction, O = deal.operations, T = deal.tax, D = deal.senior_debt;
     const fc = parseDate(deal.timeline.financial_close);
-    const nC = monthsFrom(fc, deal.timeline.cod) / 6;          // construction periods
-    const nM = monthsFrom(fc, deal.timeline.debt_maturity) / 6; // last debt period
-    const N = monthsFrom(fc, deal.timeline.ppa_end) / 6;        // last period
+    const pm = monthsPerPeriod(deal);                           // months per period
+    const ppy = 12 / pm;                                        // periods per year
+    const nC = monthsFrom(fc, deal.timeline.cod) / pm;          // construction periods
+    const nM = monthsFrom(fc, deal.timeline.debt_maturity) / pm; // last debt period
+    const N = monthsFrom(fc, deal.timeline.ppa_end) / pm;        // last period
     const r = D.base_rate + D.margin;
-    const rs = r / 2;
+    const rs = r / ppy;                                         // interest rate per period
 
     // ---- Timeline -------------------------------------------------------
     const periods = [];
     for (let t = 1; t <= N; t++) {
-      const endIdx = fc.m - 1 + 6 * t - 1; // 0-based month index of period end
+      const endIdx = fc.m - 1 + pm * t - 1; // 0-based month index of period end
       const year = fc.y + Math.floor(endIdx / 12);
       const month = (endIdx % 12) + 1;
       const fy = month <= 6 ? year : year + 1;
       periods.push({
         t, label: MONTH[month - 1] + '-' + String(year).slice(2), year, month, fy,
         phase: t <= nC ? 'construction' : 'operations',
-        opYear: t > nC ? Math.floor((t - nC - 1) / 2) + 1 : 0,
+        opYear: t > nC ? Math.floor((t - nC - 1) / ppy) + 1 : 0,
       });
     }
     const fy1 = periods[0].fy;
@@ -578,9 +657,9 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       const annualE = O.capacity_mw * 8760 * O.capacity_factor_p50 * O.availability * deg;
       const priceIdx = 1 + (idx - 1) * O.ppa_indexation;
       index[i] = idx;
-      energy[i] = annualE / 2;
-      revenue[i] = (annualE * O.ppa_price_fc * priceIdx / 1000) / 2;
-      opex[i] = (O.opex_real_fc * idx) / 2;
+      energy[i] = annualE / ppy;
+      revenue[i] = (annualE * O.ppa_price_fc * priceIdx / 1000) / ppy;
+      opex[i] = (O.opex_real_fc * idx) / ppy;
       ebitda[i] = revenue[i] - opex[i];
     }
     const cfadsPre = ebitda.slice();
@@ -605,11 +684,12 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     const debtOpen = z(), debtClose = z(), interest = z(), principal = z(), debtService = z();
     let bal = 0, undrawn = amount;
     for (let i = 0; i < nC; i++) {
-      capex[i] = C.capex_total * C.capex_profile[i];
+      // The capex profile is per semester: in a quarterly model each quarter takes half its semester's share.
+      capex[i] = C.capex_total * C.capex_profile[Math.floor(i * pm / 6)] * pm / 6;
       draw[i] = capex[i] * effGearing;
       debtOpen[i] = bal;
       idc[i] = bal * rs;
-      commit[i] = undrawn * D.margin * D.commitment_fee_pct_margin / 2;
+      commit[i] = undrawn * D.margin * D.commitment_fee_pct_margin / ppy;
       if (i === 0) upfront[i] = amount * D.upfront_fee;
       equityIn[i] = capex[i] - draw[i] + idc[i] + commit[i] + upfront[i];
       bal += draw[i];
@@ -644,10 +724,10 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
 
     // ---- D. Tax ---------------------------------------------------------
     const depreciation = z(), taxable = z(), lossUsed = z(), lossBal = z(), tax = z();
-    const depPerPeriod = projectCost / T.depreciation_years / 2;
+    const depPerPeriod = projectCost / T.depreciation_years / ppy;
     let losses = 0;
     for (let i = nC; i < N; i++) {
-      if (i - nC < T.depreciation_years * 2) depreciation[i] = depPerPeriod;
+      if (i - nC < T.depreciation_years * ppy) depreciation[i] = depPerPeriod;
       taxable[i] = ebitda[i] - depreciation[i] - interest[i];
       if (taxable[i] < 0) {
         losses += -taxable[i];
@@ -676,8 +756,11 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       }
       llcrPre[i] = pvPre / debtOpen[i];
       llcrPost[i] = pvPost / debtOpen[i];
-      if (i >= nC + 1) {
-        hDscr[i] = (cfadsPost[i] + cfadsPost[i - 1]) / (debtService[i] + debtService[i - 1]);
+      // Historic DSCR over the last 12 months (2 semesters or 4 quarters), once 12 months have passed.
+      if (i >= nC + ppy - 1) {
+        let cf = 0, ds = 0;
+        for (let j = i - ppy + 1; j <= i; j++) { cf += cfadsPost[j]; ds += debtService[j]; }
+        hDscr[i] = cf / ds;
       }
     }
     let pvPpa = 0;
@@ -685,7 +768,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     const plcrCod = pvPpa / amount;
 
     // ---- E/F. DSRA and waterfall ----------------------------------------
-    const kDs = deal.dsra.months_of_ds / 6;
+    const kDs = deal.dsra.months_of_ds / pm;
     const dsraTarget = z();
     for (let i = nC - 1; i < N; i++) {
       let s = 0;
@@ -728,8 +811,8 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
 
     // ---- H. Equity returns ----------------------------------------------
     const equityFlows = z().map((_, i) => -equityIn[i] - dsraFund[i] + distributions[i]);
-    const irrSemi = irr(equityFlows);
-    const equityIrr = irrSemi === null ? null : Math.pow(1 + irrSemi, 2) - 1;
+    const irrSemi = irr(equityFlows); // per period
+    const equityIrr = irrSemi === null ? null : Math.pow(1 + irrSemi, ppy) - 1;
 
     // ---- Summary & checks ------------------------------------------------
     const debtIdx = [];
@@ -739,6 +822,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     const minIdx = (arr) => debtIdx.reduce((b, i) => (arr[i] < arr[b] ? i : b), debtIdx[0]);
     const firstTax = tax.findIndex((x) => x > 0);
     const totalEquity = sum(equityIn);
+    const year1 = (arr) => sum(arr.slice(nC, nC + ppy)); // first 12 months of operations
 
     const checks = [
       { name: 'Debt fully drawn at COD', ok: Math.abs(sum(draw) - amount) < 0.01, value: sum(draw) },
@@ -752,7 +836,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     return {
       ok: true,
       errors: [],
-      meta: { nC, nM, N, nRep, rate: r, firstOpLabel: periods[nC].label, maturityLabel: periods[nM - 1].label },
+      meta: { nC, nM, N, nRep, rate: r, pm, ppy, firstOpLabel: periods[nC].label, maturityLabel: periods[nM - 1].label },
       periods,
       series: {
         capex, draw, idc, commit, upfront, equityIn, index,
@@ -774,9 +858,8 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
         lockupPeriods: lockup.filter(Boolean).length, defaultPeriods: defaultFlag.filter(Boolean).length,
         equityIrr, totalDistributions: sum(distributions),
         firstOpYear: {
-          energy: energy[nC] + energy[nC + 1], revenue: revenue[nC] + revenue[nC + 1],
-          opex: opex[nC] + opex[nC + 1], ebitda: ebitda[nC] + ebitda[nC + 1],
-          margin: (ebitda[nC] + ebitda[nC + 1]) / (revenue[nC] + revenue[nC + 1]),
+          energy: year1(energy), revenue: year1(revenue), opex: year1(opex), ebitda: year1(ebitda),
+          margin: year1(ebitda) / year1(revenue),
         },
         firstDebtService: debtService[nC], firstPrincipal: principal[nC],
       },
@@ -1363,6 +1446,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       this.freeze = null;
       this.lists = [];
       this.tab = null;
+      this.heights = new Map(); // row number -> height in points
     }
     // value: number | string | boolean | { f: 'formula without =', v: cached value } ; style: style id
     set(ref, value, style) {
@@ -1373,6 +1457,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       return this;
     }
     width(col, w) { this.widths.push([col, w]); return this; }
+    height(row, h) { this.heights.set(row, h); return this; }
     freezeAt(ref) { this.freeze = ref; return this; }
     dropdown(ref, options) { this.lists.push([ref, options]); return this; }
 
@@ -1408,7 +1493,8 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       x += '<sheetData>';
       [...this.rows.keys()].sort((a, b) => a - b).forEach((r) => {
         const cells = this.rows.get(r);
-        x += '<row r="' + r + '">' + [...cells.keys()].sort((a, b) => a - b).map((c) => this.cellXml(colName(c) + r, cells.get(c))).join('') + '</row>';
+        const ht = this.heights.get(r);
+        x += '<row r="' + r + '"' + (ht ? ' ht="' + ht + '" customHeight="1"' : '') + '>' + [...cells.keys()].sort((a, b) => a - b).map((c) => this.cellXml(colName(c) + r, cells.get(c))).join('') + '</row>';
       });
       x += '</sheetData>';
       if (this.lists.length) {
@@ -1430,7 +1516,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     addSheet(name) { const s = new Sheet(name); this.sheets.push(s); return s; }
     defineName(name, ref) { this.names.push([name, ref]); }
 
-    // Style spec: { bold, italic, color: 'RRGGBB', fill: 'RRGGBB', numFmt: '#,##0', align: 'right', border: 'top' | 'bottom', size, wrap }
+    // Style spec: { bold, italic, color: 'RRGGBB', fill: 'RRGGBB', numFmt: '#,##0', align: 'right', valign: 'center', border: 'top' | 'bottom', size, wrap }
     style(spec) {
       const key = JSON.stringify(spec);
       if (!this.styleKeys.has(key)) { this.styleKeys.set(key, this.styles.length); this.styles.push(spec); }
@@ -1447,7 +1533,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
         const side = (n) => (s.border === n ? '<' + n + ' style="thin"><color rgb="FF9CA3AF"/></' + n + '>' : '<' + n + '/>');
         const border = s.border ? idx(borders, '<border><left/><right/>' + side('top') + side('bottom') + '<diagonal/></border>') : 0;
         const fmt = s.numFmt ? 164 + idx(fmts, s.numFmt) : 0;
-        const align = s.align || s.wrap ? '<alignment' + (s.align ? ' horizontal="' + s.align + '"' : '') + (s.wrap ? ' wrapText="1" vertical="top"' : '') + '/>' : '';
+        const align = s.align || s.wrap || s.valign ? '<alignment' + (s.align ? ' horizontal="' + s.align + '"' : '') + (s.wrap ? ' wrapText="1" vertical="top"' : s.valign ? ' vertical="' + s.valign + '"' : '') + '/>' : '';
         return '<xf numFmtId="' + fmt + '" fontId="' + font + '" fillId="' + fill + '" borderId="' + border + '" xfId="0"' +
           (fmt ? ' applyNumberFormat="1"' : '') + (font ? ' applyFont="1"' : '') + (fill ? ' applyFill="1"' : '') + (border ? ' applyBorder="1"' : '') +
           (align ? ' applyAlignment="1">' + align + '</xf>' : '/>');
@@ -1531,9 +1617,178 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     return out;
   }
 
-  const api = { Workbook, colName, colNumber, excelDate, crc32 };
+  const api = { Workbook, colName, colNumber, excelDate, crc32, zip };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.PFXlsx = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/*
+ * Word (.docx) term sheets, no dependencies (works in Node 18+ and in the browser).
+ *   markdownToDocx(md) : the Markdown term sheet as a Word document (bytes)
+ *   docxToMarkdown(bytes) : a Word term sheet back to Markdown, so parser.js can read it
+ * A .docx is a zip of XML files: we write it with the zip of xlsx.js, and read it with the
+ * browser's built-in DecompressionStream (Word compresses the files inside the zip).
+ */
+(function (root) {
+  'use strict';
+
+  const X = typeof module !== 'undefined' && module.exports ? require('./xlsx.js') : root.PFXlsx;
+  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const unesc = (s) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
+  const cells = (line) => line.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
+
+  const NAVY = '1B2333', ACCENT = '2F5BEA', MUTED = '6B7280', HEAD_BG = 'F6F7F9', LINE = 'D1D5DB';
+
+  // ---------------- Writing ----------------
+
+  // "**bold** and *italic*" -> Word runs.
+  function runs(text, base) {
+    base = base || '';
+    const out = [];
+    const re = /\*\*(.+?)\*\*|\*(.+?)\*/g;
+    let last = 0, m;
+    const run = (t, props) => { if (t) out.push('<w:r>' + (props || base ? '<w:rPr>' + base + (props || '') + '</w:rPr>' : '') + '<w:t xml:space="preserve">' + esc(t) + '</w:t></w:r>'); };
+    while ((m = re.exec(text))) {
+      run(text.slice(last, m.index));
+      run(m[1] || m[2], m[1] ? '<w:b/>' : '<w:i/>');
+      last = re.lastIndex;
+    }
+    run(text.slice(last));
+    return out.join('');
+  }
+  const para = (text, style, base) => '<w:p>' + (style ? '<w:pPr><w:pStyle w:val="' + style + '"/></w:pPr>' : '') + runs(text, base) + '</w:p>';
+
+  function table(rows) {
+    const border = (side) => '<w:' + side + ' w:val="single" w:sz="4" w:space="0" w:color="' + LINE + '"/>';
+    const widths = rows[0].length === 2 ? [2600, 6400] : rows[0].map(() => Math.floor(9000 / rows[0].length));
+    const cell = (text, i, head) => '<w:tc><w:tcPr><w:tcW w:w="' + widths[i] + '" w:type="dxa"/>' +
+      (head ? '<w:shd w:val="clear" w:color="auto" w:fill="' + HEAD_BG + '"/>' : '') + '</w:tcPr>' +
+      '<w:p><w:pPr><w:spacing w:before="40" w:after="40"/>' + (i > 0 && rows[0].length > 2 ? '<w:jc w:val="right"/>' : '') + '</w:pPr>' +
+      runs(text, head || i === 0 ? '<w:b/>' : '') + '</w:p></w:tc>';
+    return '<w:tbl><w:tblPr><w:tblW w:w="9000" w:type="dxa"/><w:tblBorders>' + ['top', 'bottom', 'insideH'].map(border).join('') +
+      '</w:tblBorders><w:tblCellMar><w:left w:w="80" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar></w:tblPr>' +
+      '<w:tblGrid>' + widths.map((w) => '<w:gridCol w:w="' + w + '"/>').join('') + '</w:tblGrid>' +
+      rows.map((r, ri) => '<w:tr>' + r.map((c, i) => cell(c, i, ri === 0)).join('') + '</w:tr>').join('') + '</w:tbl><w:p/>';
+  }
+
+  function bodyXml(md) {
+    const lines = md.replace(/\r/g, '').split('\n');
+    const out = [];
+    let i = 0;
+    while (i < lines.length) {
+      const line = lines[i];
+      if (!line.trim()) { i++; continue; }
+      const h = line.match(/^(#{1,3})\s+(.*)$/);
+      if (h) { out.push(para(h[2], 'Heading' + h[1].length)); i++; continue; }
+      if (line.trim().startsWith('|')) {
+        const rows = [];
+        while (i < lines.length && lines[i].trim().startsWith('|')) {
+          if (!/^\|\s*-/.test(lines[i].trim())) rows.push(cells(lines[i]));
+          i++;
+        }
+        out.push(table(rows));
+        continue;
+      }
+      const li = line.match(/^\s*(?:- |(\d+)\. )(.*)$/);
+      if (li) {
+        const box = li[2].match(/^\[( |x)\]\s*(.*)$/);
+        const mark = li[1] ? li[1] + '.' : box ? (box[1] === 'x' ? '☒' : '☐') : '•';
+        out.push('<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:ind w:left="360" w:hanging="360"/></w:pPr>' + runs(mark + '\t' + (box ? box[2] : li[2])) + '</w:p>');
+        i++;
+        continue;
+      }
+      const italic = /^\*[^*].*\*$/.test(line.trim());
+      out.push(italic ? para(line.trim().slice(1, -1), 'Note') : para(line.trim()));
+      i++;
+    }
+    return out.join('').replace(/<w:t xml:space="preserve">([^<]*)\t/g, '<w:t xml:space="preserve">$1</w:t><w:tab/><w:t xml:space="preserve">');
+  }
+
+  const STYLES = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
+    '<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:sz w:val="20"/><w:color w:val="1F2937"/></w:rPr></w:rPrDefault>' +
+    '<w:pPrDefault><w:pPr><w:spacing w:after="120" w:line="264" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>' +
+    '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>' +
+    '<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:pPr><w:keepNext/><w:spacing w:before="0" w:after="160"/><w:pBdr><w:bottom w:val="single" w:sz="12" w:space="6" w:color="' + ACCENT + '"/></w:pBdr><w:outlineLvl w:val="0"/></w:pPr><w:rPr><w:rFonts w:ascii="Georgia" w:hAnsi="Georgia"/><w:color w:val="' + NAVY + '"/><w:sz w:val="40"/></w:rPr></w:style>' +
+    '<w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:pPr><w:keepNext/><w:spacing w:before="280" w:after="100"/><w:outlineLvl w:val="1"/></w:pPr><w:rPr><w:b/><w:color w:val="' + ACCENT + '"/><w:sz w:val="26"/></w:rPr></w:style>' +
+    '<w:style w:type="paragraph" w:styleId="Heading3"><w:name w:val="heading 3"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:pPr><w:keepNext/><w:outlineLvl w:val="2"/></w:pPr><w:rPr><w:b/><w:sz w:val="22"/></w:rPr></w:style>' +
+    '<w:style w:type="paragraph" w:styleId="Note"><w:name w:val="Note"/><w:basedOn w:val="Normal"/><w:rPr><w:i/><w:color w:val="' + MUTED + '"/><w:sz w:val="18"/></w:rPr></w:style>' +
+    '<w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:after="60"/></w:pPr></w:style>' +
+    '</w:styles>';
+
+  function markdownToDocx(md) {
+    const doc = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>' +
+      bodyXml(md) +
+      '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1300" w:right="1300" w:bottom="1300" w:left="1300" w:header="600" w:footer="600" w:gutter="0"/></w:sectPr></w:body></w:document>';
+    return X.zip([
+      ['[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+        '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>' +
+        '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
+        '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>'],
+      ['_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>'],
+      ['word/document.xml', doc],
+      ['word/_rels/document.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'],
+      ['word/styles.xml', STYLES],
+    ]);
+  }
+
+  // ---------------- Reading ----------------
+
+  // Returns the text of one file inside a zip (stored or deflated).
+  async function unzipText(bytes, wanted) {
+    const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    let eocd = bytes.length - 22;
+    while (eocd >= 0 && dv.getUint32(eocd, true) !== 0x06054b50) eocd--;
+    if (eocd < 0) throw new Error('not a zip file');
+    let p = dv.getUint32(eocd + 16, true);
+    const count = dv.getUint16(eocd + 10, true);
+    for (let k = 0; k < count; k++) {
+      const method = dv.getUint16(p + 10, true), size = dv.getUint32(p + 20, true);
+      const nameLen = dv.getUint16(p + 28, true), extraLen = dv.getUint16(p + 30, true), commentLen = dv.getUint16(p + 32, true);
+      const local = dv.getUint32(p + 42, true);
+      const name = new TextDecoder().decode(bytes.subarray(p + 46, p + 46 + nameLen));
+      p += 46 + nameLen + extraLen + commentLen;
+      if (name !== wanted) continue;
+      const start = local + 30 + dv.getUint16(local + 26, true) + dv.getUint16(local + 28, true);
+      const data = bytes.subarray(start, start + size);
+      if (method === 0) return new TextDecoder().decode(data);
+      if (method !== 8) throw new Error('unsupported zip compression');
+      const stream = new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+      return new TextDecoder().decode(new Uint8Array(await new Response(stream).arrayBuffer()));
+    }
+    throw new Error(wanted + ' not found');
+  }
+
+  // Plain text of a paragraph: all its text runs joined (Word often splits a word across runs).
+  const textOf = (xml) => unesc((xml.match(/<w:t(?: [^>]*)?>[^<]*<\/w:t>|<w:tab\/>|<w:br\/>/g) || [])
+    .map((t) => (t.startsWith('<w:t') && !t.startsWith('<w:tab') ? t.replace(/<[^>]+>/g, '') : ' ')).join('')).trim();
+
+  async function docxToMarkdown(bytes) {
+    const xml = await unzipText(bytes, 'word/document.xml');
+    const body = xml.slice(xml.indexOf('<w:body'));
+    const out = [];
+    for (const block of body.match(/<w:tbl>[\s\S]*?<\/w:tbl>|<w:p\/>|<w:p[ >][\s\S]*?<\/w:p>/g) || []) {
+      if (block.startsWith('<w:tbl')) {
+        const rows = (block.match(/<w:tr[ >][\s\S]*?<\/w:tr>/g) || []).map((tr) =>
+          (tr.match(/<w:tc>[\s\S]*?<\/w:tc>/g) || []).map((tc) => (tc.match(/<w:p[ >][\s\S]*?<\/w:p>/g) || []).map(textOf).join(' ').replace(/\|/g, '/')));
+        rows.forEach((r, i) => {
+          out.push('| ' + r.join(' | ') + ' |');
+          if (i === 0) out.push('|' + r.map(() => ' --- |').join(''));
+        });
+        out.push('');
+        continue;
+      }
+      const text = textOf(block);
+      if (!text) continue;
+      const style = (block.match(/<w:pStyle w:val="([^"]+)"/) || [])[1] || '';
+      const level = (style.match(/^(?:Heading|Titre)(\d)$/i) || [])[1] || (style === 'Title' ? '1' : '');
+      out.push((level ? '#'.repeat(Number(level)) + ' ' : '') + text, '');
+    }
+    return out.join('\n');
+  }
+
+  const api = { markdownToDocx, docxToMarkdown };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.PFDocx = api;
 })(typeof window !== 'undefined' ? window : globalThis);
 
 /*
@@ -1549,6 +1804,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
   const X = typeof module !== 'undefined' && module.exports ? require('./xlsx.js') : root.PFXlsx;
 
   const C_ACCENT = '2F5BEA', C_INPUT_BG = 'EEF2FE', C_MUTED = '6B7280', C_HEAD_BG = 'F6F7F9', C_GOOD = '15803D';
+  const C_NAVY = '1B2333', C_GOOD_BG = 'DCFCE7', C_CONSTR_BG = 'FFF4E0';
   const F_K = '#,##0;(#,##0);"–"', F_K1 = '#,##0.0;(#,##0.0);"–"', F_X = '0.000"x"', F_PCT = '0.00%', F_PCT1 = '0.0%';
   const F_DATE = 'dd-mmm-yyyy', F_MONTH = 'mmm-yy', F_INT = '0', F_PRICE = '#,##0.00';
 
@@ -1564,6 +1820,17 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       headR: wb.style({ bold: true, fill: C_HEAD_BG, border: 'bottom', align: 'right' }),
       muted: wb.style({ color: C_MUTED }),
       good: wb.style({ bold: true, color: C_GOOD }),
+      banner: wb.style({ bold: true, size: 14, color: 'FFFFFF', fill: C_NAVY, valign: 'center' }),
+      bannerFill: wb.style({ fill: C_NAVY }),
+      group: wb.style({ bold: true, color: C_ACCENT, fill: C_INPUT_BG }),
+      ok: wb.style({ bold: true, align: 'center', color: C_GOOD, fill: C_GOOD_BG }),
+    };
+    // Dark title band across the top of a sheet, with a one-line note under it.
+    const banner = (ws, title, note, lastCol) => {
+      ws.height(1, 30);
+      ws.set('A1', '  ' + title, st.banner);
+      for (let c = 2; c <= lastCol; c++) ws.set(X.colName(c) + '1', '', st.bannerFill);
+      ws.set('A2', note, st.note);
     };
     const inp = (numFmt) => wb.style({ color: C_ACCENT, fill: C_INPUT_BG, numFmt });
     const calc = (numFmt, bold) => wb.style(bold ? { numFmt, bold: true } : { numFmt });
@@ -1572,13 +1839,14 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     const FIRST = 4; // column D holds period 1
     const col = (t) => X.colName(FIRST + t - 1);
     const LAST = col(N);
+    const PM = res.meta.pm, PPY = res.meta.ppy;
+    const PERIOD_WORD = PM === 3 ? 'quarterly' : 'semi-annual';
 
     // ---------------- Inputs ----------------
     const wsI = wb.addSheet('Inputs');
-    wsI.tab = C_ACCENT;
     wsI.width(1, 40).width(2, 16).width(3, 12).width(4, 80);
-    wsI.set('A1', 'Inputs', st.title);
-    wsI.set('A2', 'Blue cells are inputs: change them and the whole model recalculates. Column D gives the term sheet clause each input comes from.', st.note);
+    wsI.tab = C_ACCENT;
+    banner(wsI, 'Inputs', 'Blue cells are inputs: change them and the whole model recalculates. Column D gives the term sheet clause each input comes from.', 4);
     let r = 4;
     const src = (path) => (deal.sources && deal.sources[path]) || '';
     const section = (ws, title) => { r++; ws.set('A' + r, title, st.h); r++; };
@@ -1594,6 +1862,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     const T = deal.timeline, Cn = deal.construction, O = deal.operations, D = deal.senior_debt;
     wsI.set('A' + r, 'Input', st.head); wsI.set('B' + r, 'Value', st.headR); wsI.set('C' + r, 'Unit', st.head); wsI.set('D' + r, 'Term sheet source', st.head); r++;
     section(wsI, 'Timeline');
+    input('months_per_period', 'Months per period (' + PERIOD_WORD + ')', PM, F_INT, 'fixed at export', 'timeline.periodicity');
     input('fc_date', 'Financial close', X.excelDate(T.financial_close), F_DATE, '', 'timeline.financial_close');
     input('cod_date', 'Commercial operation date (COD)', X.excelDate(T.cod), F_DATE, '', 'timeline.cod');
     input('maturity_date', 'Final maturity', X.excelDate(T.debt_maturity), F_DATE, '', 'timeline.debt_maturity');
@@ -1642,10 +1911,11 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       wb.defineName(name, 'Inputs!$B$' + r); r++;
     };
     derived('all_in_rate', 'All-in interest rate', 'base_rate+margin', res.meta.rate, F_PCT, 'p.a.');
-    derived('semi_rate', 'Interest rate per semester', 'all_in_rate/2', res.meta.rate / 2, '0.0000%', '');
-    derived('n_constr', 'Construction semesters', '((YEAR(cod_date)-YEAR(fc_date))*12+MONTH(cod_date)-MONTH(fc_date))/6', res.meta.nC, F_INT, '');
-    derived('fy_first', 'Financial year of period 1 (Jul–Jun)', 'YEAR(EDATE(fc_date,6)-1)+IF(MONTH(EDATE(fc_date,6)-1)>6,1,0)', P[0].fy, F_INT, '');
-    derived('dsra_periods', 'DSRA size in semesters', 'dsra_months/6', deal.dsra.months_of_ds / 6, F_INT, '');
+    derived('periods_per_year', 'Periods per year', '12/months_per_period', PPY, F_INT, '');
+    derived('period_rate', 'Interest rate per period', 'all_in_rate/periods_per_year', res.meta.rate / PPY, '0.0000%', '');
+    derived('n_constr', 'Construction periods', '((YEAR(cod_date)-YEAR(fc_date))*12+MONTH(cod_date)-MONTH(fc_date))/months_per_period', res.meta.nC, F_INT, '');
+    derived('fy_first', 'Financial year of period 1 (Jul–Jun)', 'YEAR(EDATE(fc_date,months_per_period)-1)+IF(MONTH(EDATE(fc_date,months_per_period)-1)>6,1,0)', P[0].fy, F_INT, '');
+    derived('dsra_periods', 'DSRA size in periods', 'dsra_months/months_per_period', deal.dsra.months_of_ds / PM, F_INT, '');
 
     // ---------------- Calc ----------------
     // Rows are declared once with a formula template; row numbers are assigned first so that
@@ -1656,8 +1926,8 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     const V = (key, label, unit, fmt, f, opt) => ROWS.push(Object.assign({ key, label, unit, fmt, f, scalar: true }, opt || {}));
 
     G('Timeline');
-    L('start', 'Period start', '', F_DATE, (c) => 'EDATE(fc_date,6*(' + c.t + '-1))', { cache: (i) => X.excelDate(periodStart(P[i])) });
-    L('end', 'Period end', '', F_DATE, (c) => 'EDATE(fc_date,6*' + c.t + ')-1', { cache: (i) => X.excelDate(periodEnd(P[i])) });
+    L('start', 'Period start', '', F_DATE, (c) => 'EDATE(fc_date,months_per_period*(' + c.t + '-1))', { cache: (i) => X.excelDate(periodStart(P[i], PM)) });
+    L('end', 'Period end', '', F_DATE, (c) => 'EDATE(fc_date,months_per_period*' + c.t + ')-1', { cache: (i) => X.excelDate(periodEnd(P[i])) });
     L('f_con', 'Construction flag', 'flag', F_INT, (c) => 'IF(' + c('end') + '<cod_date,1,0)', { cache: (i) => (i < res.meta.nC ? 1 : 0) });
     L('f_cod', 'COD flag (last construction period)', 'flag', F_INT, (c) => 'IF(AND(' + c('f_con') + '=1,' + c.n('f_con') + '=0),1,0)', { cache: (i) => (i === res.meta.nC - 1 ? 1 : 0) });
     L('f_op', 'Operations flag', 'flag', F_INT, (c) => 'IF(AND(' + c('start') + '>=cod_date,' + c('end') + '<=ppa_end_date),1,0)', { cache: (i) => (i >= res.meta.nC ? 1 : 0) });
@@ -1665,22 +1935,22 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     L('f_last', 'Last operating period', 'flag', F_INT, (c) => 'IF(AND(' + c('f_op') + '=1,' + c.n('f_op') + '=0),1,0)', { cache: (i) => (i === N - 1 ? 1 : 0) });
     L('f_debt', 'Debt repayment flag', 'flag', F_INT, (c) => 'IF(AND(' + c('start') + '>=cod_date,' + c('end') + '<=maturity_date),1,0)', { cache: (i) => (i >= res.meta.nC && i < res.meta.nM ? 1 : 0) });
     L('fy', 'Financial year (Jul–Jun)', 'FY', F_INT, (c) => 'YEAR(' + c('end') + ')+IF(MONTH(' + c('end') + ')>6,1,0)', { cache: (i) => P[i].fy });
-    L('opyear', 'Operating year', '', F_INT, (c) => 'IF(' + c('f_op') + '=1,INT((' + c.t + '-n_constr-1)/2)+1,0)', { cache: (i) => P[i].opYear });
+    L('opyear', 'Operating year', '', F_INT, (c) => 'IF(' + c('f_op') + '=1,INT((' + c.t + '-n_constr-1)/periods_per_year)+1,0)', { cache: (i) => P[i].opYear });
     L('index', 'CPI index (annual steps from FC)', '', '0.0000', (c) => 'IF(' + c('f_op') + '=1,(1+cpi)^(' + c('fy') + '-fy_first),0)', { cache: (i) => S.index[i] });
     L('degf', 'Degradation factor', '', '0.0000', (c) => 'IF(' + c('f_op') + '=1,(1-degradation)^(' + c('opyear') + '-1),0)',
       { cache: (i) => (i >= res.meta.nC ? Math.pow(1 - O.degradation, P[i].opYear - 1) : 0) });
 
     G('Operations');
-    L('energy', 'Net energy', 'MWh', F_K, (c) => 'IF(' + c('f_op') + '=1,capacity_mw*8760*cf_p50*availability*' + c('degf') + '/2,0)', { cache: 'energy', total: true });
+    L('energy', 'Net energy', 'MWh', F_K, (c) => 'IF(' + c('f_op') + '=1,capacity_mw*8760*cf_p50*availability*' + c('degf') + '/periods_per_year,0)', { cache: 'energy', total: true });
     L('price', 'PPA price', '/MWh', F_PRICE, (c) => 'IF(' + c('f_op') + '=1,ppa_price*(1+(' + c('index') + '-1)*ppa_indexation),0)',
       { cache: (i) => (S.energy[i] ? S.revenue[i] * 1000 / S.energy[i] : 0) });
     L('revenue', 'Revenue', 'k', F_K, (c) => c('energy') + '*' + c('price') + '/1000', { cache: 'revenue', total: true });
-    L('opex', 'Operating costs', 'k', F_K, (c) => 'IF(' + c('f_op') + '=1,opex_real*' + c('index') + '/2,0)', { cache: 'opex', total: true });
+    L('opex', 'Operating costs', 'k', F_K, (c) => 'IF(' + c('f_op') + '=1,opex_real*' + c('index') + '/periods_per_year,0)', { cache: 'opex', total: true });
     L('ebitda', 'EBITDA', 'k', F_K, (c) => c('revenue') + '-' + c('opex'), { cache: 'ebitda', total: true, bold: true });
     L('cfadsPre', 'CFADS pre-tax', 'k', F_K, (c) => c('ebitda'), { cache: 'cfadsPre', total: true, bold: true });
 
     G('Debt sizing');
-    L('pvPre', 'PV of remaining pre-tax CFADS to maturity', 'k', F_K, (c) => 'IF(' + c('f_debt') + '=1,(' + c('cfadsPre') + '+' + c.n('pvPre') + ')/(1+semi_rate),0)',
+    L('pvPre', 'PV of remaining pre-tax CFADS to maturity', 'k', F_K, (c) => 'IF(' + c('f_debt') + '=1,(' + c('cfadsPre') + '+' + c.n('pvPre') + ')/(1+period_rate),0)',
       { cache: (i) => (res.series.llcrPre[i] != null ? res.series.llcrPre[i] * S.debtOpen[i] : 0) });
     V('pv_cfads_debt', 'PV of pre-tax CFADS over the debt tenor, at COD', 'k', F_K, (R) => 'SUMPRODUCT(' + R('f_first') + ',' + R('pvPre') + ')', { cache: sum.capacityAtTarget * D.target_dscr });
     V('capacity_at_target', 'Debt capacity at target DSCR', 'k', F_K, () => 'pv_cfads_debt/target_dscr', { cache: sum.capacityAtTarget });
@@ -1689,21 +1959,21 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     V('eff_gearing', 'Effective gearing (of capex)', '', F_PCT, () => 'debt_amount/capex_total', { cache: sum.effGearing });
     V('n_rep', 'Number of repayment periods', '', F_INT, (R) => 'SUM(' + R('f_debt') + ')', { cache: res.meta.nRep });
     V('sculpt_dscr', 'Sculpted DSCR (PV of CFADS ÷ debt)', '', F_X, () => 'pv_cfads_debt/debt_amount', { cache: sum.capacityAtTarget * D.target_dscr / sum.amount });
-    V('annuity_pmt', 'Annuity payment per semester (if annuity)', 'k', F_K, () => 'debt_amount*semi_rate/(1-(1+semi_rate)^-n_rep)',
-      { cache: sum.amount * res.meta.rate / 2 / (1 - Math.pow(1 + res.meta.rate / 2, -res.meta.nRep)) });
+    V('annuity_pmt', 'Annuity payment per period (if annuity)', 'k', F_K, () => 'debt_amount*period_rate/(1-(1+period_rate)^-n_rep)',
+      { cache: sum.amount * res.meta.rate / PPY / (1 - Math.pow(1 + res.meta.rate / PPY, -res.meta.nRep)) });
 
     G('Construction');
-    L('capex', 'Capex', 'k', F_K, (c) => 'IF(' + c('f_con') + '=1,capex_total*INDEX(capex_profile,' + c.t + '),0)', { cache: 'capex', total: true });
+    L('capex', 'Capex', 'k', F_K, (c) => 'IF(' + c('f_con') + '=1,capex_total*INDEX(capex_profile,INT((' + c.t + '-1)*months_per_period/6)+1)*months_per_period/6,0)', { cache: 'capex', total: true });
     L('draw', 'Debt drawdown', 'k', F_K, (c) => c('capex') + '*eff_gearing', { cache: 'draw', total: true });
-    L('idc', 'Interest during construction', 'k', F_K, (c) => 'IF(' + c('f_con') + '=1,' + c('debtOpen') + '*semi_rate,0)', { cache: 'idc', total: true });
-    L('commit', 'Commitment fee', 'k', F_K, (c) => 'IF(' + c('f_con') + '=1,(debt_amount-' + c('debtOpen') + ')*margin*commit_fee_pct/2,0)', { cache: 'commit', total: true });
+    L('idc', 'Interest during construction', 'k', F_K, (c) => 'IF(' + c('f_con') + '=1,' + c('debtOpen') + '*period_rate,0)', { cache: 'idc', total: true });
+    L('commit', 'Commitment fee', 'k', F_K, (c) => 'IF(' + c('f_con') + '=1,(debt_amount-' + c('debtOpen') + ')*margin*commit_fee_pct/periods_per_year,0)', { cache: 'commit', total: true });
     L('upfront', 'Upfront fee', 'k', F_K, (c) => 'IF(' + c.t + '=1,debt_amount*upfront_fee_pct,0)', { cache: 'upfront', total: true });
     L('equityIn', 'Equity contribution', 'k', F_K, (c) => c('capex') + '-' + c('draw') + '+' + c('idc') + '+' + c('commit') + '+' + c('upfront'), { cache: 'equityIn', total: true, bold: true });
     V('project_cost', 'Total project cost', 'k', F_K, (R) => 'capex_total+SUM(' + R('idc') + ')+SUM(' + R('commit') + ')+SUM(' + R('upfront') + ')', { cache: sum.projectCost, bold: true });
 
     G('Senior debt');
     L('debtOpen', 'Opening balance', 'k', F_K, (c) => (c.first ? '0' : c.p('debtClose')), { cache: 'debtOpen' });
-    L('interest', 'Interest', 'k', F_K, (c) => 'IF(' + c('f_debt') + '=1,' + c('debtOpen') + '*semi_rate,0)', { cache: 'interest', total: true });
+    L('interest', 'Interest', 'k', F_K, (c) => 'IF(' + c('f_debt') + '=1,' + c('debtOpen') + '*period_rate,0)', { cache: 'interest', total: true });
     L('dsSched', 'Scheduled debt service (sculpted or annuity)', 'k', F_K,
       (c) => 'IF(' + c('f_debt') + '=1,IF(repayment="sculpted",' + c('cfadsPre') + '/sculpt_dscr,IF(repayment="annuity",annuity_pmt,0)),0)',
       { cache: (i) => (D.repayment === 'linear' ? 0 : S.debtService[i]) });
@@ -1712,7 +1982,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     L('debtClose', 'Closing balance', 'k', F_K, (c) => c('debtOpen') + '+' + c('draw') + '-' + c('principal'), { cache: 'debtClose' });
 
     G('Tax');
-    L('depreciation', 'Tax depreciation', 'k', F_K, (c) => 'IF(AND(' + c('f_op') + '=1,' + c.t + '-n_constr<=dep_years*2),project_cost/dep_years/2,0)', { cache: 'depreciation', total: true });
+    L('depreciation', 'Tax depreciation', 'k', F_K, (c) => 'IF(AND(' + c('f_op') + '=1,' + c.t + '-n_constr<=dep_years*periods_per_year),project_cost/dep_years/periods_per_year,0)', { cache: 'depreciation', total: true });
     L('taxable', 'Taxable income', 'k', F_K, (c) => 'IF(' + c('f_op') + '=1,' + c('ebitda') + '-' + c('depreciation') + '-' + c('interest') + ',0)', { cache: 'taxable', total: true });
     L('lossUsed', 'Tax losses used', 'k', F_K, (c) => 'IF(' + c('taxable') + '>0,MIN(' + c.p('lossBal') + ',' + c('taxable') + '),0)', { cache: 'lossUsed', total: true });
     L('lossBal', 'Tax losses carried forward', 'k', F_K, (c) => c.p('lossBal') + '+MAX(0,-' + c('taxable') + ')-' + c('lossUsed'), { cache: 'lossBal' });
@@ -1722,21 +1992,23 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     G('Ratios');
     L('dscrPre', 'DSCR pre-tax', 'x', F_X, (c) => 'IF(' + c('f_debt') + '=1,' + c('cfadsPre') + '/' + c('debtService') + ',"")', { cache: 'dscrPre' });
     L('dscrPost', 'DSCR post-tax', 'x', F_X, (c) => 'IF(' + c('f_debt') + '=1,' + c('cfadsPost') + '/' + c('debtService') + ',"")', { cache: 'dscrPost', bold: true });
+    // 12 months = the last 2 semesters or the last 4 quarters (the number of terms is fixed at export).
+    const last12 = (c, key) => Array.from({ length: PPY }, (_, k) => c.back(key, k)).join('+');
     L('hDscr', '12-month historic DSCR (tested)', 'x', F_X,
-      (c) => (c.first ? '""' : 'IF(AND(' + c('f_debt') + '=1,' + c.p('f_debt') + '=1),(' + c('cfadsPost') + '+' + c.p('cfadsPost') + ')/(' + c('debtService') + '+' + c.p('debtService') + '),"")'),
+      (c) => 'IF(AND(' + c('f_debt') + '=1,' + c.back('f_debt', PPY - 1) + '=1),(' + last12(c, 'cfadsPost') + ')/(' + last12(c, 'debtService') + '),"")',
       { cache: 'hDscr' });
-    L('pvPost', 'PV of remaining post-tax CFADS to maturity', 'k', F_K, (c) => 'IF(' + c('f_debt') + '=1,(' + c('cfadsPost') + '+' + c.n('pvPost') + ')/(1+semi_rate),0)',
+    L('pvPost', 'PV of remaining post-tax CFADS to maturity', 'k', F_K, (c) => 'IF(' + c('f_debt') + '=1,(' + c('cfadsPost') + '+' + c.n('pvPost') + ')/(1+period_rate),0)',
       { cache: (i) => (res.series.llcrPost[i] != null ? res.series.llcrPost[i] * S.debtOpen[i] : 0) });
     L('llcrPre', 'LLCR pre-tax', 'x', F_X, (c) => 'IF(' + c('f_debt') + '=1,' + c('pvPre') + '/' + c('debtOpen') + ',"")', { cache: 'llcrPre' });
     L('llcrPost', 'LLCR post-tax', 'x', F_X, (c) => 'IF(' + c('f_debt') + '=1,' + c('pvPost') + '/' + c('debtOpen') + ',"")', { cache: 'llcrPost' });
-    L('pvPpa', 'PV of remaining pre-tax CFADS to PPA expiry', 'k', F_K, (c) => 'IF(' + c('f_op') + '=1,(' + c('cfadsPre') + '+' + c.n('pvPpa') + ')/(1+semi_rate),0)');
+    L('pvPpa', 'PV of remaining pre-tax CFADS to PPA expiry', 'k', F_K, (c) => 'IF(' + c('f_op') + '=1,(' + c('cfadsPre') + '+' + c.n('pvPpa') + ')/(1+period_rate),0)');
     V('llcr_cod_pre', 'LLCR at COD, pre-tax', 'x', F_X, (R) => 'SUMPRODUCT(' + R('f_first') + ',' + R('pvPre') + ')/debt_amount', { cache: sum.llcrCodPre });
     V('llcr_cod_post', 'LLCR at COD, post-tax', 'x', F_X, (R) => 'SUMPRODUCT(' + R('f_first') + ',' + R('pvPost') + ')/debt_amount', { cache: sum.llcrCodPost });
     V('plcr_cod', 'PLCR at COD, pre-tax', 'x', F_X, (R) => 'SUMPRODUCT(' + R('f_first') + ',' + R('pvPpa') + ')/debt_amount', { cache: sum.plcrCod });
 
     G('Debt service reserve account (DSRA)');
-    L('dsraTarget', 'Target balance (next 6 or 12 months of debt service)', 'k', F_K,
-      (c) => 'IF(' + c.t + '>=n_constr,IF(dsra_periods>=1,' + c.n('debtService') + ',0)+IF(dsra_periods>=2,' + c.n2('debtService') + ',0),0)', { cache: 'dsraTarget' });
+    L('dsraTarget', 'Target balance (next DSRA months of debt service)', 'k', F_K,
+      (c) => 'IF(' + c.t + '>=n_constr,' + Array.from({ length: 12 / PM }, (_, k) => 'IF(dsra_periods>=' + (k + 1) + ',' + c.ahead('debtService', k + 1) + ',0)').join('+') + ',0)', { cache: 'dsraTarget' });
     L('dsraFund', 'Initial funding by equity at COD', 'k', F_K, (c) => 'IF(' + c('f_cod') + '=1,' + c('dsraTarget') + ',0)', { cache: 'dsraFund', total: true });
     L('cashAfterDs', 'Cash after debt service', 'k', F_K, (c) => 'IF(' + c('f_op') + '=1,' + c('cfadsPost') + '-' + c('debtService') + ',0)', { cache: 'cashAfterDs', total: true });
     L('dsraDraw', 'DSRA drawing to cover a shortfall', 'k', F_K, (c) => 'IF(' + c('cashAfterDs') + '<0,MIN(' + c.p('dsraBal') + ',-' + c('cashAfterDs') + '),0)', { cache: 'dsraDraw', total: true });
@@ -1759,7 +2031,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       (c) => 'IF(' + c('f_op') + '=1,IF(' + c('blocked') + '=1,0,' + c('cashAvail') + '+' + c.p('trapBal') + ')+IF(' + c('f_last') + '=1,IF(' + c('blocked') + '=1,' + c.p('trapBal') + '+' + c('cashAvail') + ',0)+' + c('dsraFinal') + ',0),0)',
       { cache: 'distributions', total: true, bold: true });
     L('equityFlows', 'Equity cash flow', 'k', F_K, (c) => '-' + c('equityIn') + '-' + c('dsraFund') + '+' + c('distributions'), { cache: 'equityFlows', total: true, bold: true });
-    V('equity_irr', 'Equity IRR (post-tax, nominal, annualised)', '', F_PCT, (R) => '(1+IRR(' + R('equityFlows') + '))^2-1', { cache: sum.equityIrr, bold: true });
+    V('equity_irr', 'Equity IRR (post-tax, nominal, annualised)', '', F_PCT, (R) => '(1+IRR(' + R('equityFlows') + '))^periods_per_year-1', { cache: sum.equityIrr, bold: true });
 
     // Assign row numbers: rows 1-6 hold the title and the timeline header.
     const ROW = {};
@@ -1775,19 +2047,31 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     wsC.width(1, 46).width(2, 7).width(3, 14);
     for (let t = 1; t <= N; t++) wsC.width(FIRST + t - 1, 11);
     wsC.freezeAt('D7');
-    wsC.set('A1', 'Calculations', st.title);
-    wsC.set('A2', 'Semi-annual periods across. ' + deal.meta.currency + ' thousands unless stated. Every cell is a formula; inputs come from the Inputs sheet by name.', st.note);
+    wsC.tab = C_MUTED;
+    banner(wsC, 'Calculations', (PM === 3 ? 'Quarterly' : 'Semi-annual') + ' periods across. ' + deal.meta.currency + ' thousands unless stated. Every cell is a formula; inputs come from the Inputs sheet by name. Shaded columns = construction.', FIRST + N - 1);
     wsC.set('A4', 'Period', st.head); wsC.set('B4', '', st.head); wsC.set('C4', 'Total / value', st.headR);
     wsC.set('A5', 'Period start', st.muted); wsC.set('A6', 'Period end', st.bold);
+    const boldTop = wb.style({ bold: true, border: 'top' });
     const hdr = wb.style({ bold: true, fill: C_HEAD_BG, border: 'bottom', align: 'right', numFmt: F_INT });
     const dStart = wb.style({ numFmt: F_MONTH, color: C_MUTED, align: 'right' });
     const dEnd = wb.style({ numFmt: F_MONTH, bold: true, align: 'right' });
-    for (let t = 1; t <= N; t++) wsC.set(col(t) + '4', t, hdr);
+    const hdrCon = wb.style({ bold: true, fill: C_CONSTR_BG, border: 'bottom', align: 'right', numFmt: F_INT });
+    const phase = wb.style({ color: C_MUTED, align: 'right', italic: true });
+    wsC.set('A3', 'Phase', st.muted);
+    for (let t = 1; t <= N; t++) {
+      const con = t <= res.meta.nC;
+      wsC.set(col(t) + '3', con ? 'Constr.' : t <= res.meta.nM ? 'Debt' : 'Tail', phase);
+      wsC.set(col(t) + '4', t, con ? hdrCon : hdr);
+    }
 
     const rangeOf = (key) => '$' + col(1) + '$' + ROW[key] + ':$' + LAST + '$' + ROW[key];
     for (const row of ROWS) {
-      if (row.group) { wsC.set('A' + row.r, row.group, st.h); continue; }
-      const lab = row.bold ? st.bold : 0;
+      if (row.group) {
+        wsC.set('A' + row.r, row.group, st.group);
+        for (let c = 2; c <= FIRST + N - 1; c++) wsC.set(X.colName(c) + row.r, '', st.group);
+        continue;
+      }
+      const lab = row.bold ? boldTop : 0;
       wsC.set('A' + row.r, row.label, lab);
       wsC.set('B' + row.r, row.unit, st.muted);
       if (row.scalar) {
@@ -1795,7 +2079,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
         wb.defineName(row.key, 'Calc!$C$' + row.r);
         continue;
       }
-      const style = row.key === 'start' ? dStart : row.key === 'end' ? dEnd : calc(row.fmt, row.bold);
+      const style = row.key === 'start' ? dStart : row.key === 'end' ? dEnd : (row.bold ? wb.style({ numFmt: row.fmt, bold: true, border: 'top' }) : calc(row.fmt));
       for (let t = 1; t <= N; t++) {
         const cl = col(t), i = t - 1;
         const ref = (key) => cl + ROW[key];
@@ -1803,7 +2087,8 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
         ref.first = t === 1;
         ref.p = (key) => (t === 1 ? '0' : col(t - 1) + ROW[key]);
         ref.n = (key) => col(t + 1) + ROW[key]; // the column after the last period is empty, i.e. 0
-        ref.n2 = (key) => col(t + 2) + ROW[key];
+        ref.back = (key, k) => (k === 0 ? cl + ROW[key] : t - k < 1 ? '0' : col(t - k) + ROW[key]);
+        ref.ahead = (key, k) => col(t + k) + ROW[key]; // columns after the last period are empty, i.e. 0
         let v;
         if (typeof row.cache === 'string') v = S[row.cache][i];
         else if (typeof row.cache === 'function') v = row.cache(i);
@@ -1821,8 +2106,8 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     // ---------------- Outputs ----------------
     const wsO = wb.addSheet('Outputs');
     wsO.width(1, 44).width(2, 16).width(3, 4).width(4, 34).width(5, 16);
-    wsO.set('A1', 'Outputs', st.title);
-    wsO.set('A2', 'Key results, all linked to the Calc sheet.', st.note);
+    wsO.tab = C_GOOD;
+    banner(wsO, 'Outputs', 'Key results, all linked to the Calc sheet.', 5);
     const out = (ws, row, label, f, v, fmt, colL, colV) => { ws.set((colL || 'A') + row, label); ws.set((colV || 'B') + row, { f, v }, calc(fmt, false)); };
     wsO.set('A4', 'Uses', st.head); wsO.set('B4', deal.meta.currency + ' k', st.headR);
     wsO.set('D4', 'Sources', st.head); wsO.set('E4', deal.meta.currency + ' k', st.headR);
@@ -1871,9 +2156,9 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     // ---------------- Checks ----------------
     const wsK = wb.addSheet('Checks');
     wsK.width(1, 52).width(2, 16).width(3, 16).width(4, 14).width(5, 10);
-    wsK.set('A1', 'Checks', st.title);
-    wsK.set('A2', 'TRUE means the check passes. Part 2 compares this workbook with the web app at the time of export.', st.note);
-    const okStyle = wb.style({ bold: true, align: 'center' });
+    wsK.tab = C_GOOD;
+    banner(wsK, 'Checks', 'TRUE means the check passes. Part 2 compares this workbook with the web app at the time of export.', 5);
+    const okStyle = st.ok;
     wsK.set('A4', 'Model integrity', st.head); wsK.set('B4', 'Result', wb.style({ bold: true, fill: C_HEAD_BG, border: 'bottom', align: 'center' }));
     const lastCol = (key) => 'Calc!$' + LAST + '$' + ROW[key];
     const integrity = [
@@ -1884,9 +2169,9 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       ['No debt service shortfall', 'SUM(' + R('shortfall') + ')<0.01'],
       ['No principal re-borrowing', 'MIN(' + R('principal') + ')>=-0.000000001'],
       ['Capex profile adds up to 100%', 'ABS(SUM(capex_profile)-1)<0.000001'],
-      ['One capex share per construction semester', 'COUNT(capex_profile)=n_constr'],
+      ['One capex share per construction semester', 'COUNT(capex_profile)*6=n_constr*months_per_period'],
       ['Timeline ends at PPA expiry (columns fixed at export)', lastCol('end') + '=ppa_end_date'],
-      ['DSRA of 0, 6 or 12 months (as built)', 'OR(dsra_months=0,dsra_months=6,dsra_months=12)'],
+      ['DSRA of 0, ' + (PM === 3 ? '3, 6, 9' : '6') + ' or 12 months (as built)', 'AND(dsra_months>=0,dsra_months<=12,INT(dsra_months/months_per_period)*months_per_period=dsra_months)'],
     ];
     integrity.forEach(([l, f], i) => { wsK.set('A' + (5 + i), l); wsK.set('B' + (5 + i), { f, v: true }, okStyle); });
     let rk = 5 + integrity.length;
@@ -1932,12 +2217,12 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     // ---------------- Cover (first tab) ----------------
     const wsV = wb.addSheet('Cover'); // built last (it links to the other sheets), then moved to the front
     wsV.width(1, 34).width(2, 70);
-    wsV.set('A1', deal.meta.name, st.title);
-    wsV.set('A2', 'Project finance model generated from the term sheet by the Model Builder web app.', st.note);
+    wsV.tab = C_NAVY;
+    banner(wsV, deal.meta.name, 'Project finance model generated from the term sheet by the Model Builder web app · Jean Grollet', 2);
     const cover = [
       ['Deal', deal.meta.name + (deal.meta.seed ? ' (random deal #' + deal.meta.seed + ', fictional)' : '')],
       ['Asset', O.capacity_mw + ' MWac solar' + (deal.meta.state ? ', ' + deal.meta.state + ', Australia' : '')],
-      ['Currency and units', deal.meta.currency + ' thousands, semi-annual periods'],
+      ['Currency and units', deal.meta.currency + ' thousands, ' + PERIOD_WORD + ' periods'],
       ['Timeline', P[0].label + ' to ' + P[N - 1].label + ' (' + N + ' periods; the number of columns is fixed at export)'],
     ];
     cover.forEach(([k, v], i) => { wsV.set('A' + (4 + i), k, st.bold); wsV.set('B' + (4 + i), v); });
@@ -1950,15 +2235,15 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       ['Integrity checks pass', integrityAll, true, ''],
       ['Matches the web app', reconAll, true, ''],
     ];
-    live.forEach(([k, f, v, fmt], i) => { wsV.set('A' + (10 + i), k); wsV.set('B' + (10 + i), { f, v }, wb.style({ numFmt: fmt || undefined, bold: true, align: 'left' })); });
+    live.forEach(([k, f, v, fmt], i) => { wsV.set('A' + (10 + i), k); wsV.set('B' + (10 + i), { f, v }, wb.style({ numFmt: fmt || undefined, bold: true, size: 12, color: fmt ? C_ACCENT : C_GOOD, align: 'left' })); });
     wsV.set('A17', 'How the workbook is built', st.h);
     const guide = [
       ['Inputs', 'Every assumption, in blue, with the term sheet clause it comes from. Named cells (e.g. margin, target_dscr) are used in all formulas.'],
-      ['Calc', 'The full semi-annual model: timeline flags, operations, debt sizing and sculpting, construction funding, debt schedule, tax with losses carried forward, ratios, DSRA and the distribution waterfall.'],
+      ['Calc', 'The full ' + PERIOD_WORD + ' model: timeline flags, operations, debt sizing and sculpting, construction funding, debt schedule, tax with losses carried forward, ratios, DSRA and the distribution waterfall.'],
       ['Outputs', 'Sources and uses, DSCR / LLCR / PLCR, debt capacity, first-year figures, equity IRR.'],
       ['Checks', 'Integrity checks (debt drawn and repaid, sources = uses, no shortfall) and a reconciliation against the web app.'],
       ['Colour code', 'Blue on light blue = input. Black = formula. Nothing is hard-coded in Calc.'],
-      ['Simplifications (v1)', 'Interest = balance × rate / 2 (no day count). No hedging, agency fees, MRA, cash sweep or terminal value. See the Methodology tab of the web app.'],
+      ['Simplifications (v1)', 'Interest = balance × annual rate / periods per year (no day count). No hedging, agency fees, MRA, cash sweep or terminal value. See the Methodology tab of the web app.'],
     ];
     guide.forEach(([k, v], i) => { wsV.set('A' + (18 + i), k, st.bold); wsV.set('B' + (18 + i), v, st.noteWrap); });
     wb.sheets.unshift(wb.sheets.pop());
@@ -1966,10 +2251,14 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     return wb;
   }
 
-  function periodEnd(p) { return p.year + '-' + String(p.month).padStart(2, '0') + '-' + (p.month === 6 ? '30' : '31'); }
-  function periodStart(p) {
-    const m = p.month === 6 ? 1 : 7;
-    return p.year + '-' + String(m).padStart(2, '0') + '-01';
+  function periodEnd(p) {
+    const lastDay = new Date(Date.UTC(p.year, p.month, 0)).getUTCDate();
+    return p.year + '-' + String(p.month).padStart(2, '0') + '-' + lastDay;
+  }
+  function periodStart(p, pm) {
+    let y = p.year, m = p.month - pm + 1;
+    if (m < 1) { m += 12; y -= 1; }
+    return y + '-' + String(m).padStart(2, '0') + '-01';
   }
 
   // Returns the .xlsx file as bytes.
@@ -2064,6 +2353,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
   let res = null;
   let uploaded = null; // { name, md, assumed } when the deal was read from a dropped file
   const cur = () => (deal.meta && deal.meta.currency) || 'AUD';
+  const perWord = () => (deal.timeline.periodicity === 'quarterly' ? 'Quarterly' : 'Semi-annual');
 
   // ---------- Formatting ----------
   const nf0 = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
@@ -2081,6 +2371,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       ['timeline.cod', 'Commercial operation (COD)', 'date'],
       ['timeline.debt_maturity', 'Final maturity', 'date'],
       ['timeline.ppa_end', 'PPA expiry', 'date'],
+      ['timeline.periodicity', 'Model periods', 'select', '', [['semi-annual', 'Semi-annual'], ['quarterly', 'Quarterly']]],
     ] },
     { name: 'Construction', fields: [
       ['construction.capex_total', 'Construction capex', 'k'],
@@ -2263,8 +2554,73 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     const eb = $('errorBox');
     if (!res.ok) { eb.hidden = false; eb.innerHTML = '<b>The model can\'t run with these inputs.</b><br>' + res.errors.map(esc).join('<br>'); return; }
     eb.hidden = true;
-    renderHeader(); renderOverview(); renderDebt(); renderCashflow(); renderSens(); renderJson();
+    renderHeader(); renderOverview(); renderDebt(); renderCashflow(); renderSens(); renderJson(); renderControlStatus();
   }
+
+  // ---------- Control center ----------
+  // The same inputs as the left rail, laid out as one table with the clause and status of each.
+  function statusOf(path) {
+    const src = (deal.sources && deal.sources[path]) || (base.sources && base.sources[path]) || '';
+    if (JSON.stringify(get(deal, path)) !== JSON.stringify(get(base, path))) return ['neutral', 'Edited', src];
+    if (path === 'timeline.periodicity') return ['neutral', 'Model choice', 'Not a term sheet item: how the model is cut in time.'];
+    if (/^ASSUMED/.test(src)) return ['warn', 'Assumed', src.replace(/^ASSUMED:\s*/, '')];
+    return src ? ['good', 'From term sheet', src] : ['neutral', 'Input', ''];
+  }
+  function renderControl() {
+    let h = '<thead><tr><th>Input</th><th>Value</th><th>Status</th><th>Term sheet clause</th></tr></thead><tbody>';
+    for (const sec of SECTIONS) {
+      h += '<tr class="grp"><td colspan="4">' + sec.name + '</td></tr>';
+      for (const [path, label, type, unit, opts] of sec.fields) {
+        const id = 'cc-' + path.replace(/\./g, '-');
+        const u = unit !== undefined ? unit : (type === 'pct' ? '%' : type === 'k' ? 'k' : type === 'list' ? '%' : '');
+        const ctl = type === 'select'
+          ? '<select id="' + id + '">' + opts.map(([v, t]) => '<option value="' + v + '">' + t + '</option>').join('') + '</select>'
+          : '<input id="' + id + '" type="' + (type === 'date' ? 'date' : 'text') + '" inputmode="' + (type === 'date' ? '' : 'decimal') + '">';
+        h += '<tr data-path="' + path + '" data-type="' + type + '"><td><label for="' + id + '">' + label + '</label></td><td><div class="ctl">' + ctl +
+          (u && type !== 'date' && type !== 'select' ? '<span class="unit">' + (type === 'k' ? cur() + ' k' : u) + '</span>' : '') + '</div></td><td class="st"></td><td class="src"></td></tr>';
+      }
+    }
+    $('ccTable').innerHTML = h + '</tbody>';
+    $('ccTable').querySelectorAll('tr[data-path]').forEach((tr) => {
+      const path = tr.dataset.path, type = tr.dataset.type;
+      const el = tr.querySelector('input,select');
+      el.value = toDisplay(type, get(deal, path));
+      el.addEventListener(type === 'select' || type === 'date' ? 'change' : 'input', () => {
+        const v = fromDisplay(type, el.value);
+        if (v === null || v === '') { tr.classList.add('bad'); return; }
+        tr.classList.remove('bad');
+        set(deal, path, v);
+        schedule();
+      });
+    });
+    renderControlStatus();
+  }
+  function renderControlStatus() {
+    const counts = { 'From term sheet': 0, Assumed: 0, Edited: 0 };
+    $('ccTable').querySelectorAll('tr[data-path]').forEach((tr) => {
+      const [tone, text, src] = statusOf(tr.dataset.path);
+      if (counts[text] != null) counts[text]++;
+      tr.querySelector('.st').innerHTML = '<span class="pill ' + tone + '">' + text + '</span>';
+      tr.querySelector('.src').textContent = src;
+    });
+    $('ccPills').innerHTML = '<span class="pill good">' + counts['From term sheet'] + ' from the term sheet</span>' +
+      (counts.Assumed ? '<span class="pill warn">' + counts.Assumed + ' assumed</span>' : '') +
+      (counts.Edited ? '<span class="pill neutral">' + counts.Edited + ' edited</span>' : '') +
+      (res && res.ok ? '<span class="pill ' + (res.checks.every((c) => c.ok) ? 'good">✓ All checks pass' : 'crit">✕ Checks failing') + '</span>' : '<span class="pill crit">✕ Model can\'t run</span>');
+    document.querySelectorAll('.seg button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.per === deal.timeline.periodicity ? 'true' : 'false'));
+  }
+  function setPeriodicity(per) {
+    deal.timeline.periodicity = per;
+    buildInputs(); renderControl(); recalc();
+  }
+
+  // Short loading screen while the model is "generated" (the engine itself takes a few ms).
+  function withLoader(fn, text) {
+    $('loaderText').textContent = text || 'Building the model…';
+    $('loader').hidden = false;
+    setTimeout(() => { fn(); $('loader').hidden = true; }, 500);
+  }
+  const generate = () => withLoader(() => { showTab('overview'); window.scrollTo(0, 0); });
 
   function renderHeader() {
     const s = res.summary, o = deal.operations;
@@ -2275,6 +2631,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     p.className = 'pill ' + (fails ? 'crit' : 'good');
     p.textContent = (fails ? '✕ ' + fails + ' check' + (fails > 1 ? 's' : '') + ' failing' : '✓ All checks pass');
     document.querySelectorAll('.cur').forEach((e) => (e.textContent = cur()));
+    document.querySelectorAll('.perw').forEach((e) => (e.textContent = perWord()));
   }
 
   function kpi(k, v, d, tone) { return '<div class="kpi' + (tone ? ' ' + tone : '') + '"><div class="k">' + k + '</div><div class="v">' + v + '</div><div class="d">' + d + '</div></div>'; }
@@ -2301,9 +2658,9 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       const sev = s.minDscrPost < C.lockup_dscr ? 'crit' : 'warn';
       flags.push([sev, sev === 'warn' ? '!' : '✕', 'Post-tax DSCR falls to ' + x2(s.minDscrPost) + ' (' + s.minDscrPostLabel + ')' + (s.firstTaxLabel ? ' once tax losses run out and cash tax starts in ' + s.firstTaxLabel : '') + '. That is below the ' + x2(tgt) + ' sculpting target' + (sev === 'warn' ? ' but clears lock-up at ' + x2(C.lockup_dscr) + '.' : ' and through a covenant level.') + ' Sculpting on pre-tax CFADS hides this.']);
     }
-    if (s.lockupPeriods > 0) flags.push(['crit', '✕', s.lockupPeriods + ' semi-annual test' + (s.lockupPeriods > 1 ? 's' : '') + ' below the ' + x2(C.lockup_dscr) + ' lock-up' + (s.defaultPeriods ? ', ' + s.defaultPeriods + ' below the ' + x2(C.default_dscr) + ' default level' : '') + '.']);
+    if (s.lockupPeriods > 0) flags.push(['crit', '✕', s.lockupPeriods + ' ' + perWord().toLowerCase() + ' test' + (s.lockupPeriods > 1 ? 's' : '') + ' below the ' + x2(C.lockup_dscr) + ' lock-up' + (s.defaultPeriods ? ', ' + s.defaultPeriods + ' below the ' + x2(C.default_dscr) + ' default level' : '') + '.']);
     else flags.push(['good', '✓', 'No lock-up across the base case: the 12-month historic DSCR stays at or above ' + x2(C.lockup_dscr) + '.']);
-    const tailYears = (res.meta.N - res.meta.nM) / 2;
+    const tailYears = (res.meta.N - res.meta.nM) / res.meta.ppy;
     flags.push([tailYears >= 2 ? 'good' : 'warn', tailYears >= 2 ? '✓' : '!', 'PPA tail of ' + tailYears + ' year' + (tailYears === 1 ? '' : 's') + ' after final maturity. PLCR at COD ' + x2(s.plcrCod) + '.']);
     if (s.equityIrr != null && s.equityIrr < 0.07) flags.push(['warn', '!', 'Equity IRR of ' + pc(s.equityIrr, 1) + ' looks thin for a greenfield sponsor. The model gives no value after PPA expiry, so a merchant tail or a refinancing would lift it.']);
     $('flags').innerHTML = flags.map(([c, i, t]) => '<li><span class="pill ' + c + '">' + i + '</span><p>' + t + '</p></li>').join('');
@@ -2516,18 +2873,21 @@ TERM SHEET:
   // ---------- Opening a deal ----------
   function openDeal(d, tab, file) {
     uploaded = file || null;
+    d = clone(d);
+    d.timeline.periodicity = d.timeline.periodicity || 'semi-annual';
+    if (d.sources) d.sources['timeline.periodicity'] = 'Model choice (Control center)';
     base = clone(d);
     deal = clone(d);
     $('landing').hidden = true;
     $('workspace').hidden = false; $('foot').hidden = false;
     $('dealId').hidden = false; $('topActions').hidden = false;
     const q = base.meta.uploaded ? '' : '?' + (base.meta.generated ? 'deal=' + base.meta.seed : 'deal=coolabah');
-    try { history.replaceState(null, '', location.pathname + q + '#' + (tab || 'termsheet')); } catch (e) {}
-    buildInputs(); renderTermSheet(); recalc();
-    showTab(tab || 'termsheet');
+    try { history.replaceState(null, '', location.pathname + q + '#' + (tab || 'control')); } catch (e) {}
+    buildInputs(); renderTermSheet(); renderControl(); recalc();
+    showTab(tab || 'control');
     window.scrollTo(0, 0);
   }
-  function openSeed(seed) { openDeal(PFGenerator.generateDeal(seed), 'termsheet'); }
+  function openSeed(seed) { withLoader(() => openDeal(PFGenerator.generateDeal(seed), 'control'), 'Drawing a random deal…'); }
   function showLanding() {
     $('landing').hidden = false;
     dropMessage('', ''); $('guide').hidden = true;
@@ -2540,7 +2900,8 @@ TERM SHEET:
     if (!test.ok) { flash(msgId, 'Not applied: ' + test.errors[0]); return false; }
     deal = obj;
     if (!obj.meta || !obj.meta.generated) base = clone(obj);
-    buildInputs(); recalc(); flash(msgId, 'Applied. Model rebuilt from ' + (obj.meta && obj.meta.name || 'the new deal') + '.'); return true;
+    if (!obj.timeline.periodicity) obj.timeline.periodicity = 'semi-annual';
+    buildInputs(); renderControl(); recalc(); flash(msgId, 'Applied. Model rebuilt from ' + (obj.meta && obj.meta.name || 'the new deal') + '.'); return true;
   }
 
   // ---------- Dropped files ----------
@@ -2570,13 +2931,19 @@ TERM SHEET:
     delete obj.meta.generated;
     const r = PFEngine.run(obj);
     if (!r.ok) throw new Error(r.errors[0]);
-    openDeal(obj, 'termsheet', null);
+    openDeal(obj, 'control', null);
   }
   function handleFile(file) {
     dropMessage('', ''); $('guide').hidden = true;
     const ext = (file.name.split('.').pop() || '').toLowerCase();
-    if (['pdf', 'doc', 'docx'].includes(ext)) {
-      showGuide('One reading step for this ' + ext.toUpperCase() + ' file', 'The app reads term sheets in the Model Builder layout on its own. For a ' + ext.toUpperCase() + ', Claude extracts the terms into a deal JSON first (automatic reading in the app is planned).', null);
+    if (['pdf', 'doc'].includes(ext)) {
+      showGuide('One reading step for this ' + ext.toUpperCase() + ' file', 'The app reads Word (.docx) and Markdown term sheets in the Model Builder layout on its own. For a ' + ext.toUpperCase() + ', Claude extracts the terms into a deal JSON first (automatic reading in the app is planned).', null);
+      return;
+    }
+    if (ext === 'docx') {
+      file.arrayBuffer().then((buf) => PFDocx.docxToMarkdown(new Uint8Array(buf)))
+        .then((md) => readTermSheet(md, file.name))
+        .catch((e) => dropMessage('warn', 'That Word file could not be read: ' + esc(e.message) + '.'));
       return;
     }
     const rd = new FileReader();
@@ -2586,17 +2953,20 @@ TERM SHEET:
         try { openJson(jsonFrom(text), file.name); } catch (e) { dropMessage('warn', 'That JSON could not be used: ' + esc(e.message) + '.'); }
         return;
       }
-      const p = PFParser.parseTermSheet(text);
-      const run = p.ok ? PFEngine.run(p.deal) : null;
-      if (p.ok && run.ok) { openDeal(p.deal, 'termsheet', { name: file.name, md: text, assumed: p.assumed }); return; }
-      if (p.missing.length <= 4 && !p.ok) {
-        dropMessage('warn', '<p><b>Almost there.</b> This looks like a Model Builder term sheet, but these terms are missing: ' + p.missing.map(esc).join('; ') + '.</p><p>Add them to the file and drop it again, or use the reading step below.</p>');
-      } else if (p.ok && !run.ok) {
-        dropMessage('warn', '<p><b>The terms were read, but the model can\'t run with them:</b> ' + esc(run.errors[0]) + '</p>');
-      }
-      showGuide('One reading step for this document', 'This document is not in the Model Builder layout, so Claude extracts the terms into a deal JSON first.', text);
+      readTermSheet(text, file.name);
     };
     rd.readAsText(file);
+  }
+  function readTermSheet(text, name) {
+    const p = PFParser.parseTermSheet(text);
+    const run = p.ok ? PFEngine.run(p.deal) : null;
+    if (p.ok && run.ok) { withLoader(() => openDeal(p.deal, 'control', { name, md: text, assumed: p.assumed }), 'Reading the term sheet…'); return; }
+    if (p.missing.length <= 4 && !p.ok) {
+      dropMessage('warn', '<p><b>Almost there.</b> This looks like a Model Builder term sheet, but these terms are missing: ' + p.missing.map(esc).join('; ') + '.</p><p>Add them to the file and drop it again, or use the reading step below.</p>');
+    } else if (p.ok && !run.ok) {
+      dropMessage('warn', '<p><b>The terms were read, but the model can\'t run with them:</b> ' + esc(run.errors[0]) + '</p>');
+    }
+    showGuide('One reading step for this document', 'This document is not in the Model Builder layout, so Claude extracts the terms into a deal JSON first.', text);
   }
   const drop = $('drop');
   drop.addEventListener('click', () => $('dropFile').click());
@@ -2610,19 +2980,28 @@ TERM SHEET:
     try { openJson(jsonFrom($('guideJson').value), 'deal JSON'); }
     catch (e) { flash('guideBuildMsg', 'Not built: ' + e.message + '.'); }
   });
-  $('templateLink').addEventListener('click', (ev) => { ev.preventDefault(); download('model_builder_term_sheet_template.md', COOLABAH_TS, 'text/markdown'); });
+  const DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  const templateDocx = () => download('Model_Builder_term_sheet_template.docx', PFDocx.markdownToDocx(COOLABAH_TS), DOCX);
+  $('templateLink').addEventListener('click', (ev) => { ev.preventDefault(); templateDocx(); });
+  $('landingDocx').addEventListener('click', templateDocx);
+  $('landingXlsx').addEventListener('click', () => download('Coolabah_model.xlsx', PFExcel.exportXlsx(COOLABAH, PFEngine.run(COOLABAH)), XLSX));
 
   // ---------- Wiring ----------
-  $('openExample').addEventListener('click', () => openDeal(COOLABAH, 'termsheet'));
+  $('openExample').addEventListener('click', () => withLoader(() => openDeal(COOLABAH, 'control'), 'Opening the Coolabah example…'));
   $('openRandom').addEventListener('click', () => openSeed(PFGenerator.randomSeed()));
   $('randomBtn').addEventListener('click', () => openSeed(PFGenerator.randomSeed()));
   $('seedForm').addEventListener('submit', (ev) => { ev.preventDefault(); const n = parseInt($('seedIn').value, 10); openSeed(n > 0 ? n : PFGenerator.randomSeed()); });
   $('homeBtn').addEventListener('click', showLanding);
-  $('tsToModel').addEventListener('click', () => { showTab('overview'); window.scrollTo(0, 0); });
-  $('tsDownload').addEventListener('click', () => download(slug() + '_term_sheet.md', termSheetMd(), 'text/markdown'));
+  $('tsToModel').addEventListener('click', generate);
+  $('ccGenerate').addEventListener('click', generate);
+  $('ccGenerate2').addEventListener('click', generate);
+  $('ccReset').addEventListener('click', () => { deal = clone(base); buildInputs(); renderControl(); recalc(); });
+  document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => setPeriodicity(b.dataset.per)));
+  $('tsDownload').addEventListener('click', () => download(slug() + '_term_sheet.docx', PFDocx.markdownToDocx(termSheetMd()), DOCX));
   const xlsx = () => {
     if (!res || !res.ok) return;
-    download(slug() + '_model.xlsx', PFExcel.exportXlsx(deal, res), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    download(slug() + (res.meta.pm === 3 ? '_quarterly' : '') + '_model.xlsx', PFExcel.exportXlsx(deal, res), XLSX);
   };
   $('xlsxBtn').addEventListener('click', xlsx);
   $('xlsxBtn2').addEventListener('click', xlsx);
@@ -2638,12 +3017,17 @@ TERM SHEET:
     rd.onload = () => { try { loadDeal(JSON.parse(rd.result), 'jsonMsg'); } catch (e) { flash('jsonMsg', 'That file is not valid JSON.'); } };
     rd.readAsText(f);
   });
-  $('resetBtn').addEventListener('click', () => { deal = clone(base); buildInputs(); recalc(); });
+  $('resetBtn').addEventListener('click', () => { deal = clone(base); buildInputs(); renderControl(); recalc(); });
 
-  const TABS = ['termsheet', 'overview', 'debt', 'cashflow', 'sens', 'method', 'json'];
+  const TABS = ['control', 'termsheet', 'overview', 'debt', 'cashflow', 'sens', 'method', 'json'];
   function showTab(name) {
     document.querySelectorAll('.tab').forEach((t) => t.setAttribute('aria-selected', t.dataset.tab === name ? 'true' : 'false'));
     document.querySelectorAll('[data-panel]').forEach((p) => (p.hidden = p.dataset.panel !== name));
+    // The Control center shows every input full width, so the left rail is hidden there and rebuilt on leaving.
+    const wasWide = $('workspace').classList.contains('wide');
+    $('workspace').classList.toggle('wide', name === 'control');
+    if (deal && name === 'control') renderControl();
+    else if (deal && wasWide) buildInputs();
     try { history.replaceState(null, '', location.pathname + location.search + '#' + name); } catch (e) {}
     if (res && res.ok) { if (name === 'overview') renderOverview(); if (name === 'debt') renderDebt(); }
   }
@@ -2656,7 +3040,7 @@ TERM SHEET:
   // Start: ?deal=coolabah or ?deal=4821 opens that deal directly; otherwise the start page.
   const params = new URLSearchParams(location.search);
   const want = params.get('deal');
-  const tab = TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'termsheet';
+  const tab = TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'control';
   if (want === 'coolabah') openDeal(COOLABAH, tab);
   else if (want && parseInt(want, 10) > 0) openDeal(PFGenerator.generateDeal(parseInt(want, 10)), tab);
   else showLanding();

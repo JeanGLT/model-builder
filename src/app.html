@@ -1,5 +1,6 @@
 <title>Model Builder · Term sheet to project finance model</title>
-<meta name="description" content="Turns a project finance term sheet into a semi-annual cash flow model with sculpted debt, DSCR / LLCR, equity IRR and a live-formula Excel export.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='2' y='2' width='60' height='60' rx='14' fill='white' stroke='%232f5bea' stroke-width='4'/%3E%3Ccircle cx='42' cy='21' r='8' fill='%232f5bea'/%3E%3Cpath d='M10 52 C22 52 27 39 36 39 S51 46 55 31' fill='none' stroke='%231b2333' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
+<meta name="description" content="Turns a project finance term sheet into a semi-annual or quarterly cash flow model with sculpted debt, DSCR / LLCR, equity IRR and a live-formula Excel export.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Serif+Display&display=swap">
@@ -54,7 +55,8 @@ a { color: var(--accent); }
 /* Top bar */
 .top { position: sticky; top: 0; z-index: 20; background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
 .top-in { max-width: 1360px; margin: 0 auto; padding: 12px 32px; display: flex; align-items: center; gap: 12px 20px; flex-wrap: wrap; }
-.brand { font-family: "DM Serif Display", Georgia, serif; font-size: 22px; color: var(--text); background: none; border: 0; padding: 0; cursor: pointer; }
+.brand { font-family: "DM Serif Display", Georgia, serif; font-size: 22px; color: var(--text); background: none; border: 0; padding: 0; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; }
+.brand .logo { width: 30px; height: 30px; flex: none; }
 .brand span { color: var(--accent); }
 .deal-id { display: flex; flex-direction: column; min-width: 0; border-left: 1px solid var(--border); padding-left: 16px; }
 .deal-id b { font-size: 15px; font-weight: 600; }
@@ -89,7 +91,37 @@ a { color: var(--accent); }
 .fact b { display: block; font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
 .fact span { font-size: 12px; color: var(--muted); }
 .fineprint { margin-top: 32px; font-size: 12px; color: var(--faint); }
+.get-excel { margin-top: 40px; display: flex; gap: 20px; align-items: center; justify-content: space-between; flex-wrap: wrap; border-left: 4px solid var(--accent); border-radius: 0 var(--radius) var(--radius) 0; }
+.get-excel h2 { font-family: "DM Serif Display", Georgia, serif; font-weight: 400; font-size: 26px; line-height: 1.15; }
+.get-excel p { margin: 6px 0 0; color: var(--body); font-size: 14px; max-width: 58ch; }
 @media (max-width: 860px) { .steps, .facts { grid-template-columns: minmax(0, 1fr); } .hero h1 { font-size: 40px; } .landing { padding: 40px 16px 56px; } }
+
+/* Loading screen (about half a second, when a model is generated) */
+.loader { position: fixed; inset: 0; z-index: 50; background: rgba(246, 247, 249, 0.88); display: grid; place-items: center; }
+.loader .box { display: grid; justify-items: center; gap: 12px; font-weight: 600; }
+.loader small { font-weight: 400; color: var(--muted); }
+.spin { width: 36px; height: 36px; border: 3px solid var(--accent-soft); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Control center */
+.shell.wide { grid-template-columns: minmax(0, 1fr); }
+.shell.wide .rail { display: none; }
+.seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); overflow: hidden; }
+.seg button { border: 0; background: var(--surface); padding: 7px 16px; font-weight: 600; font-size: 14px; cursor: pointer; color: var(--muted); }
+.seg button + button { border-left: 1px solid var(--border-strong); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.cc-top { display: flex; gap: 16px 28px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
+.cc-top .pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.cc td, .cc th { padding: 7px 10px; border-bottom: 1px solid var(--border); text-align: left; font-size: 14px; vertical-align: middle; }
+.cc th { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.cc tr.grp td { background: var(--accent-soft); color: #1e3a8a; font-weight: 600; font-size: 13px; }
+.cc td.src { font-size: 12px; color: var(--muted); max-width: 46ch; }
+.cc .ctl { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.cc input, .cc select { width: 150px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--accent); border-radius: var(--radius-sm); padding: 5px 8px; font-size: 13px; font-weight: 500; text-align: right; }
+.cc select, .cc input[type="date"] { text-align: left; }
+.cc .unit { font-size: 11px; color: var(--muted); }
+.cc tr.bad input { border-color: var(--bad); }
+.cc-foot { display: flex; gap: 12px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
 
 /* Workspace */
 .shell { max-width: 1360px; margin: 0 auto; padding: 24px 32px 56px; display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 24px; align-items: start; }
@@ -224,7 +256,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
 
 <header class="top">
   <div class="top-in">
-    <button class="brand" id="homeBtn" type="button" aria-label="Back to the start page">Model <span>Builder</span></button>
+    <button class="brand" id="homeBtn" type="button" aria-label="Back to the start page"><svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="60" height="60" rx="14" fill="none" stroke="#2f5bea" stroke-width="3"/><circle cx="42" cy="21" r="8" fill="#2f5bea"/><path d="M10 52 C22 52 27 39 36 39 S51 46 55 31" fill="none" stroke="#1b2333" stroke-width="4" stroke-linecap="round"/></svg><span style="color:var(--text)">Model <span>Builder</span></span></button>
     <div class="deal-id" id="dealId" hidden>
       <b id="dealName"></b>
       <small id="dealSub"></small>
@@ -241,13 +273,13 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
 <main class="landing" id="landing">
   <section class="hero">
     <div class="eyebrow">Project finance · term sheet → model</div>
-    <h1>From term sheet to bankable model.</h1>
-    <p class="lead">Drop a project finance term sheet and get the full semi-annual model: construction funding, sculpted debt, tax, DSRA, covenants and equity returns. Every input cites its clause, and the model downloads as an Excel file with live formulas.</p>
+    <h1>Drop a term sheet. Get a bankable model.</h1>
+    <p class="lead">Drop a project finance term sheet and get the full semi-annual or quarterly model: construction funding, sculpted debt, tax, DSRA, covenants and equity returns. Every input cites its clause, and the model downloads as an Excel file with live formulas.</p>
 
     <div class="drop" id="drop" role="button" tabindex="0" aria-label="Drop or choose a term sheet file">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><path d="M7 9l5-5 5 5"/><path d="M12 4v12"/></svg>
       <b>Drop your term sheet here</b>
-      <span>or click to choose a file · Model Builder term sheet (.md, .txt), deal JSON, PDF or Word</span>
+      <span>or click to choose a file · Word (.docx), Markdown (.md), deal JSON, or any PDF</span>
       <input type="file" id="dropFile" accept=".md,.markdown,.txt,.json,.pdf,.doc,.docx" hidden>
     </div>
     <div class="drop-msg" id="dropMsg" hidden></div>
@@ -272,7 +304,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
         <button class="btn btn-ghost btn-sm" type="submit">Open</button>
       </form>
     </div>
-    <p class="muted" style="margin:12px 0 0;font-size:13px">Want to try your own numbers? <a href="#" id="templateLink">Download the term sheet template</a>, edit it and drop it above.</p>
+    <p class="muted" style="margin:12px 0 0;font-size:13px">Want to try your own numbers? <a href="#" id="templateLink">Download the term sheet template (Word)</a>, change the numbers and drop it above.</p>
   </section>
 
   <section class="steps" aria-label="How it works">
@@ -294,10 +326,22 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
   </section>
 
   <section class="facts" aria-label="What the model covers">
-    <div class="fact"><b>Semi-annual</b><span>periods from financial close to PPA expiry</span></div>
+    <div class="fact"><b>Semi-annual or quarterly</b><span>periods from financial close to PPA expiry</span></div>
     <div class="fact"><b>Sculpted</b><span>debt, sized on gearing and DSCR</span></div>
-    <div class="fact"><b>9 checks</b><span>debt drawn and repaid, sources = uses…</span></div>
+    <div class="fact"><b>6 checks</b><span>debt drawn and repaid, sources = uses… (10 in the Excel)</span></div>
     <div class="fact"><b>0 hard-codes</b><span>in the Excel calculation sheet</span></div>
+  </section>
+
+  <section class="card get-excel" aria-label="Download the Excel model">
+    <div>
+      <div class="eyebrow">See the output first</div>
+      <h2>Download the Excel model</h2>
+      <p>The full Coolabah model as an Excel file: inputs with their term sheet clause, every calculation as a live formula, outputs and checks.</p>
+    </div>
+    <div class="cta">
+      <button class="btn btn-primary btn-lg" id="landingXlsx" type="button">Download the Excel model</button>
+      <button class="btn btn-ghost" id="landingDocx" type="button">Term sheet (Word)</button>
+    </div>
   </section>
 
   <p class="fineprint">Built by Jean Grollet · <a href="mailto:jean@grollet.com">jean@grollet.com</a><br>Generated deals are fictional. Calculations run in your browser; files you drop are read locally and never uploaded.</p>
@@ -316,6 +360,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
 
   <main class="sheet">
     <div class="tabs" role="tablist">
+      <button class="tab" role="tab" data-tab="control">Control center</button>
       <button class="tab" role="tab" data-tab="termsheet">Term sheet</button>
       <button class="tab" role="tab" data-tab="overview">Overview</button>
       <button class="tab" role="tab" data-tab="debt">Debt &amp; ratios</button>
@@ -326,13 +371,37 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     </div>
     <div id="errorBox" class="errors" hidden></div>
 
-    <section class="panel" data-panel="termsheet">
+    <section class="panel" data-panel="control" hidden>
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>Control center</h2>
+            <div class="note" style="margin-bottom:0">Every input the model uses, with the term sheet clause it was read from. Check them, change any, then generate the model.</div>
+          </div>
+          <button class="btn btn-primary" id="ccGenerate" type="button">Generate model →</button>
+        </div>
+        <div class="cc-top">
+          <div><div class="label" style="margin-bottom:6px">Model periods</div>
+            <div class="seg" role="group" aria-label="Model periods"><button type="button" data-per="semi-annual">Semi-annual</button><button type="button" data-per="quarterly">Quarterly</button></div></div>
+          <div><div class="label" style="margin-bottom:6px">Inputs</div><div class="pills" id="ccPills"></div></div>
+        </div>
+      </div>
+      <div class="card" style="padding:0">
+        <div style="overflow-x:auto"><table class="cc" id="ccTable"></table></div>
+      </div>
+      <div class="cc-foot">
+        <button class="btn btn-ghost" id="ccReset" type="button">Reset to the term sheet</button>
+        <button class="btn btn-primary btn-lg" id="ccGenerate2" type="button">Generate model →</button>
+      </div>
+    </section>
+
+    <section class="panel" data-panel="termsheet" hidden>
       <div class="callout callout-info" id="tsCallout"></div>
       <div class="card">
         <div class="card-head">
           <div class="label">Indicative term sheet</div>
           <div class="row-actions" style="margin-top:0">
-            <button class="btn btn-ghost btn-sm" id="tsDownload" type="button">Download .md</button>
+            <button class="btn btn-ghost btn-sm" id="tsDownload" type="button">Download Word</button>
             <button class="btn btn-primary btn-sm" id="tsToModel" type="button">See the model →</button>
           </div>
         </div>
@@ -356,7 +425,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       </div>
       <div class="card">
         <h2>CFADS against debt service</h2>
-        <div class="note">Semi-annual, <span class="cur"></span>k. Bars are debt service; lines are cash flow available for debt service.</div>
+        <div class="note"><span class="perw">Semi-annual</span>, <span class="cur"></span>k. Bars are debt service; lines are cash flow available for debt service.</div>
         <div class="chart-legend" id="lg1"></div>
         <div class="chart" id="ch1"></div>
       </div>
@@ -381,7 +450,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       </div>
       <div class="card">
         <h2>Debt schedule</h2>
-        <div class="note">Semi-annual, <span class="cur"></span>k.</div>
+        <div class="note"><span class="perw">Semi-annual</span>, <span class="cur"></span>k.</div>
         <div class="scroll"><table class="cf" id="debtTable"></table></div>
       </div>
     </section>
@@ -391,7 +460,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
         <div class="card-head">
           <div>
             <h2>Cash flow model</h2>
-            <div class="note" style="margin-bottom:0">Semi-annual periods across, <span class="cur"></span>k unless stated. Shaded columns are construction. Totals on the right.</div>
+            <div class="note" style="margin-bottom:0"><span class="perw">Semi-annual</span> periods across, <span class="cur"></span>k unless stated. Shaded columns are construction. Totals on the right.</div>
           </div>
           <button class="btn btn-ghost btn-sm" id="xlsxBtn2" type="button">Download Excel model</button>
         </div>
@@ -419,15 +488,15 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
 
         <h3>Calculation order</h3>
         <ol>
-          <li><b>Timeline.</b> Semi-annual periods ending 30 June and 31 December, from financial close to PPA expiry. Australian financial year (July–June).</li>
-          <li><b>Operations.</b> Energy = MW × 8,760 × P50 capacity factor × availability × degradation. Revenue = energy × PPA price, indexed to CPI in annual steps from financial close. Opex is indexed the same way. Annual figures are split 50/50 between the two semesters.</li>
+          <li><b>Timeline.</b> Semi-annual periods ending 30 June and 31 December (or quarterly periods, chosen in the Control center), from financial close to PPA expiry. Australian financial year (July–June).</li>
+          <li><b>Operations.</b> Energy = MW × 8,760 × P50 capacity factor × availability × degradation. Revenue = energy × PPA price, indexed to CPI in annual steps from financial close. Opex is indexed the same way. Annual figures are split equally between the periods of the year.</li>
           <li><b>Debt sizing.</b> CFADS (pre-tax) is discounted at the all-in rate over the debt tenor. Capacity at the target DSCR = PV of CFADS ÷ target DSCR. With "lower of" sizing, the debt is the lower of that capacity and maximum gearing × capex.</li>
           <li><b>Construction.</b> Capex follows the drawdown profile; debt is drawn pro rata at the effective gearing. Equity pays its share of capex plus IDC, commitment fee and the upfront fee.</li>
           <li><b>Repayment.</b> Sculpted: debt service in each period = CFADS ÷ the constant DSCR that repays the debt exactly at maturity (PV of CFADS ÷ debt). Annuity and linear profiles are also available.</li>
           <li><b>Tax.</b> Straight-line depreciation of the total project cost from COD; taxable income = EBITDA − depreciation − interest; losses carried forward; 30% corporate tax.</li>
           <li><b>Ratios.</b> DSCR pre- and post-tax per period, 12-month historic DSCR (tested from the second calculation date), LLCR and PLCR from a backward PV recursion.</li>
           <li><b>DSRA and waterfall.</b> DSRA target = next 6 months of debt service, funded by equity at COD, topped up from cash flow and released when the target falls. Distributions are blocked during lock-up or while the DSRA is short; trapped cash is released once the test is passed again.</li>
-          <li><b>Equity returns.</b> Equity IRR on semi-annual flows (contributions, DSRA funding, distributions), annualised as (1 + IRR)² − 1. No terminal value after the PPA.</li>
+          <li><b>Equity returns.</b> Equity IRR on the period flows (contributions, DSRA funding, distributions), annualised as (1 + IRR)² − 1, or (1 + IRR)⁴ − 1 when quarterly. No terminal value after the PPA.</li>
         </ol>
 
         <h3>Random deals</h3>
@@ -437,7 +506,8 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
         <ul>
           <li>Sculpting follows the term sheet on <b>pre-tax</b> CFADS. The post-tax DSCR is shown next to it, because tax can push it below the sculpting target once tax losses run out.</li>
           <li>The DSRA is funded by a separate equity contribution at COD, outside the sources and uses at financial close.</li>
-          <li>Interest is calculated as balance × annual rate ÷ 2 (no day count).</li>
+          <li>Interest is calculated as balance × annual rate ÷ 2, or ÷ 4 when quarterly (no day count).</li>
+          <li>In a quarterly model, the capex of each construction semester is spread equally over its two quarters.</li>
         </ul>
 
         <h3>How it is tested</h3>
@@ -476,6 +546,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     </section>
   </main>
 </div>
+<div class="loader" id="loader" hidden role="status" aria-live="polite"><div class="box"><div class="spin"></div><div id="loaderText">Building the model…</div><small>Sizing the debt · sculpting · running the checks</small></div></div>
 <footer class="foot" id="foot" hidden>Model Builder · built by Jean Grollet · <a href="mailto:jean@grollet.com">jean@grollet.com</a> · calculations run in your browser.</footer>
 
 <script>
@@ -496,6 +567,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
   let res = null;
   let uploaded = null; // { name, md, assumed } when the deal was read from a dropped file
   const cur = () => (deal.meta && deal.meta.currency) || 'AUD';
+  const perWord = () => (deal.timeline.periodicity === 'quarterly' ? 'Quarterly' : 'Semi-annual');
 
   // ---------- Formatting ----------
   const nf0 = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
@@ -513,6 +585,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       ['timeline.cod', 'Commercial operation (COD)', 'date'],
       ['timeline.debt_maturity', 'Final maturity', 'date'],
       ['timeline.ppa_end', 'PPA expiry', 'date'],
+      ['timeline.periodicity', 'Model periods', 'select', '', [['semi-annual', 'Semi-annual'], ['quarterly', 'Quarterly']]],
     ] },
     { name: 'Construction', fields: [
       ['construction.capex_total', 'Construction capex', 'k'],
@@ -695,8 +768,73 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     const eb = $('errorBox');
     if (!res.ok) { eb.hidden = false; eb.innerHTML = '<b>The model can\'t run with these inputs.</b><br>' + res.errors.map(esc).join('<br>'); return; }
     eb.hidden = true;
-    renderHeader(); renderOverview(); renderDebt(); renderCashflow(); renderSens(); renderJson();
+    renderHeader(); renderOverview(); renderDebt(); renderCashflow(); renderSens(); renderJson(); renderControlStatus();
   }
+
+  // ---------- Control center ----------
+  // The same inputs as the left rail, laid out as one table with the clause and status of each.
+  function statusOf(path) {
+    const src = (deal.sources && deal.sources[path]) || (base.sources && base.sources[path]) || '';
+    if (JSON.stringify(get(deal, path)) !== JSON.stringify(get(base, path))) return ['neutral', 'Edited', src];
+    if (path === 'timeline.periodicity') return ['neutral', 'Model choice', 'Not a term sheet item: how the model is cut in time.'];
+    if (/^ASSUMED/.test(src)) return ['warn', 'Assumed', src.replace(/^ASSUMED:\s*/, '')];
+    return src ? ['good', 'From term sheet', src] : ['neutral', 'Input', ''];
+  }
+  function renderControl() {
+    let h = '<thead><tr><th>Input</th><th>Value</th><th>Status</th><th>Term sheet clause</th></tr></thead><tbody>';
+    for (const sec of SECTIONS) {
+      h += '<tr class="grp"><td colspan="4">' + sec.name + '</td></tr>';
+      for (const [path, label, type, unit, opts] of sec.fields) {
+        const id = 'cc-' + path.replace(/\./g, '-');
+        const u = unit !== undefined ? unit : (type === 'pct' ? '%' : type === 'k' ? 'k' : type === 'list' ? '%' : '');
+        const ctl = type === 'select'
+          ? '<select id="' + id + '">' + opts.map(([v, t]) => '<option value="' + v + '">' + t + '</option>').join('') + '</select>'
+          : '<input id="' + id + '" type="' + (type === 'date' ? 'date' : 'text') + '" inputmode="' + (type === 'date' ? '' : 'decimal') + '">';
+        h += '<tr data-path="' + path + '" data-type="' + type + '"><td><label for="' + id + '">' + label + '</label></td><td><div class="ctl">' + ctl +
+          (u && type !== 'date' && type !== 'select' ? '<span class="unit">' + (type === 'k' ? cur() + ' k' : u) + '</span>' : '') + '</div></td><td class="st"></td><td class="src"></td></tr>';
+      }
+    }
+    $('ccTable').innerHTML = h + '</tbody>';
+    $('ccTable').querySelectorAll('tr[data-path]').forEach((tr) => {
+      const path = tr.dataset.path, type = tr.dataset.type;
+      const el = tr.querySelector('input,select');
+      el.value = toDisplay(type, get(deal, path));
+      el.addEventListener(type === 'select' || type === 'date' ? 'change' : 'input', () => {
+        const v = fromDisplay(type, el.value);
+        if (v === null || v === '') { tr.classList.add('bad'); return; }
+        tr.classList.remove('bad');
+        set(deal, path, v);
+        schedule();
+      });
+    });
+    renderControlStatus();
+  }
+  function renderControlStatus() {
+    const counts = { 'From term sheet': 0, Assumed: 0, Edited: 0 };
+    $('ccTable').querySelectorAll('tr[data-path]').forEach((tr) => {
+      const [tone, text, src] = statusOf(tr.dataset.path);
+      if (counts[text] != null) counts[text]++;
+      tr.querySelector('.st').innerHTML = '<span class="pill ' + tone + '">' + text + '</span>';
+      tr.querySelector('.src').textContent = src;
+    });
+    $('ccPills').innerHTML = '<span class="pill good">' + counts['From term sheet'] + ' from the term sheet</span>' +
+      (counts.Assumed ? '<span class="pill warn">' + counts.Assumed + ' assumed</span>' : '') +
+      (counts.Edited ? '<span class="pill neutral">' + counts.Edited + ' edited</span>' : '') +
+      (res && res.ok ? '<span class="pill ' + (res.checks.every((c) => c.ok) ? 'good">✓ All checks pass' : 'crit">✕ Checks failing') + '</span>' : '<span class="pill crit">✕ Model can\'t run</span>');
+    document.querySelectorAll('.seg button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.per === deal.timeline.periodicity ? 'true' : 'false'));
+  }
+  function setPeriodicity(per) {
+    deal.timeline.periodicity = per;
+    buildInputs(); renderControl(); recalc();
+  }
+
+  // Short loading screen while the model is "generated" (the engine itself takes a few ms).
+  function withLoader(fn, text) {
+    $('loaderText').textContent = text || 'Building the model…';
+    $('loader').hidden = false;
+    setTimeout(() => { fn(); $('loader').hidden = true; }, 500);
+  }
+  const generate = () => withLoader(() => { showTab('overview'); window.scrollTo(0, 0); });
 
   function renderHeader() {
     const s = res.summary, o = deal.operations;
@@ -707,6 +845,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     p.className = 'pill ' + (fails ? 'crit' : 'good');
     p.textContent = (fails ? '✕ ' + fails + ' check' + (fails > 1 ? 's' : '') + ' failing' : '✓ All checks pass');
     document.querySelectorAll('.cur').forEach((e) => (e.textContent = cur()));
+    document.querySelectorAll('.perw').forEach((e) => (e.textContent = perWord()));
   }
 
   function kpi(k, v, d, tone) { return '<div class="kpi' + (tone ? ' ' + tone : '') + '"><div class="k">' + k + '</div><div class="v">' + v + '</div><div class="d">' + d + '</div></div>'; }
@@ -733,9 +872,9 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       const sev = s.minDscrPost < C.lockup_dscr ? 'crit' : 'warn';
       flags.push([sev, sev === 'warn' ? '!' : '✕', 'Post-tax DSCR falls to ' + x2(s.minDscrPost) + ' (' + s.minDscrPostLabel + ')' + (s.firstTaxLabel ? ' once tax losses run out and cash tax starts in ' + s.firstTaxLabel : '') + '. That is below the ' + x2(tgt) + ' sculpting target' + (sev === 'warn' ? ' but clears lock-up at ' + x2(C.lockup_dscr) + '.' : ' and through a covenant level.') + ' Sculpting on pre-tax CFADS hides this.']);
     }
-    if (s.lockupPeriods > 0) flags.push(['crit', '✕', s.lockupPeriods + ' semi-annual test' + (s.lockupPeriods > 1 ? 's' : '') + ' below the ' + x2(C.lockup_dscr) + ' lock-up' + (s.defaultPeriods ? ', ' + s.defaultPeriods + ' below the ' + x2(C.default_dscr) + ' default level' : '') + '.']);
+    if (s.lockupPeriods > 0) flags.push(['crit', '✕', s.lockupPeriods + ' ' + perWord().toLowerCase() + ' test' + (s.lockupPeriods > 1 ? 's' : '') + ' below the ' + x2(C.lockup_dscr) + ' lock-up' + (s.defaultPeriods ? ', ' + s.defaultPeriods + ' below the ' + x2(C.default_dscr) + ' default level' : '') + '.']);
     else flags.push(['good', '✓', 'No lock-up across the base case: the 12-month historic DSCR stays at or above ' + x2(C.lockup_dscr) + '.']);
-    const tailYears = (res.meta.N - res.meta.nM) / 2;
+    const tailYears = (res.meta.N - res.meta.nM) / res.meta.ppy;
     flags.push([tailYears >= 2 ? 'good' : 'warn', tailYears >= 2 ? '✓' : '!', 'PPA tail of ' + tailYears + ' year' + (tailYears === 1 ? '' : 's') + ' after final maturity. PLCR at COD ' + x2(s.plcrCod) + '.']);
     if (s.equityIrr != null && s.equityIrr < 0.07) flags.push(['warn', '!', 'Equity IRR of ' + pc(s.equityIrr, 1) + ' looks thin for a greenfield sponsor. The model gives no value after PPA expiry, so a merchant tail or a refinancing would lift it.']);
     $('flags').innerHTML = flags.map(([c, i, t]) => '<li><span class="pill ' + c + '">' + i + '</span><p>' + t + '</p></li>').join('');
@@ -948,18 +1087,21 @@ TERM SHEET:
   // ---------- Opening a deal ----------
   function openDeal(d, tab, file) {
     uploaded = file || null;
+    d = clone(d);
+    d.timeline.periodicity = d.timeline.periodicity || 'semi-annual';
+    if (d.sources) d.sources['timeline.periodicity'] = 'Model choice (Control center)';
     base = clone(d);
     deal = clone(d);
     $('landing').hidden = true;
     $('workspace').hidden = false; $('foot').hidden = false;
     $('dealId').hidden = false; $('topActions').hidden = false;
     const q = base.meta.uploaded ? '' : '?' + (base.meta.generated ? 'deal=' + base.meta.seed : 'deal=coolabah');
-    try { history.replaceState(null, '', location.pathname + q + '#' + (tab || 'termsheet')); } catch (e) {}
-    buildInputs(); renderTermSheet(); recalc();
-    showTab(tab || 'termsheet');
+    try { history.replaceState(null, '', location.pathname + q + '#' + (tab || 'control')); } catch (e) {}
+    buildInputs(); renderTermSheet(); renderControl(); recalc();
+    showTab(tab || 'control');
     window.scrollTo(0, 0);
   }
-  function openSeed(seed) { openDeal(PFGenerator.generateDeal(seed), 'termsheet'); }
+  function openSeed(seed) { withLoader(() => openDeal(PFGenerator.generateDeal(seed), 'control'), 'Drawing a random deal…'); }
   function showLanding() {
     $('landing').hidden = false;
     dropMessage('', ''); $('guide').hidden = true;
@@ -972,7 +1114,8 @@ TERM SHEET:
     if (!test.ok) { flash(msgId, 'Not applied: ' + test.errors[0]); return false; }
     deal = obj;
     if (!obj.meta || !obj.meta.generated) base = clone(obj);
-    buildInputs(); recalc(); flash(msgId, 'Applied. Model rebuilt from ' + (obj.meta && obj.meta.name || 'the new deal') + '.'); return true;
+    if (!obj.timeline.periodicity) obj.timeline.periodicity = 'semi-annual';
+    buildInputs(); renderControl(); recalc(); flash(msgId, 'Applied. Model rebuilt from ' + (obj.meta && obj.meta.name || 'the new deal') + '.'); return true;
   }
 
   // ---------- Dropped files ----------
@@ -1002,13 +1145,19 @@ TERM SHEET:
     delete obj.meta.generated;
     const r = PFEngine.run(obj);
     if (!r.ok) throw new Error(r.errors[0]);
-    openDeal(obj, 'termsheet', null);
+    openDeal(obj, 'control', null);
   }
   function handleFile(file) {
     dropMessage('', ''); $('guide').hidden = true;
     const ext = (file.name.split('.').pop() || '').toLowerCase();
-    if (['pdf', 'doc', 'docx'].includes(ext)) {
-      showGuide('One reading step for this ' + ext.toUpperCase() + ' file', 'The app reads term sheets in the Model Builder layout on its own. For a ' + ext.toUpperCase() + ', Claude extracts the terms into a deal JSON first (automatic reading in the app is planned).', null);
+    if (['pdf', 'doc'].includes(ext)) {
+      showGuide('One reading step for this ' + ext.toUpperCase() + ' file', 'The app reads Word (.docx) and Markdown term sheets in the Model Builder layout on its own. For a ' + ext.toUpperCase() + ', Claude extracts the terms into a deal JSON first (automatic reading in the app is planned).', null);
+      return;
+    }
+    if (ext === 'docx') {
+      file.arrayBuffer().then((buf) => PFDocx.docxToMarkdown(new Uint8Array(buf)))
+        .then((md) => readTermSheet(md, file.name))
+        .catch((e) => dropMessage('warn', 'That Word file could not be read: ' + esc(e.message) + '.'));
       return;
     }
     const rd = new FileReader();
@@ -1018,17 +1167,20 @@ TERM SHEET:
         try { openJson(jsonFrom(text), file.name); } catch (e) { dropMessage('warn', 'That JSON could not be used: ' + esc(e.message) + '.'); }
         return;
       }
-      const p = PFParser.parseTermSheet(text);
-      const run = p.ok ? PFEngine.run(p.deal) : null;
-      if (p.ok && run.ok) { openDeal(p.deal, 'termsheet', { name: file.name, md: text, assumed: p.assumed }); return; }
-      if (p.missing.length <= 4 && !p.ok) {
-        dropMessage('warn', '<p><b>Almost there.</b> This looks like a Model Builder term sheet, but these terms are missing: ' + p.missing.map(esc).join('; ') + '.</p><p>Add them to the file and drop it again, or use the reading step below.</p>');
-      } else if (p.ok && !run.ok) {
-        dropMessage('warn', '<p><b>The terms were read, but the model can\'t run with them:</b> ' + esc(run.errors[0]) + '</p>');
-      }
-      showGuide('One reading step for this document', 'This document is not in the Model Builder layout, so Claude extracts the terms into a deal JSON first.', text);
+      readTermSheet(text, file.name);
     };
     rd.readAsText(file);
+  }
+  function readTermSheet(text, name) {
+    const p = PFParser.parseTermSheet(text);
+    const run = p.ok ? PFEngine.run(p.deal) : null;
+    if (p.ok && run.ok) { withLoader(() => openDeal(p.deal, 'control', { name, md: text, assumed: p.assumed }), 'Reading the term sheet…'); return; }
+    if (p.missing.length <= 4 && !p.ok) {
+      dropMessage('warn', '<p><b>Almost there.</b> This looks like a Model Builder term sheet, but these terms are missing: ' + p.missing.map(esc).join('; ') + '.</p><p>Add them to the file and drop it again, or use the reading step below.</p>');
+    } else if (p.ok && !run.ok) {
+      dropMessage('warn', '<p><b>The terms were read, but the model can\'t run with them:</b> ' + esc(run.errors[0]) + '</p>');
+    }
+    showGuide('One reading step for this document', 'This document is not in the Model Builder layout, so Claude extracts the terms into a deal JSON first.', text);
   }
   const drop = $('drop');
   drop.addEventListener('click', () => $('dropFile').click());
@@ -1042,19 +1194,28 @@ TERM SHEET:
     try { openJson(jsonFrom($('guideJson').value), 'deal JSON'); }
     catch (e) { flash('guideBuildMsg', 'Not built: ' + e.message + '.'); }
   });
-  $('templateLink').addEventListener('click', (ev) => { ev.preventDefault(); download('model_builder_term_sheet_template.md', COOLABAH_TS, 'text/markdown'); });
+  const DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  const templateDocx = () => download('Model_Builder_term_sheet_template.docx', PFDocx.markdownToDocx(COOLABAH_TS), DOCX);
+  $('templateLink').addEventListener('click', (ev) => { ev.preventDefault(); templateDocx(); });
+  $('landingDocx').addEventListener('click', templateDocx);
+  $('landingXlsx').addEventListener('click', () => download('Coolabah_model.xlsx', PFExcel.exportXlsx(COOLABAH, PFEngine.run(COOLABAH)), XLSX));
 
   // ---------- Wiring ----------
-  $('openExample').addEventListener('click', () => openDeal(COOLABAH, 'termsheet'));
+  $('openExample').addEventListener('click', () => withLoader(() => openDeal(COOLABAH, 'control'), 'Opening the Coolabah example…'));
   $('openRandom').addEventListener('click', () => openSeed(PFGenerator.randomSeed()));
   $('randomBtn').addEventListener('click', () => openSeed(PFGenerator.randomSeed()));
   $('seedForm').addEventListener('submit', (ev) => { ev.preventDefault(); const n = parseInt($('seedIn').value, 10); openSeed(n > 0 ? n : PFGenerator.randomSeed()); });
   $('homeBtn').addEventListener('click', showLanding);
-  $('tsToModel').addEventListener('click', () => { showTab('overview'); window.scrollTo(0, 0); });
-  $('tsDownload').addEventListener('click', () => download(slug() + '_term_sheet.md', termSheetMd(), 'text/markdown'));
+  $('tsToModel').addEventListener('click', generate);
+  $('ccGenerate').addEventListener('click', generate);
+  $('ccGenerate2').addEventListener('click', generate);
+  $('ccReset').addEventListener('click', () => { deal = clone(base); buildInputs(); renderControl(); recalc(); });
+  document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => setPeriodicity(b.dataset.per)));
+  $('tsDownload').addEventListener('click', () => download(slug() + '_term_sheet.docx', PFDocx.markdownToDocx(termSheetMd()), DOCX));
   const xlsx = () => {
     if (!res || !res.ok) return;
-    download(slug() + '_model.xlsx', PFExcel.exportXlsx(deal, res), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    download(slug() + (res.meta.pm === 3 ? '_quarterly' : '') + '_model.xlsx', PFExcel.exportXlsx(deal, res), XLSX);
   };
   $('xlsxBtn').addEventListener('click', xlsx);
   $('xlsxBtn2').addEventListener('click', xlsx);
@@ -1070,12 +1231,17 @@ TERM SHEET:
     rd.onload = () => { try { loadDeal(JSON.parse(rd.result), 'jsonMsg'); } catch (e) { flash('jsonMsg', 'That file is not valid JSON.'); } };
     rd.readAsText(f);
   });
-  $('resetBtn').addEventListener('click', () => { deal = clone(base); buildInputs(); recalc(); });
+  $('resetBtn').addEventListener('click', () => { deal = clone(base); buildInputs(); renderControl(); recalc(); });
 
-  const TABS = ['termsheet', 'overview', 'debt', 'cashflow', 'sens', 'method', 'json'];
+  const TABS = ['control', 'termsheet', 'overview', 'debt', 'cashflow', 'sens', 'method', 'json'];
   function showTab(name) {
     document.querySelectorAll('.tab').forEach((t) => t.setAttribute('aria-selected', t.dataset.tab === name ? 'true' : 'false'));
     document.querySelectorAll('[data-panel]').forEach((p) => (p.hidden = p.dataset.panel !== name));
+    // The Control center shows every input full width, so the left rail is hidden there and rebuilt on leaving.
+    const wasWide = $('workspace').classList.contains('wide');
+    $('workspace').classList.toggle('wide', name === 'control');
+    if (deal && name === 'control') renderControl();
+    else if (deal && wasWide) buildInputs();
     try { history.replaceState(null, '', location.pathname + location.search + '#' + name); } catch (e) {}
     if (res && res.ok) { if (name === 'overview') renderOverview(); if (name === 'debt') renderDebt(); }
   }
@@ -1088,7 +1254,7 @@ TERM SHEET:
   // Start: ?deal=coolabah or ?deal=4821 opens that deal directly; otherwise the start page.
   const params = new URLSearchParams(location.search);
   const want = params.get('deal');
-  const tab = TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'termsheet';
+  const tab = TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'control';
   if (want === 'coolabah') openDeal(COOLABAH, tab);
   else if (want && parseInt(want, 10) > 0) openDeal(PFGenerator.generateDeal(parseInt(want, 10)), tab);
   else showLanding();

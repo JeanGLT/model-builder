@@ -6,7 +6,7 @@ const path = require('path');
 const dir = __dirname;
 const read = (f) => fs.readFileSync(path.join(dir, f), 'utf8');
 // Order matters: each library uses the ones before it.
-const LIBS = ['engine', 'generator', 'termsheet', 'markdown', 'parser', 'xlsx', 'excel'].map((f) => read('src/' + f + '.js')).join('\n');
+const LIBS = ['engine', 'generator', 'termsheet', 'markdown', 'parser', 'xlsx', 'docx', 'excel'].map((f) => read('src/' + f + '.js')).join('\n');
 const deal = read('deal.json').trim();
 const termSheet = JSON.stringify(read('docs/coolabah_term_sheet.md'));
 const body = read('src/app.html')

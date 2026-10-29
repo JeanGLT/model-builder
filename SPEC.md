@@ -17,7 +17,7 @@ The LLM never calculates anything.
 ## 2. Scope of v1
 
 **In:**
-- Semi-annual timeline from financial close to the end of the PPA
+- Semi-annual timeline (or quarterly, chosen in the Control center) from financial close to the end of the PPA
 - Construction: capex profile, pro rata debt/equity drawdowns at fixed gearing, IDC, commitment fee, upfront fee (all equity-funded)
 - Operations: energy, CPI-indexed revenue and opex, EBITDA
 - Corporate tax: straight-line depreciation, losses carried forward
@@ -197,7 +197,7 @@ These were recomputed independently from the term sheet inputs. The engine must 
 
 ## 9. Tech stack
 
-**Status (28 Oct 2026):** v1 is built in plain JavaScript, no build tool and no dependencies. `src/engine.js` holds the engine, `index.html` the app (built by `node build.js`). Steps 1–9 of the build order below are done, plus the random deal generator (section 11). `node --test` runs 28 tests, all green. Step 10 (GitHub Pages) is waiting for the repository to be made public. Moving to the stack below is optional; it is not planned, because the plain version is simpler to maintain.
+**Status (28 Oct 2026):** v1 is built in plain JavaScript, no build tool and no dependencies. `src/engine.js` holds the engine, `index.html` the app (built by `node build.js`). Steps 1–9 of the build order below are done, plus the random deal generator (section 11). `node --test` runs 34 tests, all green (29 Oct 2026: quarterly periods, Word term sheets and the Control center added). Step 10 (GitHub Pages) is waiting for the repository to be made public. Moving to the stack below is optional; it is not planned, because the plain version is simpler to maintain.
 
 Target stack:
 - Vite + TypeScript, plain React
@@ -247,7 +247,7 @@ Purpose: someone without a term sheet (e.g. a recruiter) can still test the mode
 ## 13. Drop zone and term sheet reader (added 28 Oct 2026)
 
 - The start page leads with a drop zone. By file type:
-  - `.md` / `.txt` in the Model Builder layout → `src/parser.js` reads it locally (each input found by its table row label, with the clause kept as its source). Core terms missing → listed to the user. Minor terms missing (availability, degradation, CPI, tax, fees, DSRA, covenants) → market-standard assumption, source marked `ASSUMED`.
+  - `.docx` (converted back to the same layout by `src/docx.js`), `.md` / `.txt` in the Model Builder layout → `src/parser.js` reads it locally (each input found by its table row label, with the clause kept as its source). Core terms missing → listed to the user. Minor terms missing (availability, degradation, CPI, tax, fees, DSRA, covenants) → market-standard assumption, source marked `ASSUMED`.
   - `.json` → used as the deal directly.
   - PDF, Word or text in another layout → guided step: copy the extraction prompt (with the text already inside when it is a text file), run it in Claude, paste the JSON back.
 - Files are read in the browser and never uploaded.

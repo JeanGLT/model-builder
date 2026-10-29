@@ -34,6 +34,7 @@
       this.freeze = null;
       this.lists = [];
       this.tab = null;
+      this.heights = new Map(); // row number -> height in points
     }
     // value: number | string | boolean | { f: 'formula without =', v: cached value } ; style: style id
     set(ref, value, style) {
@@ -44,6 +45,7 @@
       return this;
     }
     width(col, w) { this.widths.push([col, w]); return this; }
+    height(row, h) { this.heights.set(row, h); return this; }
     freezeAt(ref) { this.freeze = ref; return this; }
     dropdown(ref, options) { this.lists.push([ref, options]); return this; }
 
@@ -79,7 +81,8 @@
       x += '<sheetData>';
       [...this.rows.keys()].sort((a, b) => a - b).forEach((r) => {
         const cells = this.rows.get(r);
-        x += '<row r="' + r + '">' + [...cells.keys()].sort((a, b) => a - b).map((c) => this.cellXml(colName(c) + r, cells.get(c))).join('') + '</row>';
+        const ht = this.heights.get(r);
+        x += '<row r="' + r + '"' + (ht ? ' ht="' + ht + '" customHeight="1"' : '') + '>' + [...cells.keys()].sort((a, b) => a - b).map((c) => this.cellXml(colName(c) + r, cells.get(c))).join('') + '</row>';
       });
       x += '</sheetData>';
       if (this.lists.length) {
@@ -101,7 +104,7 @@
     addSheet(name) { const s = new Sheet(name); this.sheets.push(s); return s; }
     defineName(name, ref) { this.names.push([name, ref]); }
 
-    // Style spec: { bold, italic, color: 'RRGGBB', fill: 'RRGGBB', numFmt: '#,##0', align: 'right', border: 'top' | 'bottom', size, wrap }
+    // Style spec: { bold, italic, color: 'RRGGBB', fill: 'RRGGBB', numFmt: '#,##0', align: 'right', valign: 'center', border: 'top' | 'bottom', size, wrap }
     style(spec) {
       const key = JSON.stringify(spec);
       if (!this.styleKeys.has(key)) { this.styleKeys.set(key, this.styles.length); this.styles.push(spec); }
@@ -118,7 +121,7 @@
         const side = (n) => (s.border === n ? '<' + n + ' style="thin"><color rgb="FF9CA3AF"/></' + n + '>' : '<' + n + '/>');
         const border = s.border ? idx(borders, '<border><left/><right/>' + side('top') + side('bottom') + '<diagonal/></border>') : 0;
         const fmt = s.numFmt ? 164 + idx(fmts, s.numFmt) : 0;
-        const align = s.align || s.wrap ? '<alignment' + (s.align ? ' horizontal="' + s.align + '"' : '') + (s.wrap ? ' wrapText="1" vertical="top"' : '') + '/>' : '';
+        const align = s.align || s.wrap || s.valign ? '<alignment' + (s.align ? ' horizontal="' + s.align + '"' : '') + (s.wrap ? ' wrapText="1" vertical="top"' : s.valign ? ' vertical="' + s.valign + '"' : '') + '/>' : '';
         return '<xf numFmtId="' + fmt + '" fontId="' + font + '" fillId="' + fill + '" borderId="' + border + '" xfId="0"' +
           (fmt ? ' applyNumberFormat="1"' : '') + (font ? ' applyFont="1"' : '') + (fill ? ' applyFill="1"' : '') + (border ? ' applyBorder="1"' : '') +
           (align ? ' applyAlignment="1">' + align + '</xf>' : '/>');
@@ -202,7 +205,7 @@
     return out;
   }
 
-  const api = { Workbook, colName, colNumber, excelDate, crc32 };
+  const api = { Workbook, colName, colNumber, excelDate, crc32, zip };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.PFXlsx = api;
 })(typeof window !== 'undefined' ? window : globalThis);

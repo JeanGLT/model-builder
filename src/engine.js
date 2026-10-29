@@ -1,7 +1,8 @@
 /*
  * Project finance engine — v1
  * Pure functions: deal JSON in, time series and ratios out. No UI, no LLM.
- * Units: thousands of currency (k). Rates are decimals. Periods are semi-annual.
+ * Units: thousands of currency (k). Rates are decimals. Periods are semi-annual (default) or quarterly
+ * (deal.timeline.periodicity = 'quarterly').
  * See SPEC.md for the calculation order and the decisions taken where the term sheet is silent.
  */
 (function (root) {
@@ -25,6 +26,9 @@
 
   function sum(a) { return a.reduce((x, y) => x + y, 0); }
 
+  // Months in one model period: 6 (semi-annual, the default) or 3 (quarterly).
+  function monthsPerPeriod(deal) { return deal.timeline.periodicity === 'quarterly' ? 3 : 6; }
+
   function irr(flows) {
     const npv = (r) => flows.reduce((acc, f, i) => acc + f / Math.pow(1 + r, i), 0);
     let lo = -0.99, hi = 1.0;
@@ -41,15 +45,17 @@
     const p = deal.construction.capex_profile;
     if (Math.abs(sum(p) - 1) > 1e-6) errors.push('Capex profile must add up to 100% (now ' + (sum(p) * 100).toFixed(1) + '%).');
     const fc = parseDate(deal.timeline.financial_close);
-    const nC = monthsFrom(fc, deal.timeline.cod) / 6;
-    if (!Number.isInteger(nC) || nC <= 0) errors.push('COD must fall a whole number of semesters after financial close.');
-    else if (p.length !== nC) errors.push('Capex profile has ' + p.length + ' entries but construction lasts ' + nC + ' semesters.');
+    const pm = monthsPerPeriod(deal);
+    // Dates and the capex profile are given in semesters, whatever the model periodicity.
+    const nS = monthsFrom(fc, deal.timeline.cod) / 6;
+    if (!Number.isInteger(nS) || nS <= 0) errors.push('COD must fall a whole number of semesters after financial close.');
+    else if (p.length !== nS) errors.push('Capex profile has ' + p.length + ' entries but construction lasts ' + nS + ' semesters.');
     const nM = monthsFrom(fc, deal.timeline.debt_maturity) / 6;
     const nT = monthsFrom(fc, deal.timeline.ppa_end) / 6;
-    if (!Number.isInteger(nM) || nM <= nC) errors.push('Debt maturity must be a semester end after COD.');
+    if (!Number.isInteger(nM) || nM <= nS) errors.push('Debt maturity must be a semester end after COD.');
     if (!Number.isInteger(nT) || nT < nM) errors.push('PPA end must be a semester end on or after debt maturity.');
-    const k = deal.dsra.months_of_ds / 6;
-    if (!Number.isInteger(k) || k < 0) errors.push('DSRA months must be a multiple of 6.');
+    const k = deal.dsra.months_of_ds / pm;
+    if (!Number.isInteger(k) || k < 0) errors.push('DSRA months must be a multiple of ' + pm + '.');
     return errors;
   }
 
@@ -59,23 +65,25 @@
 
     const C = deal.construction, O = deal.operations, T = deal.tax, D = deal.senior_debt;
     const fc = parseDate(deal.timeline.financial_close);
-    const nC = monthsFrom(fc, deal.timeline.cod) / 6;          // construction periods
-    const nM = monthsFrom(fc, deal.timeline.debt_maturity) / 6; // last debt period
-    const N = monthsFrom(fc, deal.timeline.ppa_end) / 6;        // last period
+    const pm = monthsPerPeriod(deal);                           // months per period
+    const ppy = 12 / pm;                                        // periods per year
+    const nC = monthsFrom(fc, deal.timeline.cod) / pm;          // construction periods
+    const nM = monthsFrom(fc, deal.timeline.debt_maturity) / pm; // last debt period
+    const N = monthsFrom(fc, deal.timeline.ppa_end) / pm;        // last period
     const r = D.base_rate + D.margin;
-    const rs = r / 2;
+    const rs = r / ppy;                                         // interest rate per period
 
     // ---- Timeline -------------------------------------------------------
     const periods = [];
     for (let t = 1; t <= N; t++) {
-      const endIdx = fc.m - 1 + 6 * t - 1; // 0-based month index of period end
+      const endIdx = fc.m - 1 + pm * t - 1; // 0-based month index of period end
       const year = fc.y + Math.floor(endIdx / 12);
       const month = (endIdx % 12) + 1;
       const fy = month <= 6 ? year : year + 1;
       periods.push({
         t, label: MONTH[month - 1] + '-' + String(year).slice(2), year, month, fy,
         phase: t <= nC ? 'construction' : 'operations',
-        opYear: t > nC ? Math.floor((t - nC - 1) / 2) + 1 : 0,
+        opYear: t > nC ? Math.floor((t - nC - 1) / ppy) + 1 : 0,
       });
     }
     const fy1 = periods[0].fy;
@@ -90,9 +98,9 @@
       const annualE = O.capacity_mw * 8760 * O.capacity_factor_p50 * O.availability * deg;
       const priceIdx = 1 + (idx - 1) * O.ppa_indexation;
       index[i] = idx;
-      energy[i] = annualE / 2;
-      revenue[i] = (annualE * O.ppa_price_fc * priceIdx / 1000) / 2;
-      opex[i] = (O.opex_real_fc * idx) / 2;
+      energy[i] = annualE / ppy;
+      revenue[i] = (annualE * O.ppa_price_fc * priceIdx / 1000) / ppy;
+      opex[i] = (O.opex_real_fc * idx) / ppy;
       ebitda[i] = revenue[i] - opex[i];
     }
     const cfadsPre = ebitda.slice();
@@ -117,11 +125,12 @@
     const debtOpen = z(), debtClose = z(), interest = z(), principal = z(), debtService = z();
     let bal = 0, undrawn = amount;
     for (let i = 0; i < nC; i++) {
-      capex[i] = C.capex_total * C.capex_profile[i];
+      // The capex profile is per semester: in a quarterly model each quarter takes half its semester's share.
+      capex[i] = C.capex_total * C.capex_profile[Math.floor(i * pm / 6)] * pm / 6;
       draw[i] = capex[i] * effGearing;
       debtOpen[i] = bal;
       idc[i] = bal * rs;
-      commit[i] = undrawn * D.margin * D.commitment_fee_pct_margin / 2;
+      commit[i] = undrawn * D.margin * D.commitment_fee_pct_margin / ppy;
       if (i === 0) upfront[i] = amount * D.upfront_fee;
       equityIn[i] = capex[i] - draw[i] + idc[i] + commit[i] + upfront[i];
       bal += draw[i];
@@ -156,10 +165,10 @@
 
     // ---- D. Tax ---------------------------------------------------------
     const depreciation = z(), taxable = z(), lossUsed = z(), lossBal = z(), tax = z();
-    const depPerPeriod = projectCost / T.depreciation_years / 2;
+    const depPerPeriod = projectCost / T.depreciation_years / ppy;
     let losses = 0;
     for (let i = nC; i < N; i++) {
-      if (i - nC < T.depreciation_years * 2) depreciation[i] = depPerPeriod;
+      if (i - nC < T.depreciation_years * ppy) depreciation[i] = depPerPeriod;
       taxable[i] = ebitda[i] - depreciation[i] - interest[i];
       if (taxable[i] < 0) {
         losses += -taxable[i];
@@ -188,8 +197,11 @@
       }
       llcrPre[i] = pvPre / debtOpen[i];
       llcrPost[i] = pvPost / debtOpen[i];
-      if (i >= nC + 1) {
-        hDscr[i] = (cfadsPost[i] + cfadsPost[i - 1]) / (debtService[i] + debtService[i - 1]);
+      // Historic DSCR over the last 12 months (2 semesters or 4 quarters), once 12 months have passed.
+      if (i >= nC + ppy - 1) {
+        let cf = 0, ds = 0;
+        for (let j = i - ppy + 1; j <= i; j++) { cf += cfadsPost[j]; ds += debtService[j]; }
+        hDscr[i] = cf / ds;
       }
     }
     let pvPpa = 0;
@@ -197,7 +209,7 @@
     const plcrCod = pvPpa / amount;
 
     // ---- E/F. DSRA and waterfall ----------------------------------------
-    const kDs = deal.dsra.months_of_ds / 6;
+    const kDs = deal.dsra.months_of_ds / pm;
     const dsraTarget = z();
     for (let i = nC - 1; i < N; i++) {
       let s = 0;
@@ -240,8 +252,8 @@
 
     // ---- H. Equity returns ----------------------------------------------
     const equityFlows = z().map((_, i) => -equityIn[i] - dsraFund[i] + distributions[i]);
-    const irrSemi = irr(equityFlows);
-    const equityIrr = irrSemi === null ? null : Math.pow(1 + irrSemi, 2) - 1;
+    const irrSemi = irr(equityFlows); // per period
+    const equityIrr = irrSemi === null ? null : Math.pow(1 + irrSemi, ppy) - 1;
 
     // ---- Summary & checks ------------------------------------------------
     const debtIdx = [];
@@ -251,6 +263,7 @@
     const minIdx = (arr) => debtIdx.reduce((b, i) => (arr[i] < arr[b] ? i : b), debtIdx[0]);
     const firstTax = tax.findIndex((x) => x > 0);
     const totalEquity = sum(equityIn);
+    const year1 = (arr) => sum(arr.slice(nC, nC + ppy)); // first 12 months of operations
 
     const checks = [
       { name: 'Debt fully drawn at COD', ok: Math.abs(sum(draw) - amount) < 0.01, value: sum(draw) },
@@ -264,7 +277,7 @@
     return {
       ok: true,
       errors: [],
-      meta: { nC, nM, N, nRep, rate: r, firstOpLabel: periods[nC].label, maturityLabel: periods[nM - 1].label },
+      meta: { nC, nM, N, nRep, rate: r, pm, ppy, firstOpLabel: periods[nC].label, maturityLabel: periods[nM - 1].label },
       periods,
       series: {
         capex, draw, idc, commit, upfront, equityIn, index,
@@ -286,9 +299,8 @@
         lockupPeriods: lockup.filter(Boolean).length, defaultPeriods: defaultFlag.filter(Boolean).length,
         equityIrr, totalDistributions: sum(distributions),
         firstOpYear: {
-          energy: energy[nC] + energy[nC + 1], revenue: revenue[nC] + revenue[nC + 1],
-          opex: opex[nC] + opex[nC + 1], ebitda: ebitda[nC] + ebitda[nC + 1],
-          margin: (ebitda[nC] + ebitda[nC + 1]) / (revenue[nC] + revenue[nC + 1]),
+          energy: year1(energy), revenue: year1(revenue), opex: year1(opex), ebitda: year1(ebitda),
+          margin: year1(ebitda) / year1(revenue),
         },
         firstDebtService: debtService[nC], firstPrincipal: principal[nC],
       },

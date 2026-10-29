@@ -86,3 +86,17 @@ test('random deals export too', () => {
     assert.ok(bytes.length > 100000, 'seed ' + seed);
   }
 });
+
+test('a quarterly export has one column per quarter and quarterly formulas', () => {
+  const q = Object.assign({}, deal, { timeline: Object.assign({}, deal.timeline, { periodicity: 'quarterly' }) });
+  const qr = engine.run(q);
+  const qwb = buildWorkbook(q, qr);
+  const names = new Map(qwb.names);
+  const inputs = qwb.sheets.find((s) => s.name === 'Inputs');
+  assert.strictEqual(cell(inputs, names.get('months_per_period').split('!')[1].replace(/\$/g, '')).value, 3);
+  const calc = qwb.sheets.find((s) => s.name === 'Calc');
+  const r = rowOf(calc, 'Revenue');
+  assert.strictEqual(calc.rows.get(r).size, 3 + qr.meta.N, 'label, unit, total and one cell per quarter');
+  const h = calc.rows.get(rowOf(calc, '12-month historic DSCR (tested)')).get(3 + 20).value.f;
+  assert.strictEqual((h.match(/\+/g) || []).length, 6, '4 quarters of CFADS and of debt service');
+});
