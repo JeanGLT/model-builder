@@ -14,14 +14,16 @@ Web app: project finance term sheet → semi-annual or quarterly model → Excel
 - No dependencies. npm install was not used; the .xlsx writer is hand-written (`src/xlsx.js`).
 
 ## Decisions (29 Oct 2026)
-- Logo D (sun over a rising curve), also the favicon. Headline: "Drop a term sheet. Get a bankable model."
-- Control center = first tab: every input with its clause and status; a drop or a random deal lands there, "Generate model" shows a 0.5 s loading screen then the Overview.
-- Periodicity (semi-annual / quarterly) is chosen in the Control center only, not read from the term sheet (`deal.timeline.periodicity`). Dates and the capex profile stay in semesters; a quarter takes half its semester's capex.
-- Term sheet template and downloads are Word (.docx). Bottom of the start page: "Download the Excel model" (Coolabah).
+- Logo D (sun over a rising curve), also the tab icon: `favicon.png` / `favicon.svg`, linked in <head> by build.js (a data-URI icon inside <body> did not show). Headline: "Drop a term sheet. Get a bankable model."
+- Assumptions tab (was "Control center"): every input with its clause and status, the only place inputs are edited (no left rail, no Deal JSON tab since 29 Oct). A deal opens on the Term sheet tab, then Assumptions.
+- Every "Generate Excel model" button (top right, Assumptions, Cash flow) shows a 1.5 s loading screen, then downloads the .xlsx.
+- Start page kept minimal: no Coolabah button (still reachable with `?deal=coolabah`), no "see the output first" block; three cards: term sheet, assumptions, Excel model.
+- Periodicity (semi-annual / quarterly) is chosen in the Assumptions tab only, not read from the term sheet (`deal.timeline.periodicity`). Dates and the capex profile stay in semesters; a quarter takes half its semester's capex.
+- Term sheet template = `docs/term_sheet_template.md`, blank with [placeholders], downloaded as Word. Dropped unfilled, the app says how many blanks remain. A test fills it with the Coolabah figures and checks it gives back deal.json.
 - Excel design: dark title band, coloured tabs, shaded construction columns, light-blue section rows, green check cells.
 
 ## Workflow
-- `node --test` must stay green (34 tests). `node build.js` after any change in `src/` or `deal.json`, then commit `index.html` too.
+- `node --test` must stay green (35 tests). `node build.js` after any change in `src/` or `deal.json`, then commit `index.html` too.
 - Excel formulas: check with `test/verify-excel.html` served over http (see README).
 - Add a golden test before each new feature.
 

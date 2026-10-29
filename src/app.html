@@ -1,5 +1,4 @@
 <title>Model Builder · Term sheet to project finance model</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='2' y='2' width='60' height='60' rx='14' fill='white' stroke='%232f5bea' stroke-width='4'/%3E%3Ccircle cx='42' cy='21' r='8' fill='%232f5bea'/%3E%3Cpath d='M10 52 C22 52 27 39 36 39 S51 46 55 31' fill='none' stroke='%231b2333' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
 <meta name="description" content="Turns a project finance term sheet into a semi-annual or quarterly cash flow model with sculpted debt, DSCR / LLCR, equity IRR and a live-formula Excel export.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -86,15 +85,8 @@ a { color: var(--accent); }
 .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 56px; }
 .step .num { width: 28px; height: 28px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 14px; display: inline-grid; place-items: center; margin-bottom: 12px; }
 .step p { margin: 6px 0 0; color: var(--body); font-size: 14px; }
-.facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
-.fact { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; }
-.fact b { display: block; font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
-.fact span { font-size: 12px; color: var(--muted); }
 .fineprint { margin-top: 32px; font-size: 12px; color: var(--faint); }
-.get-excel { margin-top: 40px; display: flex; gap: 20px; align-items: center; justify-content: space-between; flex-wrap: wrap; border-left: 4px solid var(--accent); border-radius: 0 var(--radius) var(--radius) 0; }
-.get-excel h2 { font-family: "DM Serif Display", Georgia, serif; font-weight: 400; font-size: 26px; line-height: 1.15; }
-.get-excel p { margin: 6px 0 0; color: var(--body); font-size: 14px; max-width: 58ch; }
-@media (max-width: 860px) { .steps, .facts { grid-template-columns: minmax(0, 1fr); } .hero h1 { font-size: 40px; } .landing { padding: 40px 16px 56px; } }
+@media (max-width: 860px) { .steps { grid-template-columns: minmax(0, 1fr); } .hero h1 { font-size: 40px; } .landing { padding: 40px 16px 56px; } }
 
 /* Loading screen (about half a second, when a model is generated) */
 .loader { position: fixed; inset: 0; z-index: 50; background: rgba(246, 247, 249, 0.88); display: grid; place-items: center; }
@@ -103,9 +95,7 @@ a { color: var(--accent); }
 .spin { width: 36px; height: 36px; border: 3px solid var(--accent-soft); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* Control center */
-.shell.wide { grid-template-columns: minmax(0, 1fr); }
-.shell.wide .rail { display: none; }
+/* Assumptions tab */
 .seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); overflow: hidden; }
 .seg button { border: 0; background: var(--surface); padding: 7px 16px; font-weight: 600; font-size: 14px; cursor: pointer; color: var(--muted); }
 .seg button + button { border-left: 1px solid var(--border-strong); }
@@ -124,34 +114,13 @@ a { color: var(--accent); }
 .cc-foot { display: flex; gap: 12px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
 
 /* Workspace */
-.shell { max-width: 1360px; margin: 0 auto; padding: 24px 32px 56px; display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 24px; align-items: start; }
-@media (max-width: 960px) { .shell { grid-template-columns: minmax(0, 1fr); padding: 16px; } .shell .rail { order: 2; } .top { position: static; } .top-in { padding: 10px 16px; } }
+.shell { max-width: 1360px; margin: 0 auto; padding: 24px 32px 56px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 960px) { .shell { padding: 16px; } .top { position: static; } .top-in { padding: 10px 16px; } }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; min-width: 0; }
 .card .note { font-size: 13px; color: var(--muted); margin: 4px 0 14px; }
 .card-head { display: flex; justify-content: space-between; align-items: start; gap: 12px; flex-wrap: wrap; }
 
-/* Inputs rail */
-.rail { padding: 18px 18px 8px; }
-@media (min-width: 961px) { .rail { position: sticky; top: 84px; max-height: calc(100vh - 100px); overflow-y: auto; } }
-.rail-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.legend-ink { font-size: 12px; color: var(--muted); margin: 6px 0 8px; }
-.legend-ink b { color: var(--accent); font-weight: 600; }
-details.sec { border-top: 1px solid var(--border); }
-details.sec > summary { cursor: pointer; padding: 10px 0; font-weight: 600; font-size: 14px; list-style: none; display: flex; justify-content: space-between; }
-details.sec > summary::-webkit-details-marker { display: none; }
-details.sec > summary::after { content: "+"; color: var(--muted); }
-details.sec[open] > summary::after { content: "–"; }
-.field { display: grid; grid-template-columns: minmax(0, 1fr) 128px; gap: 2px 10px; align-items: center; padding: 5px 0; }
-.field label { font-size: 13px; color: var(--body); }
-.field .ctl { display: flex; align-items: center; gap: 4px; }
-.field input, .field select { width: 100%; min-width: 0; border: 1px solid var(--border-strong); background: var(--surface); color: var(--accent); border-radius: var(--radius-sm); padding: 5px 8px; font-size: 13px; font-weight: 500; text-align: right; }
-.field select { text-align: left; }
-.field input[type="date"] { text-align: left; }
-.field input:focus, .field select:focus, input:focus, textarea:focus { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-.field .unit { font-size: 11px; color: var(--muted); min-width: 34px; }
-.field .src { grid-column: 1 / -1; font-size: 11px; color: var(--faint); line-height: 1.35; }
-.field.edited label::after { content: " • edited"; color: var(--warn); font-size: 11px; font-weight: 600; }
-.field.bad input { border-color: var(--bad); }
+
 input.plain { border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 8px 12px; background: var(--surface); }
 
 /* Tabs and panels */
@@ -264,7 +233,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     <div class="top-actions" id="topActions" hidden>
       <span id="checkPill" class="pill good"></span>
       <button class="btn btn-ghost btn-sm" id="randomBtn" type="button">New random deal</button>
-      <button class="btn btn-primary btn-sm" id="xlsxBtn" type="button">Download Excel model</button>
+      <button class="btn btn-primary" id="xlsxBtn" type="button">Generate Excel model</button>
     </div>
   </div>
 </header>
@@ -297,7 +266,6 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     <div class="alt">
       <span>No term sheet at hand?</span>
       <button class="btn btn-primary" id="openRandom" type="button">Generate a random deal</button>
-      <button class="btn btn-ghost" id="openExample" type="button">Open the Coolabah example</button>
       <form class="seed-form" id="seedForm">
         <label for="seedIn">or deal #</label>
         <input class="plain" id="seedIn" inputmode="numeric" placeholder="4821" aria-label="Deal number">
@@ -310,37 +278,18 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
   <section class="steps" aria-label="How it works">
     <div class="card step">
       <span class="num">1</span>
-      <h3>Bring a term sheet</h3>
-      <p>Drop your own, start from the reference deal (a 100 MW solar farm in NSW), or draw a fictional deal with its full indicative term sheet.</p>
+      <h3>Your term sheet</h3>
+      <p>Drop a term sheet in Word or Markdown. No term sheet? Download the blank template and fill in the brackets, or generate a random deal: its full term sheet is written for you.</p>
     </div>
     <div class="card step">
       <span class="num">2</span>
-      <h3>Check the inputs</h3>
-      <p>Every assumption sits in one place, with the term sheet clause it comes from. Change any of them and the model reruns instantly.</p>
+      <h3>The assumptions</h3>
+      <p>Every figure read from the term sheet is listed with the clause it comes from. Change any of them and choose semi-annual or quarterly periods.</p>
     </div>
     <div class="card step">
       <span class="num">3</span>
-      <h3>Test the model</h3>
-      <p>Dashboard, DSCR and LLCR, debt schedule, sensitivities and breakevens. Download the Excel model and audit every formula yourself.</p>
-    </div>
-  </section>
-
-  <section class="facts" aria-label="What the model covers">
-    <div class="fact"><b>Semi-annual or quarterly</b><span>periods from financial close to PPA expiry</span></div>
-    <div class="fact"><b>Sculpted</b><span>debt, sized on gearing and DSCR</span></div>
-    <div class="fact"><b>6 checks</b><span>debt drawn and repaid, sources = uses… (10 in the Excel)</span></div>
-    <div class="fact"><b>0 hard-codes</b><span>in the Excel calculation sheet</span></div>
-  </section>
-
-  <section class="card get-excel" aria-label="Download the Excel model">
-    <div>
-      <div class="eyebrow">See the output first</div>
-      <h2>Download the Excel model</h2>
-      <p>The full Coolabah model as an Excel file: inputs with their term sheet clause, every calculation as a live formula, outputs and checks.</p>
-    </div>
-    <div class="cta">
-      <button class="btn btn-primary btn-lg" id="landingXlsx" type="button">Download the Excel model</button>
-      <button class="btn btn-ghost" id="landingDocx" type="button">Term sheet (Word)</button>
+      <h3>The Excel model</h3>
+      <p>One click builds the Excel file: inputs, a calculation sheet made only of live formulas, outputs (debt sizing, DSCR, LLCR, equity IRR) and checks.</p>
     </div>
   </section>
 
@@ -349,36 +298,27 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
 
 <!-- Workspace -->
 <div class="shell" id="workspace" hidden>
-  <aside class="card rail" aria-label="Model inputs">
-    <div class="rail-head">
-      <h2>Inputs</h2>
-      <button class="btn btn-ghost btn-sm" id="resetBtn" type="button">Reset</button>
-    </div>
-    <div class="legend-ink"><b>Blue</b> = input. The grey line under each field is the term sheet clause it comes from.</div>
-    <form id="inputs" autocomplete="off"></form>
-  </aside>
 
   <main class="sheet">
     <div class="tabs" role="tablist">
-      <button class="tab" role="tab" data-tab="control">Control center</button>
       <button class="tab" role="tab" data-tab="termsheet">Term sheet</button>
+      <button class="tab" role="tab" data-tab="assumptions">Assumptions</button>
       <button class="tab" role="tab" data-tab="overview">Overview</button>
       <button class="tab" role="tab" data-tab="debt">Debt &amp; ratios</button>
       <button class="tab" role="tab" data-tab="cashflow">Cash flow</button>
       <button class="tab" role="tab" data-tab="sens">Sensitivities</button>
       <button class="tab" role="tab" data-tab="method">Methodology</button>
-      <button class="tab" role="tab" data-tab="json">Deal JSON</button>
     </div>
     <div id="errorBox" class="errors" hidden></div>
 
-    <section class="panel" data-panel="control" hidden>
+    <section class="panel" data-panel="assumptions" hidden>
       <div class="card">
         <div class="card-head">
           <div>
-            <h2>Control center</h2>
-            <div class="note" style="margin-bottom:0">Every input the model uses, with the term sheet clause it was read from. Check them, change any, then generate the model.</div>
+            <h2>Assumptions</h2>
+            <div class="note" style="margin-bottom:0">Every input the model uses, with the term sheet clause it was read from. Check them, change any, then generate the Excel model.</div>
           </div>
-          <button class="btn btn-primary" id="ccGenerate" type="button">Generate model →</button>
+          <button class="btn btn-primary" id="ccGenerate" type="button">Generate Excel model</button>
         </div>
         <div class="cc-top">
           <div><div class="label" style="margin-bottom:6px">Model periods</div>
@@ -391,7 +331,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       </div>
       <div class="cc-foot">
         <button class="btn btn-ghost" id="ccReset" type="button">Reset to the term sheet</button>
-        <button class="btn btn-primary btn-lg" id="ccGenerate2" type="button">Generate model →</button>
+        <button class="btn btn-primary" id="ccGenerate2" type="button">Generate Excel model</button>
       </div>
     </section>
 
@@ -402,7 +342,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
           <div class="label">Indicative term sheet</div>
           <div class="row-actions" style="margin-top:0">
             <button class="btn btn-ghost btn-sm" id="tsDownload" type="button">Download Word</button>
-            <button class="btn btn-primary btn-sm" id="tsToModel" type="button">See the model →</button>
+            <button class="btn btn-primary btn-sm" id="tsToModel" type="button">Check the assumptions →</button>
           </div>
         </div>
         <article class="doc" id="tsDoc"></article>
@@ -462,7 +402,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
             <h2>Cash flow model</h2>
             <div class="note" style="margin-bottom:0"><span class="perw">Semi-annual</span> periods across, <span class="cur"></span>k unless stated. Shaded columns are construction. Totals on the right.</div>
           </div>
-          <button class="btn btn-ghost btn-sm" id="xlsxBtn2" type="button">Download Excel model</button>
+          <button class="btn btn-primary" id="xlsxBtn2" type="button">Generate Excel model</button>
         </div>
       </div>
       <div class="scroll"><table class="cf" id="cfTable"></table></div>
@@ -488,7 +428,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
 
         <h3>Calculation order</h3>
         <ol>
-          <li><b>Timeline.</b> Semi-annual periods ending 30 June and 31 December (or quarterly periods, chosen in the Control center), from financial close to PPA expiry. Australian financial year (July–June).</li>
+          <li><b>Timeline.</b> Semi-annual periods ending 30 June and 31 December (or quarterly periods, chosen in the Assumptions tab), from financial close to PPA expiry. Australian financial year (July–June).</li>
           <li><b>Operations.</b> Energy = MW × 8,760 × P50 capacity factor × availability × degradation. Revenue = energy × PPA price, indexed to CPI in annual steps from financial close. Opex is indexed the same way. Annual figures are split equally between the periods of the year.</li>
           <li><b>Debt sizing.</b> CFADS (pre-tax) is discounted at the all-in rate over the debt tenor. Capacity at the target DSCR = PV of CFADS ÷ target DSCR. With "lower of" sizing, the debt is the lower of that capacity and maximum gearing × capex.</li>
           <li><b>Construction.</b> Capex follows the drawdown profile; debt is drawn pro rata at the effective gearing. Equity pays its share of capex plus IDC, commitment fee and the upfront fee.</li>
@@ -522,31 +462,9 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       </div>
     </section>
 
-    <section class="panel" data-panel="json" hidden>
-      <div class="grid2">
-        <div class="card">
-          <h2>Deal JSON</h2>
-          <div class="note">The whole model runs from this. Paste a new deal and apply it, or open a .json file.</div>
-          <textarea class="json" id="jsonBox" spellcheck="false" aria-label="Deal JSON"></textarea>
-          <div class="row-actions">
-            <button class="btn btn-primary btn-sm" id="applyJson" type="button">Apply</button>
-            <button class="btn btn-ghost btn-sm" id="copyJson" type="button">Copy</button>
-            <label class="btn btn-ghost btn-sm" for="fileJson">Open .json</label>
-            <input type="file" id="fileJson" accept=".json,application/json" hidden>
-            <span class="msg" id="jsonMsg"></span>
-          </div>
-        </div>
-        <div class="card">
-          <h2>Bring your own term sheet</h2>
-          <div class="note">Paste this prompt into Claude with your term sheet. It returns a deal JSON you can apply here.</div>
-          <pre class="prompt" id="promptBox"></pre>
-          <div class="row-actions"><button class="btn btn-ghost btn-sm" id="copyPrompt" type="button">Copy prompt</button><span class="msg" id="promptMsg"></span></div>
-        </div>
-      </div>
-    </section>
   </main>
 </div>
-<div class="loader" id="loader" hidden role="status" aria-live="polite"><div class="box"><div class="spin"></div><div id="loaderText">Building the model…</div><small>Sizing the debt · sculpting · running the checks</small></div></div>
+<div class="loader" id="loader" hidden role="status" aria-live="polite"><div class="box"><div class="spin"></div><div id="loaderText">Building the Excel model…</div><small>Sizing the debt · sculpting · writing the formulas</small></div></div>
 <footer class="foot" id="foot" hidden>Model Builder · built by Jean Grollet · <a href="mailto:jean@grollet.com">jean@grollet.com</a> · calculations run in your browser.</footer>
 
 <script>
@@ -557,6 +475,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
   'use strict';
   const COOLABAH = /*__DEAL__*/;
   const COOLABAH_TS = /*__COOLABAH_TS__*/;
+  const TEMPLATE_TS = /*__TEMPLATE_TS__*/;
   const $ = (id) => document.getElementById(id);
   const clone = (o) => JSON.parse(JSON.stringify(o));
   const get = (o, path) => path.split('.').reduce((a, k) => (a == null ? a : a[k]), o);
@@ -639,50 +558,6 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     return type === 'pct' ? n / 100 : n;
   }
 
-  function buildInputs() {
-    const form = $('inputs');
-    form.innerHTML = '';
-    let open = true;
-    for (const sec of SECTIONS) {
-      const d = document.createElement('details');
-      d.className = 'sec'; d.open = open || sec.name === 'Senior debt'; open = false;
-      d.innerHTML = '<summary>' + sec.name + '</summary>';
-      for (const [path, label, type, unit, opts] of sec.fields) {
-        const id = 'in-' + path.replace(/\./g, '-');
-        const wrap = document.createElement('div');
-        wrap.className = 'field'; wrap.dataset.path = path;
-        const u = unit !== undefined ? unit : (type === 'pct' ? '%' : type === 'k' ? 'k' : type === 'list' ? '%' : '');
-        let ctl;
-        if (type === 'select') {
-          ctl = '<select id="' + id + '">' + opts.map(([v, t]) => '<option value="' + v + '">' + t + '</option>').join('') + '</select>';
-        } else {
-          ctl = '<input id="' + id + '" type="' + (type === 'date' ? 'date' : 'text') + '" inputmode="' + (type === 'date' ? '' : 'decimal') + '">';
-        }
-        const src = (deal.sources && deal.sources[path]) || (base.sources && base.sources[path]) || '';
-        wrap.innerHTML = '<label for="' + id + '">' + label + '</label><div class="ctl">' + ctl +
-          (u && type !== 'date' && type !== 'select' ? '<span class="unit">' + (type === 'k' ? cur() + ' k' : u) + '</span>' : '') + '</div>' +
-          (src ? '<div class="src">' + esc(src) + '</div>' : '');
-        d.appendChild(wrap);
-        const el = wrap.querySelector('input,select');
-        el.value = toDisplay(type, get(deal, path));
-        el.addEventListener(type === 'select' || type === 'date' ? 'change' : 'input', () => {
-          const v = fromDisplay(type, el.value);
-          if (v === null || v === '') { wrap.classList.add('bad'); return; }
-          wrap.classList.remove('bad');
-          set(deal, path, v);
-          schedule();
-        });
-      }
-      form.appendChild(d);
-    }
-    markEdited();
-  }
-  function markEdited() {
-    document.querySelectorAll('.field').forEach((w) => {
-      const p = w.dataset.path;
-      w.classList.toggle('edited', JSON.stringify(get(deal, p)) !== JSON.stringify(get(base, p)));
-    });
-  }
 
   let timer = null;
   function schedule() { clearTimeout(timer); timer = setTimeout(recalc, 120); }
@@ -763,16 +638,15 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
 
   // ---------- Render ----------
   function recalc() {
-    markEdited();
     res = PFEngine.run(deal);
     const eb = $('errorBox');
     if (!res.ok) { eb.hidden = false; eb.innerHTML = '<b>The model can\'t run with these inputs.</b><br>' + res.errors.map(esc).join('<br>'); return; }
     eb.hidden = true;
-    renderHeader(); renderOverview(); renderDebt(); renderCashflow(); renderSens(); renderJson(); renderControlStatus();
+    renderHeader(); renderOverview(); renderDebt(); renderCashflow(); renderSens(); renderControlStatus();
   }
 
-  // ---------- Control center ----------
-  // The same inputs as the left rail, laid out as one table with the clause and status of each.
+  // ---------- Assumptions ----------
+  // Every input in one table, with the term sheet clause and the status of each. The only place inputs are edited.
   function statusOf(path) {
     const src = (deal.sources && deal.sources[path]) || (base.sources && base.sources[path]) || '';
     if (JSON.stringify(get(deal, path)) !== JSON.stringify(get(base, path))) return ['neutral', 'Edited', src];
@@ -825,16 +699,15 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
   }
   function setPeriodicity(per) {
     deal.timeline.periodicity = per;
-    buildInputs(); renderControl(); recalc();
+    renderControl(); recalc();
   }
 
-  // Short loading screen while the model is "generated" (the engine itself takes a few ms).
+  // Loading screen of 1.5 s (the engine itself takes a few ms; the pause shows that something is being built).
   function withLoader(fn, text) {
-    $('loaderText').textContent = text || 'Building the model…';
+    $('loaderText').textContent = text || 'Building the Excel model…';
     $('loader').hidden = false;
-    setTimeout(() => { fn(); $('loader').hidden = true; }, 500);
+    setTimeout(() => { fn(); $('loader').hidden = true; }, 1500);
   }
-  const generate = () => withLoader(() => { showTab('overview'); window.scrollTo(0, 0); });
 
   function renderHeader() {
     const s = res.summary, o = deal.operations;
@@ -1030,23 +903,20 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
   }
   function renderTermSheet() {
     const md = termSheetMd();
-    $('tsDoc').innerHTML = md ? PFMarkdown.toHtml(md) : '<p class="muted">This deal was opened from a deal JSON, so there is no term sheet document. The clause behind each input is shown under it on the left.</p>';
+    $('tsDoc').innerHTML = md ? PFMarkdown.toHtml(md) : '<p class="muted">This deal was opened from a deal JSON, so there is no term sheet document. The clause behind each input is shown in the Assumptions tab.</p>';
     $('tsDownload').hidden = !md;
     const nAssumed = uploaded ? uploaded.assumed.length : Object.values(base.sources || {}).filter((v) => /^ASSUMED/.test(v)).length;
     const assumedNote = nAssumed ? ' ' + nAssumed + ' input' + (nAssumed > 1 ? 's were' : ' was') + ' not in the document and use a market-standard assumption, marked ASSUMED under the field.' : '';
     if (base.meta.uploaded) {
-      $('tsCallout').innerHTML = '<p><b>Read from ' + esc(uploaded ? uploaded.name : 'your deal JSON') + '.</b> Each input on the left cites the clause it was read from.' + assumedNote + '</p><p>The file was read in your browser and never uploaded. Check the inputs, then see the model.</p>';
+      $('tsCallout').innerHTML = '<p><b>Read from ' + esc(uploaded ? uploaded.name : 'your deal JSON') + '.</b> Each input in the Assumptions tab cites the clause it was read from.' + assumedNote + '</p><p>The file was read in your browser and never uploaded. Check the assumptions, then generate the Excel model.</p>';
       return;
     }
     $('tsCallout').innerHTML = base.meta.generated
-      ? '<p><b>Random deal #' + base.meta.seed + '.</b> The term sheet below and the model inputs come from the same random draw; each input on the left cites the clause it maps to. Change any input and the model reruns; the term sheet stays as issued.</p><p>Share this exact deal with the link to this page: it opens deal #' + base.meta.seed + ' again.</p>'
-      : '<p><b>Reference deal.</b> The engine is tested against values recomputed independently from this term sheet (IDC, FY30 EBITDA, sculpted DSCR 1.475x, LLCR, PLCR, equity IRR…). Each input on the left cites its clause.</p>';
+      ? '<p><b>Random deal #' + base.meta.seed + '.</b> The term sheet below and the model inputs come from the same random draw; each input in the Assumptions tab cites the clause it maps to. Change any input and the model reruns; the term sheet stays as issued.</p><p>Share this exact deal with the link to this page: it opens deal #' + base.meta.seed + ' again.</p>'
+      : '<p><b>Reference deal.</b> The engine is tested against values recomputed independently from this term sheet (IDC, FY30 EBITDA, sculpted DSCR 1.475x, LLCR, PLCR, equity IRR…). Each input in the Assumptions tab cites its clause.</p>';
   }
 
   // ---------- JSON & prompt ----------
-  function renderJson() {
-    if (document.activeElement !== $('jsonBox')) $('jsonBox').value = JSON.stringify(deal, null, 2);
-  }
   const PROMPT = `You are a project finance analyst. Read the term sheet below and return ONLY a JSON object, no commentary, matching this schema exactly. Use thousands of currency for amounts and decimals for rates (5.75% -> 0.0575). Dates as YYYY-MM-DD; maturity and PPA end on a 30 June or 31 December.
 
 {
@@ -1089,33 +959,25 @@ TERM SHEET:
     uploaded = file || null;
     d = clone(d);
     d.timeline.periodicity = d.timeline.periodicity || 'semi-annual';
-    if (d.sources) d.sources['timeline.periodicity'] = 'Model choice (Control center)';
+    if (d.sources) d.sources['timeline.periodicity'] = 'Model choice (Assumptions tab)';
     base = clone(d);
     deal = clone(d);
     $('landing').hidden = true;
     $('workspace').hidden = false; $('foot').hidden = false;
     $('dealId').hidden = false; $('topActions').hidden = false;
     const q = base.meta.uploaded ? '' : '?' + (base.meta.generated ? 'deal=' + base.meta.seed : 'deal=coolabah');
-    try { history.replaceState(null, '', location.pathname + q + '#' + (tab || 'control')); } catch (e) {}
-    buildInputs(); renderTermSheet(); renderControl(); recalc();
-    showTab(tab || 'control');
+    try { history.replaceState(null, '', location.pathname + q + '#' + (tab || 'termsheet')); } catch (e) {}
+    renderTermSheet(); renderControl(); recalc();
+    showTab(tab || 'termsheet');
     window.scrollTo(0, 0);
   }
-  function openSeed(seed) { withLoader(() => openDeal(PFGenerator.generateDeal(seed), 'control'), 'Drawing a random deal…'); }
+  function openSeed(seed) { withLoader(() => openDeal(PFGenerator.generateDeal(seed), 'termsheet'), 'Drawing a random deal…'); }
   function showLanding() {
     $('landing').hidden = false;
     dropMessage('', ''); $('guide').hidden = true;
     $('workspace').hidden = true; $('foot').hidden = true;
     $('dealId').hidden = true; $('topActions').hidden = true;
     try { history.replaceState(null, '', location.pathname); } catch (e) {}
-  }
-  function loadDeal(obj, msgId) {
-    const test = PFEngine.run(obj);
-    if (!test.ok) { flash(msgId, 'Not applied: ' + test.errors[0]); return false; }
-    deal = obj;
-    if (!obj.meta || !obj.meta.generated) base = clone(obj);
-    if (!obj.timeline.periodicity) obj.timeline.periodicity = 'semi-annual';
-    buildInputs(); renderControl(); recalc(); flash(msgId, 'Applied. Model rebuilt from ' + (obj.meta && obj.meta.name || 'the new deal') + '.'); return true;
   }
 
   // ---------- Dropped files ----------
@@ -1145,7 +1007,7 @@ TERM SHEET:
     delete obj.meta.generated;
     const r = PFEngine.run(obj);
     if (!r.ok) throw new Error(r.errors[0]);
-    openDeal(obj, 'control', null);
+    openDeal(obj, 'termsheet', null);
   }
   function handleFile(file) {
     dropMessage('', ''); $('guide').hidden = true;
@@ -1174,7 +1036,12 @@ TERM SHEET:
   function readTermSheet(text, name) {
     const p = PFParser.parseTermSheet(text);
     const run = p.ok ? PFEngine.run(p.deal) : null;
-    if (p.ok && run.ok) { withLoader(() => openDeal(p.deal, 'control', { name, md: text, assumed: p.assumed }), 'Reading the term sheet…'); return; }
+    if (p.ok && run.ok) { withLoader(() => openDeal(p.deal, 'termsheet', { name, md: text, assumed: p.assumed }), 'Reading the term sheet…'); return; }
+    const blanks = text.match(/\[[^\]\n]{1,40}\]/g);
+    if (!p.ok && blanks) {
+      dropMessage('warn', '<p><b>This is the template with ' + blanks.length + ' blank' + (blanks.length > 1 ? 's' : '') + ' still to fill</b> (for example ' + esc(blanks[0]) + '). Replace each value in square brackets with your figure, save and drop it again.</p>');
+      return;
+    }
     if (p.missing.length <= 4 && !p.ok) {
       dropMessage('warn', '<p><b>Almost there.</b> This looks like a Model Builder term sheet, but these terms are missing: ' + p.missing.map(esc).join('; ') + '.</p><p>Add them to the file and drop it again, or use the reading step below.</p>');
     } else if (p.ok && !run.ok) {
@@ -1196,52 +1063,30 @@ TERM SHEET:
   });
   const DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
   const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-  const templateDocx = () => download('Model_Builder_term_sheet_template.docx', PFDocx.markdownToDocx(COOLABAH_TS), DOCX);
+  const templateDocx = () => download('Model_Builder_term_sheet_template.docx', PFDocx.markdownToDocx(TEMPLATE_TS), DOCX);
   $('templateLink').addEventListener('click', (ev) => { ev.preventDefault(); templateDocx(); });
-  $('landingDocx').addEventListener('click', templateDocx);
-  $('landingXlsx').addEventListener('click', () => download('Coolabah_model.xlsx', PFExcel.exportXlsx(COOLABAH, PFEngine.run(COOLABAH)), XLSX));
 
   // ---------- Wiring ----------
-  $('openExample').addEventListener('click', () => withLoader(() => openDeal(COOLABAH, 'control'), 'Opening the Coolabah example…'));
   $('openRandom').addEventListener('click', () => openSeed(PFGenerator.randomSeed()));
   $('randomBtn').addEventListener('click', () => openSeed(PFGenerator.randomSeed()));
   $('seedForm').addEventListener('submit', (ev) => { ev.preventDefault(); const n = parseInt($('seedIn').value, 10); openSeed(n > 0 ? n : PFGenerator.randomSeed()); });
   $('homeBtn').addEventListener('click', showLanding);
-  $('tsToModel').addEventListener('click', generate);
-  $('ccGenerate').addEventListener('click', generate);
-  $('ccGenerate2').addEventListener('click', generate);
-  $('ccReset').addEventListener('click', () => { deal = clone(base); buildInputs(); renderControl(); recalc(); });
+  $('tsToModel').addEventListener('click', () => { showTab('assumptions'); window.scrollTo(0, 0); });
+  $('ccReset').addEventListener('click', () => { deal = clone(base); renderControl(); recalc(); });
   document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => setPeriodicity(b.dataset.per)));
   $('tsDownload').addEventListener('click', () => download(slug() + '_term_sheet.docx', PFDocx.markdownToDocx(termSheetMd()), DOCX));
+  // Every "Generate Excel model" button: loading screen, then the .xlsx download.
   const xlsx = () => {
     if (!res || !res.ok) return;
-    download(slug() + (res.meta.pm === 3 ? '_quarterly' : '') + '_model.xlsx', PFExcel.exportXlsx(deal, res), XLSX);
+    withLoader(() => download(slug() + (res.meta.pm === 3 ? '_quarterly' : '') + '_model.xlsx', PFExcel.exportXlsx(deal, res), XLSX));
   };
-  $('xlsxBtn').addEventListener('click', xlsx);
-  $('xlsxBtn2').addEventListener('click', xlsx);
-  $('promptBox').textContent = PROMPT;
-  $('copyPrompt').addEventListener('click', () => copy(PROMPT, 'promptMsg'));
-  $('copyJson').addEventListener('click', () => copy(JSON.stringify(deal, null, 2), 'jsonMsg'));
-  $('applyJson').addEventListener('click', () => {
-    try { loadDeal(JSON.parse($('jsonBox').value), 'jsonMsg'); } catch (e) { flash('jsonMsg', 'That is not valid JSON: ' + e.message); }
-  });
-  $('fileJson').addEventListener('change', (ev) => {
-    const f = ev.target.files[0]; if (!f) return;
-    const rd = new FileReader();
-    rd.onload = () => { try { loadDeal(JSON.parse(rd.result), 'jsonMsg'); } catch (e) { flash('jsonMsg', 'That file is not valid JSON.'); } };
-    rd.readAsText(f);
-  });
-  $('resetBtn').addEventListener('click', () => { deal = clone(base); buildInputs(); renderControl(); recalc(); });
+  ['xlsxBtn', 'xlsxBtn2', 'ccGenerate', 'ccGenerate2'].forEach((id) => $(id).addEventListener('click', xlsx));
 
-  const TABS = ['control', 'termsheet', 'overview', 'debt', 'cashflow', 'sens', 'method', 'json'];
+  const TABS = ['termsheet', 'assumptions', 'overview', 'debt', 'cashflow', 'sens', 'method'];
   function showTab(name) {
     document.querySelectorAll('.tab').forEach((t) => t.setAttribute('aria-selected', t.dataset.tab === name ? 'true' : 'false'));
     document.querySelectorAll('[data-panel]').forEach((p) => (p.hidden = p.dataset.panel !== name));
-    // The Control center shows every input full width, so the left rail is hidden there and rebuilt on leaving.
-    const wasWide = $('workspace').classList.contains('wide');
-    $('workspace').classList.toggle('wide', name === 'control');
-    if (deal && name === 'control') renderControl();
-    else if (deal && wasWide) buildInputs();
+    if (deal && name === 'assumptions') renderControl();
     try { history.replaceState(null, '', location.pathname + location.search + '#' + name); } catch (e) {}
     if (res && res.ok) { if (name === 'overview') renderOverview(); if (name === 'debt') renderDebt(); }
   }
@@ -1254,7 +1099,7 @@ TERM SHEET:
   // Start: ?deal=coolabah or ?deal=4821 opens that deal directly; otherwise the start page.
   const params = new URLSearchParams(location.search);
   const want = params.get('deal');
-  const tab = TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'control';
+  const tab = TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'termsheet';
   if (want === 'coolabah') openDeal(COOLABAH, tab);
   else if (want && parseInt(want, 10) > 0) openDeal(PFGenerator.generateDeal(parseInt(want, 10)), tab);
   else showLanding();

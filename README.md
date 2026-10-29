@@ -4,8 +4,8 @@ A web app that turns a project finance term sheet into a full semi-annual or qua
 
 - **Reference deal:** Project Coolabah, a 100 MWac solar farm in NSW with AUD 98.0m of senior debt (`docs/coolabah_term_sheet.md`).
 - **Random deals:** one click draws a fictional Australian solar deal from realistic ranges, writes its indicative term sheet and builds the model. Each deal has a number (`?deal=4821`), so the same link always opens the same deal.
-- **Drop a term sheet:** the start page reads a Word (.docx) or Markdown term sheet in the Model Builder layout (like the downloadable template or any generated deal) directly in the browser, and a deal JSON. For a PDF or a free-form document, it guides the user through one Claude extraction step.
-- **Control center:** after a drop or a random deal, every input is listed with its term sheet clause and a status (from the term sheet, assumed, edited). The user checks or changes them, picks semi-annual or quarterly periods, then generates the model.
+- **Drop a term sheet:** the start page reads a Word (.docx) or Markdown term sheet in the Model Builder layout (like the blank downloadable template, once filled in, or any generated deal) directly in the browser, and a deal JSON. For a PDF or a free-form document, it guides the user through one Claude extraction step.
+- **Assumptions tab:** after a drop or a random deal, the term sheet opens first, then the Assumptions tab lists every input with its term sheet clause and a status (from the term sheet, assumed, edited). It is the only place inputs are edited. The user picks semi-annual or quarterly periods, then clicks Generate Excel model.
 - **Excel export:** Cover, Inputs (named cells, with the term sheet clause for each), Calc (every cell a formula), Outputs and Checks (integrity checks plus a reconciliation against the web app).
 
 Everything runs in the browser. No backend, no install, no dependencies.
@@ -17,6 +17,7 @@ Everything runs in the browser. No backend, no install, no dependencies.
 | File | What it does |
 | --- | --- |
 | `SPEC.md` | What the model does, calculation order, reference values, decisions. Read this first. |
+| `docs/term_sheet_template.md` | Blank term sheet (placeholders in square brackets), downloaded as Word from the start page. |
 | `deal.json` | Project Coolabah inputs, with the term sheet clause behind each one. |
 | `src/engine.js` | The calculation engine: deal JSON in, time series and ratios out. Pure functions, no UI. |
 | `src/generator.js` | Random deal generator (seeded, so a deal number always gives the same deal). |

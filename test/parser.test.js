@@ -80,3 +80,21 @@ test('a free-form document is not mistaken for a term sheet', () => {
 });
 
 function near(a, b, tol) { assert.ok(Math.abs(a - b) <= tol, a + ' vs ' + b); }
+
+test('the blank template, once filled in, reads back to the Coolabah deal', () => {
+  const tpl = fs.readFileSync(path.join(__dirname, '../docs/term_sheet_template.md'), 'utf8');
+  const blank = parseTermSheet(tpl);
+  assert.strictEqual(blank.ok, false, 'an unfilled template must not build a model');
+  // Each placeholder, in the order it appears, with the Coolabah figure.
+  const values = ['Coolabah', '100', 'NSW', '1 July 2027', '1 July 2029', 'Coolabah', '100', 'NSW', 'Coolabah', 'Wattlebank', '20', '60.00', '100', '30 June 2049',
+    '98,000,000', '30 June 2047', '140,000', '15', '35', '35', '15',
+    '4.00', '1.75', '1.50', '40', 'sculpted', '1.30', '6', '1.10', '1.05', '70',
+    '100', '27.0', '99.0', '0.5', '3.20', '2.5', '30', '20'];
+  let i = 0;
+  const filled = tpl.replace(/\[[^\]]+\]/g, () => values[i++]);
+  assert.strictEqual(i, values.length, 'one value per placeholder');
+  const r = parseTermSheet(filled);
+  assert.ok(r.ok, 'missing: ' + r.missing.join(', '));
+  assert.deepStrictEqual(r.assumed, []);
+  sameInputs(coolabah, r.deal, 'filled template');
+});
