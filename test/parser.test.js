@@ -34,7 +34,7 @@ test('the Coolabah term sheet gives back deal.json', () => {
 
 test('every input read from the term sheet cites its clause', () => {
   const r = parseTermSheet(md);
-  assert.strictEqual(r.deal.sources['senior_debt.margin'], '§3 Margin: 1.75%');
+  assert.strictEqual(r.deal.sources['senior_debt.margin'], 'Section 3 · Margin: 1.75%');
   for (const s of SECTIONS) for (const k of Object.keys(r.deal[s])) {
     if (k === 'sizing') continue;
     assert.ok(r.deal.sources[s + '.' + k], 'no source for ' + s + '.' + k);

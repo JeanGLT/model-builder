@@ -190,9 +190,13 @@ table { border-collapse: collapse; width: 100%; }
 .sens td:first-child, .sens th:first-child { text-align: left; }
 .sens input { width: 76px; border: 1px solid var(--border-strong); color: var(--accent); font-weight: 500; border-radius: var(--radius-sm); padding: 4px 8px; text-align: right; }
 .sens tr.base td { font-weight: 600; }
+.be td { vertical-align: top; line-height: 1.35; }
+.be th { vertical-align: bottom; line-height: 1.35; }
+.be .thin { color: var(--bad); font-weight: 600; }
 
 /* Term sheet document */
-.doc { max-width: 880px; }
+[data-panel="termsheet"] { max-width: 960px; width: 100%; margin: 0 auto; }
+.doc { max-width: 880px; margin: 0 auto; }
 .doc h1 { font-family: "DM Serif Display", Georgia, serif; font-weight: 400; font-size: 32px; line-height: 1.15; margin-bottom: 6px; }
 .doc h2 { font-size: 17px; margin: 28px 0 10px; padding-top: 18px; border-top: 1px solid var(--border); }
 .doc p { color: var(--body); margin: 0 0 12px; font-size: 14px; }
@@ -416,8 +420,8 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       </div>
       <div class="card">
         <h2>Breakevens</h2>
-        <div class="note">How far a single input can move before the minimum post-tax DSCR hits a threshold.</div>
-        <table class="su" id="beTable"></table>
+        <div class="note">How far each input can move, on its own, before a lender or sponsor threshold is reached. Each cell gives the value of that input at the threshold and the move from the base case; a small move means a thin cushion. The debt amount stays as in the inputs.</div>
+        <div style="overflow-x:auto"><table class="sens be" id="beTable"></table></div>
       </div>
     </section>
 
@@ -642,7 +646,8 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     const eb = $('errorBox');
     if (!res.ok) { eb.hidden = false; eb.innerHTML = '<b>The model can\'t run with these inputs.</b><br>' + res.errors.map(esc).join('<br>'); return; }
     eb.hidden = true;
-    renderHeader(); renderOverview(); renderDebt(); renderCashflow(); renderSens(); renderControlStatus();
+    renderHeader(); renderOverview(); renderDebt(); renderCashflow(); renderControlStatus();
+    if (!document.querySelector('[data-panel="sens"]').hidden) renderSens(); // about 1,000 model runs: only when visible
   }
 
   // ---------- Assumptions ----------
@@ -873,26 +878,61 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       renderSens();
     }));
 
-    // Breakevens: multiplier on one input such that min post-tax DSCR = threshold
+    renderBreakevens();
+  }
+
+  // ---------- Breakevens ----------
+  // For one input at a time, the value at which a threshold is reached (everything else as in the base case).
+  // Each input is stressed along t from 0 (base case) to 1 (extreme), and t is found by bisection.
+  const BE_INPUTS = [
+    { label: 'PPA price', get: (d) => d.operations.ppa_price_fc, apply: (d, t) => (d.operations.ppa_price_fc *= 1 - 0.9 * t),
+      show: (v, v0) => cur() + ' ' + v.toFixed(2) + '/MWh', move: (v, v0) => pc(v / v0 - 1), thin: (v, v0) => 1 - v / v0 < 0.10 },
+    { label: 'Energy yield (P50 capacity factor)', get: (d) => d.operations.capacity_factor_p50, apply: (d, t) => (d.operations.capacity_factor_p50 *= 1 - 0.9 * t),
+      show: (v) => pc(v, 1), move: (v, v0) => pc(v / v0 - 1) + ' yield', thin: (v, v0) => 1 - v / v0 < 0.10 },
+    { label: 'Availability', get: (d) => d.operations.availability, apply: (d, t) => (d.operations.availability -= 0.5 * t),
+      show: (v) => pc(v, 1), move: (v, v0) => '−' + ((v0 - v) * 100).toFixed(1) + ' pt', thin: (v, v0) => v0 - v < 0.02 },
+    { label: 'Operating costs', get: (d) => d.operations.opex_real_fc, apply: (d, t) => (d.operations.opex_real_fc *= 1 + 9 * t),
+      show: (v) => cur() + ' ' + (v / 1000).toFixed(2) + 'm p.a.', move: (v, v0) => '+' + pc(v / v0 - 1, 0), thin: (v, v0) => v / v0 - 1 < 0.20 },
+    { label: 'Base rate (BBSW)', get: (d) => d.senior_debt.base_rate, apply: (d, t) => (d.senior_debt.base_rate += 0.2 * t),
+      show: (v) => pc(v, 2), move: (v, v0) => '+' + Math.round((v - v0) * 10000) + ' bp', thin: (v, v0) => v - v0 < 0.01 },
+    { label: 'Degradation', get: (d) => d.operations.degradation, apply: (d, t) => (d.operations.degradation += 0.05 * t),
+      show: (v) => pc(v, 2) + ' p.a.', move: (v, v0) => '+' + ((v - v0) * 100).toFixed(2) + ' pt', thin: (v, v0) => v - v0 < 0.005 },
+  ];
+  function breakeven(input, metric, thr) {
+    const at = (t) => { const d = clone(deal); input.apply(d, t); const r = PFEngine.run(d); return r.ok ? metric(r.summary) : -Infinity; };
+    if (!(at(0) >= thr)) return { below: true };
+    if (at(1) >= thr) return { beyond: true };
+    let lo = 0, hi = 1;
+    for (let i = 0; i < 35; i++) { const mid = (lo + hi) / 2; if (at(mid) >= thr) lo = mid; else hi = mid; }
+    const d = clone(deal); input.apply(d, hi);
+    return { t: hi, v: input.get(d) };
+  }
+  function renderBreakevens() {
     const C = deal.covenants;
-    const be = (mutate, thr) => {
-      let lo = 0.2, hi = 1.0;
-      const f = (k) => { const d = clone(deal); mutate(d, k); const r = PFEngine.run(d); return r.ok ? r.summary.minDscrPost : 0; };
-      if (f(hi) < thr) return null;
-      for (let i = 0; i < 50; i++) { const mid = (lo + hi) / 2; if (f(mid) >= thr) hi = mid; else lo = mid; }
-      return hi;
-    };
-    const bePrice = (thr) => be((d, k) => (d.operations.ppa_price_fc *= k), thr);
-    const beYield = (thr) => be((d, k) => (d.operations.capacity_factor_p50 *= k), thr);
-    const fmtBe = (k, unitFn) => (k == null ? 'Already below' : unitFn(k));
-    const p0 = deal.operations.ppa_price_fc, cf0 = deal.operations.capacity_factor_p50;
-    const rows = [
-      ['PPA price for min DSCR = ' + x2(C.lockup_dscr) + ' (lock-up)', fmtBe(bePrice(C.lockup_dscr), (k) => cur() + ' ' + (p0 * k).toFixed(2) + '/MWh · ' + pc(k - 1))],
-      ['PPA price for min DSCR = 1.00x', fmtBe(bePrice(1.0), (k) => cur() + ' ' + (p0 * k).toFixed(2) + '/MWh · ' + pc(k - 1))],
-      ['Capacity factor for min DSCR = ' + x2(C.lockup_dscr), fmtBe(beYield(C.lockup_dscr), (k) => pc(cf0 * k) + ' · ' + pc(k - 1) + ' yield')],
-      ['Capacity factor for min DSCR = 1.00x', fmtBe(beYield(1.0), (k) => pc(cf0 * k) + ' · ' + pc(k - 1) + ' yield')],
+    const dscr = (s) => s.minDscrPost, irr = (s) => (s.equityIrr == null ? -1 : s.equityIrr);
+    const levels = [
+      ['Min DSCR = ' + x2(C.lockup_dscr), 'lock-up', dscr, C.lockup_dscr],
+      ['Min DSCR = ' + x2(C.default_dscr), 'event of default', dscr, C.default_dscr],
+      ['Min DSCR = 1.00x', 'cash just covers debt service', dscr, 1.0],
+      ['Equity IRR = 0%', 'sponsor gets its money back', irr, 0],
     ];
-    $('beTable').innerHTML = '<tbody>' + rows.map((r) => '<tr><td>' + r[0] + '</td><td class="n">' + r[1] + '</td></tr>').join('') + '</tbody>';
+    let h = '<thead><tr><th>Input</th><th>Base case</th>' + levels.map((l) => '<th>' + l[0] + '<br><span class="muted" style="text-transform:none;font-weight:400;letter-spacing:0">' + l[1] + '</span></th>').join('') + '</tr></thead><tbody>';
+    for (const inp of BE_INPUTS) {
+      const v0 = inp.get(deal);
+      h += '<tr><td>' + inp.label + '</td><td>' + inp.show(v0, v0) + '</td>';
+      for (const [, , metric, thr] of levels) {
+        const b = breakeven(inp, metric, thr);
+        if (b.below) h += '<td><span class="pill crit">Already below</span></td>';
+        else if (b.beyond) h += '<td class="muted">Not reached</td>';
+        else {
+          // In red when the cushion is thin: under 10% on price or yield, 2 pt of availability, 20% of opex, 100 bp, 0.5 pt of degradation.
+          const thin = inp.thin(b.v, v0);
+          h += '<td><b>' + inp.show(b.v, v0) + '</b><br><span class="' + (thin ? 'thin' : 'muted') + '" style="font-size:12px">' + inp.move(b.v, v0) + '</span></td>';
+        }
+      }
+      h += '</tr>';
+    }
+    $('beTable').innerHTML = h + '</tbody>';
   }
 
   // ---------- Term sheet ----------
@@ -1087,6 +1127,7 @@ TERM SHEET:
     document.querySelectorAll('.tab').forEach((t) => t.setAttribute('aria-selected', t.dataset.tab === name ? 'true' : 'false'));
     document.querySelectorAll('[data-panel]').forEach((p) => (p.hidden = p.dataset.panel !== name));
     if (deal && name === 'assumptions') renderControl();
+    if (res && res.ok && name === 'sens') renderSens();
     try { history.replaceState(null, '', location.pathname + location.search + '#' + name); } catch (e) {}
     if (res && res.ok) { if (name === 'overview') renderOverview(); if (name === 'debt') renderDebt(); }
   }

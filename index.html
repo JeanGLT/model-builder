@@ -200,9 +200,13 @@ table { border-collapse: collapse; width: 100%; }
 .sens td:first-child, .sens th:first-child { text-align: left; }
 .sens input { width: 76px; border: 1px solid var(--border-strong); color: var(--accent); font-weight: 500; border-radius: var(--radius-sm); padding: 4px 8px; text-align: right; }
 .sens tr.base td { font-weight: 600; }
+.be td { vertical-align: top; line-height: 1.35; }
+.be th { vertical-align: bottom; line-height: 1.35; }
+.be .thin { color: var(--bad); font-weight: 600; }
 
 /* Term sheet document */
-.doc { max-width: 880px; }
+[data-panel="termsheet"] { max-width: 960px; width: 100%; margin: 0 auto; }
+.doc { max-width: 880px; margin: 0 auto; }
 .doc h1 { font-family: "DM Serif Display", Georgia, serif; font-weight: 400; font-size: 32px; line-height: 1.15; margin-bottom: 6px; }
 .doc h2 { font-size: 17px; margin: 28px 0 10px; padding-top: 18px; border-top: 1px solid var(--border); }
 .doc p { color: var(--body); margin: 0 0 12px; font-size: 14px; }
@@ -426,8 +430,8 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       </div>
       <div class="card">
         <h2>Breakevens</h2>
-        <div class="note">How far a single input can move before the minimum post-tax DSCR hits a threshold.</div>
-        <table class="su" id="beTable"></table>
+        <div class="note">How far each input can move, on its own, before a lender or sponsor threshold is reached. Each cell gives the value of that input at the threshold and the move from the base case; a small move means a thin cushion. The debt amount stays as in the inputs.</div>
+        <div style="overflow-x:auto"><table class="sens be" id="beTable"></table></div>
       </div>
     </section>
 
@@ -968,31 +972,31 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     return {
       'timeline.financial_close': 'Summary: financial close targeted ' + T.financial_close,
       'timeline.cod': 'Summary: COD ' + T.cod,
-      'timeline.ppa_end': '§1 PPA: tenor ' + d.meta.ppa_years + ' years from COD, ending ' + T.ppa_end,
-      'timeline.debt_maturity': '§2 Final Maturity: ' + T.debt_maturity,
-      'construction.capex_total': '§2 Sources and uses: construction capex AUD ' + d.construction.capex_total.toLocaleString('en-US') + 'k',
-      'construction.capex_profile': '§2 Capex drawn ' + d.construction.capex_profile.map((x) => Math.round(x * 100) + '%').join(' / '),
-      'operations.capacity_mw': '§6 Base case: ' + O.capacity_mw + ' MWac',
-      'operations.capacity_factor_p50': '§6 P50 capacity factor ' + pct(O.capacity_factor_p50, 1),
-      'operations.availability': '§6 Availability ' + pct(O.availability, 1),
-      'operations.degradation': '§6 Degradation ' + pct(O.degradation) + ' p.a. from operating year 2',
-      'operations.ppa_price_fc': '§1 PPA: AUD ' + O.ppa_price_fc.toFixed(2) + '/MWh at financial close',
-      'operations.ppa_indexation': O.ppa_indexation ? '§1 PPA: indexed at 100% of CPI annually' : '§1 PPA: flat price, no indexation',
-      'operations.opex_real_fc': '§6 Operating costs AUD ' + (O.opex_real_fc / 1000).toFixed(3) + 'm p.a. real',
-      'operations.cpi': '§6 CPI ' + pct(O.cpi) + ' p.a., applied annually',
-      'tax.rate': '§6 Corporate tax 30%',
-      'tax.depreciation_years': '§6 Straight-line tax depreciation over ' + d.tax.depreciation_years + ' years',
-      'senior_debt.amount': '§2 Senior Facility AUD ' + (D.amount * 1000).toLocaleString('en-US'),
-      'senior_debt.gearing': '§4 Sizing: maximum ' + pct(D.gearing, 0) + ' of construction capex',
-      'senior_debt.base_rate': '§3 Base case BBSW ' + pct(D.base_rate),
-      'senior_debt.margin': '§3 Margin ' + pct(D.margin) + ' p.a.',
-      'senior_debt.upfront_fee': '§3 Upfront fee ' + pct(D.upfront_fee),
-      'senior_debt.commitment_fee_pct_margin': '§3 Commitment fee ' + pct(D.commitment_fee_pct_margin, 0) + ' of the Margin',
-      'senior_debt.repayment': '§4 Repayment sculpted',
-      'senior_debt.target_dscr': '§4 Target DSCR ' + D.target_dscr.toFixed(2) + 'x on P50 CFADS',
-      'dsra.months_of_ds': '§4 DSRA: next 6 months of scheduled debt service',
-      'covenants.lockup_dscr': '§4 Lock-up < ' + d.covenants.lockup_dscr.toFixed(2) + 'x',
-      'covenants.default_dscr': '§4 Event of Default < ' + d.covenants.default_dscr.toFixed(2) + 'x',
+      'timeline.ppa_end': 'Section 1 · PPA: tenor ' + d.meta.ppa_years + ' years from COD, ending ' + T.ppa_end,
+      'timeline.debt_maturity': 'Section 2 · Final Maturity: ' + T.debt_maturity,
+      'construction.capex_total': 'Section 2 · Sources and uses: construction capex AUD ' + d.construction.capex_total.toLocaleString('en-US') + 'k',
+      'construction.capex_profile': 'Section 2 · Capex drawn ' + d.construction.capex_profile.map((x) => Math.round(x * 100) + '%').join(' / '),
+      'operations.capacity_mw': 'Section 6 · Base case: ' + O.capacity_mw + ' MWac',
+      'operations.capacity_factor_p50': 'Section 6 · P50 capacity factor ' + pct(O.capacity_factor_p50, 1),
+      'operations.availability': 'Section 6 · Availability ' + pct(O.availability, 1),
+      'operations.degradation': 'Section 6 · Degradation ' + pct(O.degradation) + ' p.a. from operating year 2',
+      'operations.ppa_price_fc': 'Section 1 · PPA: AUD ' + O.ppa_price_fc.toFixed(2) + '/MWh at financial close',
+      'operations.ppa_indexation': O.ppa_indexation ? 'Section 1 · PPA: indexed at 100% of CPI annually' : 'Section 1 · PPA: flat price, no indexation',
+      'operations.opex_real_fc': 'Section 6 · Operating costs AUD ' + (O.opex_real_fc / 1000).toFixed(3) + 'm p.a. real',
+      'operations.cpi': 'Section 6 · CPI ' + pct(O.cpi) + ' p.a., applied annually',
+      'tax.rate': 'Section 6 · Corporate tax 30%',
+      'tax.depreciation_years': 'Section 6 · Straight-line tax depreciation over ' + d.tax.depreciation_years + ' years',
+      'senior_debt.amount': 'Section 2 · Senior Facility AUD ' + (D.amount * 1000).toLocaleString('en-US'),
+      'senior_debt.gearing': 'Section 4 · Sizing: maximum ' + pct(D.gearing, 0) + ' of construction capex',
+      'senior_debt.base_rate': 'Section 3 · Base case BBSW ' + pct(D.base_rate),
+      'senior_debt.margin': 'Section 3 · Margin ' + pct(D.margin) + ' p.a.',
+      'senior_debt.upfront_fee': 'Section 3 · Upfront fee ' + pct(D.upfront_fee),
+      'senior_debt.commitment_fee_pct_margin': 'Section 3 · Commitment fee ' + pct(D.commitment_fee_pct_margin, 0) + ' of the Margin',
+      'senior_debt.repayment': 'Section 4 · Repayment sculpted',
+      'senior_debt.target_dscr': 'Section 4 · Target DSCR ' + D.target_dscr.toFixed(2) + 'x on P50 CFADS',
+      'dsra.months_of_ds': 'Section 4 · DSRA: next 6 months of scheduled debt service',
+      'covenants.lockup_dscr': 'Section 4 · Lock-up < ' + d.covenants.lockup_dscr.toFixed(2) + 'x',
+      'covenants.default_dscr': 'Section 4 · Event of Default < ' + d.covenants.default_dscr.toFixed(2) + 'x',
     };
   }
 
@@ -1216,13 +1220,13 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
   }
   const DATE = '(\\d{1,2}\\s+[A-Za-z]+\\s+\\d{4}|\\d{4}-\\d{2}-\\d{2})';
 
-  // Splits the document into table rows, remembering the section ("§2") each row sits in.
+  // Splits the document into table rows, remembering the section ("Section 2") each row sits in.
   function rowsOf(md) {
     const rows = [];
     let section = 'Summary';
     for (const line of md.replace(/\r/g, '').split('\n')) {
       const h = line.match(/^##\s+(\d+)\./);
-      if (h) { section = '§' + h[1]; continue; }
+      if (h) { section = 'Section ' + h[1]; continue; }
       if (!line.trim().startsWith('|') || /^\|\s*-/.test(line.trim())) continue;
       const cells = line.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim().replace(/\*\*/g, ''));
       rows.push({ section, label: cells[0], cells, text: cells.slice(1).join(' | ') });
@@ -1251,7 +1255,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
         const v = convert(m[1], m);
         if (v === null || v === undefined || (typeof v === 'number' && isNaN(v))) continue;
         setPath(path, v);
-        deal.sources[path] = r.section + ' ' + r.label + ': ' + short(m[0]);
+        deal.sources[path] = r.section + ' · ' + r.label + ': ' + short(m[0]);
         return true;
       }
       return false;
@@ -1287,7 +1291,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     const prof = flat.match(/[Cc]apex is drawn ((?:\d+(?:\.\d+)?%\s*\/\s*)+\d+(?:\.\d+)?%)/);
     if (prof) {
       deal.construction.capex_profile = prof[1].split('/').map((x) => pct(x));
-      deal.sources['construction.capex_profile'] = '§2 Capex drawn ' + prof[1];
+      deal.sources['construction.capex_profile'] = 'Section 2 · Capex drawn ' + prof[1];
     } else missing.push('capex drawdown profile ("Capex is drawn 15% / 35% / …")');
 
     // Operations
@@ -2236,31 +2240,31 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
   "sources": {
     "timeline.financial_close": "Summary: financial close targeted 1 July 2027",
     "timeline.cod": "Summary: COD 1 July 2029",
-    "timeline.ppa_end": "§1 PPA: tenor 20 years from COD, ending 30 June 2049",
-    "timeline.debt_maturity": "§2 Final Maturity: 30 June 2047",
-    "construction.capex_total": "§2 Sources and uses: construction capex AUD 140,000k",
-    "construction.capex_profile": "§2 Capex drawn 15% / 35% / 35% / 15%",
-    "operations.capacity_mw": "§6 Base case: 100 MWac",
-    "operations.capacity_factor_p50": "§6 P50 capacity factor 27.0%",
-    "operations.availability": "§6 Availability 99.0%",
-    "operations.degradation": "§6 Degradation 0.5% p.a. from operating year 2",
-    "operations.ppa_price_fc": "§1 PPA: AUD 60.00/MWh at financial close",
-    "operations.ppa_indexation": "§1 PPA: indexed at 100% of CPI annually",
-    "operations.opex_real_fc": "§6 Operating costs AUD 3.20m p.a. real",
-    "operations.cpi": "§6 CPI 2.5% p.a., applied annually",
-    "tax.rate": "§6 Corporate tax 30%",
-    "tax.depreciation_years": "§6 Straight-line tax depreciation over 20 years",
-    "senior_debt.amount": "§2 Senior Facility AUD 98,000,000",
-    "senior_debt.gearing": "§2 Drawdowns pro rata at 70% of each capex amount",
-    "senior_debt.base_rate": "§3 Base case BBSW 4.00%",
-    "senior_debt.margin": "§3 Margin 1.75% p.a.",
-    "senior_debt.upfront_fee": "§3 Upfront fee 1.50%",
-    "senior_debt.commitment_fee_pct_margin": "§3 Commitment fee 40% of the Margin",
-    "senior_debt.repayment": "§4 Repayment sculpted",
-    "senior_debt.target_dscr": "§4 Target DSCR 1.30x on P50 CFADS",
-    "dsra.months_of_ds": "§4 DSRA: next 6 months of scheduled debt service",
-    "covenants.lockup_dscr": "§4 Lock-up < 1.10x",
-    "covenants.default_dscr": "§4 Event of Default < 1.05x"
+    "timeline.ppa_end": "Section 1 · PPA: tenor 20 years from COD, ending 30 June 2049",
+    "timeline.debt_maturity": "Section 2 · Final Maturity: 30 June 2047",
+    "construction.capex_total": "Section 2 · Sources and uses: construction capex AUD 140,000k",
+    "construction.capex_profile": "Section 2 · Capex drawn 15% / 35% / 35% / 15%",
+    "operations.capacity_mw": "Section 6 · Base case: 100 MWac",
+    "operations.capacity_factor_p50": "Section 6 · P50 capacity factor 27.0%",
+    "operations.availability": "Section 6 · Availability 99.0%",
+    "operations.degradation": "Section 6 · Degradation 0.5% p.a. from operating year 2",
+    "operations.ppa_price_fc": "Section 1 · PPA: AUD 60.00/MWh at financial close",
+    "operations.ppa_indexation": "Section 1 · PPA: indexed at 100% of CPI annually",
+    "operations.opex_real_fc": "Section 6 · Operating costs AUD 3.20m p.a. real",
+    "operations.cpi": "Section 6 · CPI 2.5% p.a., applied annually",
+    "tax.rate": "Section 6 · Corporate tax 30%",
+    "tax.depreciation_years": "Section 6 · Straight-line tax depreciation over 20 years",
+    "senior_debt.amount": "Section 2 · Senior Facility AUD 98,000,000",
+    "senior_debt.gearing": "Section 2 · Drawdowns pro rata at 70% of each capex amount",
+    "senior_debt.base_rate": "Section 3 · Base case BBSW 4.00%",
+    "senior_debt.margin": "Section 3 · Margin 1.75% p.a.",
+    "senior_debt.upfront_fee": "Section 3 · Upfront fee 1.50%",
+    "senior_debt.commitment_fee_pct_margin": "Section 3 · Commitment fee 40% of the Margin",
+    "senior_debt.repayment": "Section 4 · Repayment sculpted",
+    "senior_debt.target_dscr": "Section 4 · Target DSCR 1.30x on P50 CFADS",
+    "dsra.months_of_ds": "Section 4 · DSRA: next 6 months of scheduled debt service",
+    "covenants.lockup_dscr": "Section 4 · Lock-up < 1.10x",
+    "covenants.default_dscr": "Section 4 · Event of Default < 1.05x"
   }
 };
   const COOLABAH_TS = "# Project Coolabah — Indicative Term Sheet\n\nOct 26, 2026 · @Jean\n\nSenior secured, limited-recourse financing of AUD 98.0m for a 100 MWac single-axis tracker solar farm in NSW, Australia, backed by a 20-year CPI-indexed PPA. Financial close targeted 1 July 2027; COD 1 July 2029.\n\n*Strictly private and confidential. Indicative terms for discussion only; not an offer or commitment to lend. Any commitment is subject to credit approval, satisfactory due diligence and agreed documentation. All amounts in AUD unless stated. Fictional transaction built for modelling practice; all parties are illustrative.*\n\n## 1. Transaction overview\n\n| Term | Description |\n| --- | --- |\n| Project | Coolabah Solar Farm: 100 MWac / c.130 MWdc single-axis tracker PV plant, Central-West Orana Renewable Energy Zone, NSW. Connection to the NEM via a 132 kV TransGrid line. |\n| Borrower | Coolabah Solar Project Co Pty Ltd, a newly incorporated single-purpose company with no other business or assets. |\n| Holdco | Coolabah Solar Holdings Pty Ltd, 100% owner of the Borrower. |\n| Sponsor | Wattlebank Renewable Partners Fund II (100% equity). |\n| Offtaker | Investment-grade NSW energy retailer (rated BBB+ / Baa1), under a 20-year fixed-price PPA. |\n| PPA | Pay-as-produced, bundled energy and LGCs. AUD 60.00/MWh at financial close, indexed at 100% of CPI annually. Tenor 20 years from COD, ending 30 June 2049. |\n| EPC Contractor | Tier-1 EPC contractor under a fixed-price, date-certain, lump-sum turnkey contract with parent company guarantee. |\n| O&M Contractor | Affiliate of the EPC Contractor, 5-year initial term with availability guarantee of 99.0%. |\n| Mandated Lead Arrangers | Bank A, Bank B and Bank C (club deal, equal hold of AUD 32.7m each). |\n| Facility Agent / Security Trustee | Bank A. |\n| Purpose | Fund construction capex, interest during construction, financing fees and commitment fees until COD. |\n| Recourse | Limited recourse to the Sponsor until financial completion; non-recourse thereafter. |\n\n## 2. Facilities\n\n| Term | Description |\n| --- | --- |\n| Senior Facility | AUD 98,000,000 Construction Facility, converting at COD into a Term Loan Facility of the same amount (mini-perm not used). |\n| DSRA LC Facility | AUD 5,000,000 letter of credit facility, available from COD to back the Debt Service Reserve Account in lieu of cash (optional; not reflected in model v1, where the DSRA is cash-funded at COD). |\n| Availability Period | From financial close (1 July 2027) to the earlier of COD and the Sunset Date (31 December 2029). Undrawn commitments are cancelled at the end of the Availability Period. |\n| Drawdowns | Semi-annual, pro rata with equity at a fixed gearing of 70% of each capex amount. Equity funds all financing costs (upfront fee, IDC, commitment fee). Minimum drawdown AUD 2.0m. |\n| Final Maturity | 30 June 2047: 18 years after scheduled COD, leaving a 2-year PPA tail. |\n| Total Tenor | 20 years from financial close (2-year construction + 18-year amortisation). |\n| Currency | AUD. |\n\n**Sources and uses at financial close (AUD k)**\n\n| Uses | AUD k | % | Sources | AUD k | % |\n| --- | --- | --- | --- | --- | --- |\n| Construction capex (EPC + owner's costs) | 140,000 | 95.5% | Senior Facility | 98,000 | 66.9% |\n| Interest during construction | 4,226 | 2.9% | Sponsor equity | 48,554 | 33.1% |\n| Upfront fee | 1,470 | 1.0% |  |  |  |\n| Commitment fee | 858 | 0.6% |  |  |  |\n| **Total uses** | **146,554** | **100.0%** | **Total sources** | **146,554** | **100.0%** |\n\nCapex is drawn 15% / 35% / 35% / 15% over the four construction semesters. Gearing is 70% of capex and 66.9% of total project cost.\n\n## 3. Pricing and fees\n\nAll-in cost of debt is 5.75% p.a. in the base case (BBSW 4.00% + 1.75% margin), flat over the life of the loan.\n\n| Term | Description |\n| --- | --- |\n| Interest Rate | 6-month BBSW (floored at 0%) plus the Margin, payable semi-annually in arrears on 30 June and 31 December. Day count actual/365. |\n| Margin | 1.75% p.a. during construction and operations. The Lenders reserve the right to propose margin step-ups from year 10 at credit approval. |\n| Base case BBSW | 4.00% p.a. (lenders' planning assumption). |\n| Upfront Fee | 1.50% of the Senior Facility (AUD 1,470k), payable on financial close. |\n| Commitment Fee | 40% of the Margin (0.70% p.a.) on undrawn and uncancelled commitments, payable semi-annually in arrears during the Availability Period. |\n| Agency Fee | AUD 50k p.a. (Facility Agent) and AUD 25k p.a. (Security Trustee), payable annually in advance. Not in model v1. |\n| Interest Rate Hedging | The Borrower must hedge at least 75% of projected debt outstanding for at least 10 years from financial close, through interest rate swaps with the Lenders on a pari passu basis. Model v1 assumes unhedged BBSW. |\n| Default Interest | 2.00% p.a. above the applicable rate. |\n| Break Costs | Payable on prepayment other than on an interest payment date. |\n| Taxes and Increased Costs | Standard gross-up and increased cost provisions (LMA / APLMA form). |\n\n## 4. Repayment, accounts and financial covenants\n\nDebt is sculpted to a 1.30x DSCR on P50 CFADS, with lock-up at 1.10x and default at 1.05x.\n\n| Term | Description |\n| --- | --- |\n| Repayment | 36 semi-annual instalments from 31 December 2029 to 30 June 2047, sculpted so that the projected DSCR equals the Target DSCR in each period of the Agreed Base Case. |\n| Target DSCR (sculpting) | 1.30x on P50 CFADS. |\n| Sizing constraints | Senior debt is the lowest of: (i) 70% of construction capex; (ii) the amount sculpted at 1.30x on P50 CFADS; (iii) the amount sculpted at 1.00x on one-year P99 CFADS. Model v1 holds debt as a fixed input of AUD 98.0m. |\n| Voluntary Prepayment | Permitted on any interest payment date with 10 business days' notice, minimum AUD 5.0m, applied in inverse order of maturity. Break costs apply. |\n| Mandatory Prepayment | Insurance and compensation proceeds not reinvested, EPC liquidated damages for performance, PPA termination payments, and disposal proceeds. |\n| Debt Service Reserve Account | Balance equal to the next 6 months of scheduled senior debt service, funded at COD by cash or by the DSRA LC Facility. |\n| Maintenance Reserve Account | Funded from cash flow to cover inverter replacement in years 10 to 12, per the Independent Engineer's schedule. Not in model v1. |\n\n**Financial covenants (tested semi-annually from the second calculation date after COD)**\n\n| Ratio | Calculation | Level |\n| --- | --- | --- |\n| Historic DSCR | CFADS over the last 12 months ÷ senior debt service over the same period | Lock-up < 1.10x; Event of Default < 1.05x |\n| Projected DSCR | Next 12 months, per the updated Base Case | Lock-up < 1.10x |\n| Maximum gearing | Senior debt ÷ construction capex at financial close | 70% |\n\n**Cash flow waterfall (operations)**\n\n1. Operating costs, taxes and statutory payments\n2. Agency and Security Trustee fees, senior hedging periodic payments\n3. Senior interest and commitment fees\n4. Senior principal and hedge termination payments (pari passu)\n5. Top-up of the Debt Service Reserve Account\n6. Top-up of the Maintenance Reserve Account\n7. Distribution Account, subject to the Distribution Conditions\n\n**Distribution Conditions:** no Default outstanding; historic and projected DSCR at or above 1.10x; DSRA and MRA fully funded; first repayment instalment paid. Cash trapped for 4 consecutive periods is applied to prepay the Senior Facility (cash sweep).\n\n## 5. Security, conditions and undertakings\n\n| Term | Description |\n| --- | --- |\n| Security | First-ranking security over all present and after-acquired property of the Borrower (General Security Deed); specific security over Holdco's shares in the Borrower; real property mortgage over the site lease; tripartite deeds with the Offtaker, EPC Contractor, O&M Contractor and grid connection provider; assignment of insurances and of all Project accounts. |\n| Sponsor Support | Equity commitment letter for AUD 48.6m, backed by an LC from an A- rated bank until fully contributed. Cost overrun facility of 10% of capex (AUD 14.0m) until financial completion. |\n| Conditions Precedent to financial close | Executed finance documents and Project documents; legal, technical (Independent Engineer), insurance, model audit and tax due diligence reports satisfactory to the Lenders; Agreed Base Case showing minimum DSCR of 1.30x; development approval and grid connection agreement (GPS registration under NER clause 5.3.4A); hedging executed; KYC; legal opinions; equity commitment in place. |\n| Conditions Precedent to each drawdown | IE drawdown certificate; pro rata equity contributed; no Default; representations true; cost-to-complete test satisfied. |\n| Financial Completion | COD reached, IE completion certificate, 6-month reliability run at 97% availability, DSRA funded, and first historic DSCR at or above 1.20x. Sponsor support falls away on Financial Completion. |\n| Representations | Customary for a limited-recourse financing: status, power, authorisations, no default, ranking of security, accuracy of information and Base Case, environmental compliance, sanctions and anti-corruption. |\n| Undertakings | Single-purpose activity; no additional financial indebtedness (permitted basket AUD 2.0m); no disposal; maintain Project documents and insurances; semi-annual compliance certificate; annual audited accounts within 120 days; quarterly construction and semi-annual operating reports; updated Base Case each calculation date. |\n| Events of Default | Non-payment (3 business days grace); historic DSCR below 1.05x; breach of other obligations (30 days); misrepresentation; cross-default of the Borrower; insolvency; termination or material breach of the PPA, EPC or grid connection agreement without replacement within 90 days; loss of authorisations; abandonment; COD not reached by the Sunset Date; change of control before Financial Completion. |\n| Insurance | Construction all risks, delay in start-up (12 months), operating all risks with business interruption (18 months), third-party liability. Lenders named as co-insured and loss payees. |\n\n## 6. Agreed Base Case and general terms\n\nThe base case generates EBITDA of AUD 11.4m in the first year of operations, a 77% margin. Debt capacity sculpted at 1.30x on pre-tax P50 CFADS is c.AUD 111m, leaving c.12% headroom over the AUD 98.0m facility before tax.\n\n| Assumption | Base case | First operating year (FY30) |\n| --- | --- | --- |\n| Capacity | 100 MWac |  |\n| P50 capacity factor | 27.0% (single-axis tracker) |  |\n| Availability | 99.0% |  |\n| Degradation | 0.5% p.a. from operating year 2 |  |\n| Net energy |  | 234,155 MWh |\n| PPA price | AUD 60.00/MWh at FC, 100% CPI | AUD 63.04/MWh |\n| Revenue |  | AUD 14.76m |\n| Operating costs (O&M AUD 18k/MW, land lease, insurance, asset management) | AUD 3.20m p.a. real | AUD 3.36m |\n| EBITDA |  | AUD 11.40m |\n| CPI | 2.5% p.a., applied annually |  |\n| Corporate tax | 30%, straight-line tax depreciation over 20 years, losses carried forward |  |\n\n| Term | Description |\n| --- | --- |\n| Lenders' advisers | Independent Engineer, Legal Counsel, Insurance Adviser and Model Auditor, appointed by the Lenders at the Borrower's cost. |\n| Transfers | Lenders may assign or transfer to banks and financial institutions with Borrower consent (not unreasonably withheld; deemed after 10 business days). No consent needed after an Event of Default. |\n| Majority Lenders | 66⅔% of commitments or outstanding loans. |\n| Expenses | All reasonable costs of the Lenders and their advisers borne by the Borrower, whether or not financial close occurs. |\n| Governing law | New South Wales, Australia. Documentation based on APLMA templates. |\n| Validity | These indicative terms expire on 31 January 2027. |\n\n**Open points before credit approval**\n\n- [ ] Extend model v1 to operations, debt sculpting and tax to confirm after-tax DSCR and LLCR.\n- [ ] Obtain P90 and P99 energy yield from the Independent Engineer for the sizing constraints.\n- [ ] Add hedging, agency fees, DSRA funding and the Maintenance Reserve Account to the model.\n- [ ] Confirm the Offtaker's credit rating and PPA termination payment regime.\n";
@@ -2431,7 +2435,8 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     const eb = $('errorBox');
     if (!res.ok) { eb.hidden = false; eb.innerHTML = '<b>The model can\'t run with these inputs.</b><br>' + res.errors.map(esc).join('<br>'); return; }
     eb.hidden = true;
-    renderHeader(); renderOverview(); renderDebt(); renderCashflow(); renderSens(); renderControlStatus();
+    renderHeader(); renderOverview(); renderDebt(); renderCashflow(); renderControlStatus();
+    if (!document.querySelector('[data-panel="sens"]').hidden) renderSens(); // about 1,000 model runs: only when visible
   }
 
   // ---------- Assumptions ----------
@@ -2662,26 +2667,61 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       renderSens();
     }));
 
-    // Breakevens: multiplier on one input such that min post-tax DSCR = threshold
+    renderBreakevens();
+  }
+
+  // ---------- Breakevens ----------
+  // For one input at a time, the value at which a threshold is reached (everything else as in the base case).
+  // Each input is stressed along t from 0 (base case) to 1 (extreme), and t is found by bisection.
+  const BE_INPUTS = [
+    { label: 'PPA price', get: (d) => d.operations.ppa_price_fc, apply: (d, t) => (d.operations.ppa_price_fc *= 1 - 0.9 * t),
+      show: (v, v0) => cur() + ' ' + v.toFixed(2) + '/MWh', move: (v, v0) => pc(v / v0 - 1), thin: (v, v0) => 1 - v / v0 < 0.10 },
+    { label: 'Energy yield (P50 capacity factor)', get: (d) => d.operations.capacity_factor_p50, apply: (d, t) => (d.operations.capacity_factor_p50 *= 1 - 0.9 * t),
+      show: (v) => pc(v, 1), move: (v, v0) => pc(v / v0 - 1) + ' yield', thin: (v, v0) => 1 - v / v0 < 0.10 },
+    { label: 'Availability', get: (d) => d.operations.availability, apply: (d, t) => (d.operations.availability -= 0.5 * t),
+      show: (v) => pc(v, 1), move: (v, v0) => '−' + ((v0 - v) * 100).toFixed(1) + ' pt', thin: (v, v0) => v0 - v < 0.02 },
+    { label: 'Operating costs', get: (d) => d.operations.opex_real_fc, apply: (d, t) => (d.operations.opex_real_fc *= 1 + 9 * t),
+      show: (v) => cur() + ' ' + (v / 1000).toFixed(2) + 'm p.a.', move: (v, v0) => '+' + pc(v / v0 - 1, 0), thin: (v, v0) => v / v0 - 1 < 0.20 },
+    { label: 'Base rate (BBSW)', get: (d) => d.senior_debt.base_rate, apply: (d, t) => (d.senior_debt.base_rate += 0.2 * t),
+      show: (v) => pc(v, 2), move: (v, v0) => '+' + Math.round((v - v0) * 10000) + ' bp', thin: (v, v0) => v - v0 < 0.01 },
+    { label: 'Degradation', get: (d) => d.operations.degradation, apply: (d, t) => (d.operations.degradation += 0.05 * t),
+      show: (v) => pc(v, 2) + ' p.a.', move: (v, v0) => '+' + ((v - v0) * 100).toFixed(2) + ' pt', thin: (v, v0) => v - v0 < 0.005 },
+  ];
+  function breakeven(input, metric, thr) {
+    const at = (t) => { const d = clone(deal); input.apply(d, t); const r = PFEngine.run(d); return r.ok ? metric(r.summary) : -Infinity; };
+    if (!(at(0) >= thr)) return { below: true };
+    if (at(1) >= thr) return { beyond: true };
+    let lo = 0, hi = 1;
+    for (let i = 0; i < 35; i++) { const mid = (lo + hi) / 2; if (at(mid) >= thr) lo = mid; else hi = mid; }
+    const d = clone(deal); input.apply(d, hi);
+    return { t: hi, v: input.get(d) };
+  }
+  function renderBreakevens() {
     const C = deal.covenants;
-    const be = (mutate, thr) => {
-      let lo = 0.2, hi = 1.0;
-      const f = (k) => { const d = clone(deal); mutate(d, k); const r = PFEngine.run(d); return r.ok ? r.summary.minDscrPost : 0; };
-      if (f(hi) < thr) return null;
-      for (let i = 0; i < 50; i++) { const mid = (lo + hi) / 2; if (f(mid) >= thr) hi = mid; else lo = mid; }
-      return hi;
-    };
-    const bePrice = (thr) => be((d, k) => (d.operations.ppa_price_fc *= k), thr);
-    const beYield = (thr) => be((d, k) => (d.operations.capacity_factor_p50 *= k), thr);
-    const fmtBe = (k, unitFn) => (k == null ? 'Already below' : unitFn(k));
-    const p0 = deal.operations.ppa_price_fc, cf0 = deal.operations.capacity_factor_p50;
-    const rows = [
-      ['PPA price for min DSCR = ' + x2(C.lockup_dscr) + ' (lock-up)', fmtBe(bePrice(C.lockup_dscr), (k) => cur() + ' ' + (p0 * k).toFixed(2) + '/MWh · ' + pc(k - 1))],
-      ['PPA price for min DSCR = 1.00x', fmtBe(bePrice(1.0), (k) => cur() + ' ' + (p0 * k).toFixed(2) + '/MWh · ' + pc(k - 1))],
-      ['Capacity factor for min DSCR = ' + x2(C.lockup_dscr), fmtBe(beYield(C.lockup_dscr), (k) => pc(cf0 * k) + ' · ' + pc(k - 1) + ' yield')],
-      ['Capacity factor for min DSCR = 1.00x', fmtBe(beYield(1.0), (k) => pc(cf0 * k) + ' · ' + pc(k - 1) + ' yield')],
+    const dscr = (s) => s.minDscrPost, irr = (s) => (s.equityIrr == null ? -1 : s.equityIrr);
+    const levels = [
+      ['Min DSCR = ' + x2(C.lockup_dscr), 'lock-up', dscr, C.lockup_dscr],
+      ['Min DSCR = ' + x2(C.default_dscr), 'event of default', dscr, C.default_dscr],
+      ['Min DSCR = 1.00x', 'cash just covers debt service', dscr, 1.0],
+      ['Equity IRR = 0%', 'sponsor gets its money back', irr, 0],
     ];
-    $('beTable').innerHTML = '<tbody>' + rows.map((r) => '<tr><td>' + r[0] + '</td><td class="n">' + r[1] + '</td></tr>').join('') + '</tbody>';
+    let h = '<thead><tr><th>Input</th><th>Base case</th>' + levels.map((l) => '<th>' + l[0] + '<br><span class="muted" style="text-transform:none;font-weight:400;letter-spacing:0">' + l[1] + '</span></th>').join('') + '</tr></thead><tbody>';
+    for (const inp of BE_INPUTS) {
+      const v0 = inp.get(deal);
+      h += '<tr><td>' + inp.label + '</td><td>' + inp.show(v0, v0) + '</td>';
+      for (const [, , metric, thr] of levels) {
+        const b = breakeven(inp, metric, thr);
+        if (b.below) h += '<td><span class="pill crit">Already below</span></td>';
+        else if (b.beyond) h += '<td class="muted">Not reached</td>';
+        else {
+          // In red when the cushion is thin: under 10% on price or yield, 2 pt of availability, 20% of opex, 100 bp, 0.5 pt of degradation.
+          const thin = inp.thin(b.v, v0);
+          h += '<td><b>' + inp.show(b.v, v0) + '</b><br><span class="' + (thin ? 'thin' : 'muted') + '" style="font-size:12px">' + inp.move(b.v, v0) + '</span></td>';
+        }
+      }
+      h += '</tr>';
+    }
+    $('beTable').innerHTML = h + '</tbody>';
   }
 
   // ---------- Term sheet ----------
@@ -2876,6 +2916,7 @@ TERM SHEET:
     document.querySelectorAll('.tab').forEach((t) => t.setAttribute('aria-selected', t.dataset.tab === name ? 'true' : 'false'));
     document.querySelectorAll('[data-panel]').forEach((p) => (p.hidden = p.dataset.panel !== name));
     if (deal && name === 'assumptions') renderControl();
+    if (res && res.ok && name === 'sens') renderSens();
     try { history.replaceState(null, '', location.pathname + location.search + '#' + name); } catch (e) {}
     if (res && res.ok) { if (name === 'overview') renderOverview(); if (name === 'debt') renderDebt(); }
   }

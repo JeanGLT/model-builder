@@ -22,13 +22,13 @@
   }
   const DATE = '(\\d{1,2}\\s+[A-Za-z]+\\s+\\d{4}|\\d{4}-\\d{2}-\\d{2})';
 
-  // Splits the document into table rows, remembering the section ("§2") each row sits in.
+  // Splits the document into table rows, remembering the section ("Section 2") each row sits in.
   function rowsOf(md) {
     const rows = [];
     let section = 'Summary';
     for (const line of md.replace(/\r/g, '').split('\n')) {
       const h = line.match(/^##\s+(\d+)\./);
-      if (h) { section = '§' + h[1]; continue; }
+      if (h) { section = 'Section ' + h[1]; continue; }
       if (!line.trim().startsWith('|') || /^\|\s*-/.test(line.trim())) continue;
       const cells = line.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim().replace(/\*\*/g, ''));
       rows.push({ section, label: cells[0], cells, text: cells.slice(1).join(' | ') });
@@ -57,7 +57,7 @@
         const v = convert(m[1], m);
         if (v === null || v === undefined || (typeof v === 'number' && isNaN(v))) continue;
         setPath(path, v);
-        deal.sources[path] = r.section + ' ' + r.label + ': ' + short(m[0]);
+        deal.sources[path] = r.section + ' · ' + r.label + ': ' + short(m[0]);
         return true;
       }
       return false;
@@ -93,7 +93,7 @@
     const prof = flat.match(/[Cc]apex is drawn ((?:\d+(?:\.\d+)?%\s*\/\s*)+\d+(?:\.\d+)?%)/);
     if (prof) {
       deal.construction.capex_profile = prof[1].split('/').map((x) => pct(x));
-      deal.sources['construction.capex_profile'] = '§2 Capex drawn ' + prof[1];
+      deal.sources['construction.capex_profile'] = 'Section 2 · Capex drawn ' + prof[1];
     } else missing.push('capex drawdown profile ("Capex is drawn 15% / 35% / …")');
 
     // Operations
