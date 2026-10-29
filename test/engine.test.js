@@ -3,7 +3,16 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const engine = require('../src/engine.js');
-const deal = require('../deal.json');
+// The golden values were recomputed by hand for the v1 scope of the term sheet: no hedging,
+// agency fees or maintenance reserve. v1() strips those terms; their own tests are further down.
+const full = require('../deal.json');
+function v1(d) {
+  const x = JSON.parse(JSON.stringify(d));
+  delete x.maintenance; delete x.operations.p90_factor; delete x.operations.p99_factor;
+  for (const k of ['agency_fee', 'hedge_ratio', 'hedge_years', 'swap_rate']) delete x.senior_debt[k];
+  return x;
+}
+const deal = v1(full);
 
 const r = engine.run(deal);
 const s = r.summary;
@@ -90,7 +99,7 @@ test('bad inputs are rejected with a clear message', () => {
 });
 
 test('quarterly periods give the same deal on a finer grid', () => {
-  const base = require('../deal.json');
+  const base = full;
   const semi = engine.run(base);
   const q = engine.run(Object.assign({}, base, { timeline: Object.assign({}, base.timeline, { periodicity: 'quarterly' }) }));
   assert.ok(q.ok, q.errors && q.errors.join('; '));

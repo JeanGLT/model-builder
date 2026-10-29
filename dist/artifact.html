@@ -154,6 +154,9 @@ table { border-collapse: collapse; width: 100%; }
 .su th { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
 .su td.n, .su th.n { text-align: right; }
 .su tr.tot td { font-weight: 600; border-bottom: 0; border-top: 1px solid var(--text); }
+.su tr.case { cursor: pointer; }
+.su tr.case:hover td { background: var(--accent-soft); }
+.su tr.case.on td { font-weight: 600; background: var(--accent-soft); }
 
 .scroll { overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); max-height: 72vh; }
 .cf { font-size: 12px; white-space: nowrap; }
@@ -288,12 +291,12 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     <div class="card step">
       <span class="num">2</span>
       <h3>The assumptions</h3>
-      <p>Every figure read from the term sheet is listed with the clause it comes from. Change any of them and choose semi-annual or quarterly periods.</p>
+      <p>Every figure read from the term sheet is listed with the clause it comes from. Change any of them, choose semi-annual or quarterly periods, and test the P90, P99 and Downside cases.</p>
     </div>
     <div class="card step">
       <span class="num">3</span>
       <h3>The Excel model</h3>
-      <p>One click builds the Excel file: inputs, a calculation sheet made only of live formulas, outputs (debt sizing, DSCR, LLCR, equity IRR) and checks.</p>
+      <p>One click builds a 15-sheet Excel model laid out like a bank's: inputs, lender cases, operations, debt sizing and sculpting, reserves, waterfall, ratios, returns and checks. Every calculation is a live formula.</p>
     </div>
   </section>
 
@@ -327,6 +330,8 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
         <div class="cc-top">
           <div><div class="label" style="margin-bottom:6px">Model periods</div>
             <div class="seg" role="group" aria-label="Model periods"><button type="button" data-per="semi-annual">Semi-annual</button><button type="button" data-per="quarterly">Quarterly</button></div></div>
+          <div><div class="label" style="margin-bottom:6px">Lender case</div>
+            <div class="seg" role="group" aria-label="Lender case"><button type="button" data-sc="base">Base (P50)</button><button type="button" data-sc="p90">P90</button><button type="button" data-sc="p99">P99</button><button type="button" data-sc="downside">Downside</button></div></div>
           <div><div class="label" style="margin-bottom:6px">Inputs</div><div class="pills" id="ccPills"></div></div>
         </div>
       </div>
@@ -354,7 +359,20 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     </section>
 
     <section class="panel" data-panel="overview" hidden>
+      <div class="callout callout-warn" id="scNote" hidden></div>
       <div class="kpis" id="kpis"></div>
+      <div class="grid2">
+        <div class="card">
+          <h2>Debt sizing</h2>
+          <div class="note">Senior debt is the lowest of three constraints, all on the base case. The repayment schedule is then fixed: every other case runs against it.</div>
+          <table class="su" id="sizing"></table>
+        </div>
+        <div class="card">
+          <h2>Lender cases</h2>
+          <div class="note">The same debt and repayment schedule, tested in each case. Click a case to model it.</div>
+          <div style="overflow-x:auto"><table class="su" id="cases"></table></div>
+        </div>
+      </div>
       <div class="grid2">
         <div class="card">
           <h2>Credit points</h2>
@@ -415,12 +433,12 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     <section class="panel" data-panel="sens" hidden>
       <div class="card">
         <h2>Sensitivities</h2>
-        <div class="note">Each row reruns the full model with one shock. Edit the shocks in blue. The debt amount stays as in the inputs unless sizing is set to "lower of".</div>
+        <div class="note">Each row reruns the full model with one shock, against the debt and repayment schedule fixed at financial close, as a lender would. Edit the shocks in blue.</div>
         <div style="overflow-x:auto"><table class="sens" id="sensTable"></table></div>
       </div>
       <div class="card">
         <h2>Breakevens</h2>
-        <div class="note">How far each input can move, on its own, before a lender or sponsor threshold is reached. Each cell gives the value of that input at the threshold and the move from the base case; a small move means a thin cushion. The debt amount stays as in the inputs.</div>
+        <div class="note">How far each input can move, on its own, before a lender or sponsor threshold is reached. Each cell gives the value of that input at the threshold and the move from the base case; a small move means a thin cushion. The debt and its repayment schedule stay as fixed at financial close.</div>
         <div style="overflow-x:auto"><table class="sens be" id="beTable"></table></div>
       </div>
     </section>
@@ -434,11 +452,13 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
         <ol>
           <li><b>Timeline.</b> Semi-annual periods ending 30 June and 31 December (or quarterly periods, chosen in the Assumptions tab), from financial close to PPA expiry. Australian financial year (July–June).</li>
           <li><b>Operations.</b> Energy = MW × 8,760 × P50 capacity factor × availability × degradation. Revenue = energy × PPA price, indexed to CPI in annual steps from financial close. Opex is indexed the same way. Annual figures are split equally between the periods of the year.</li>
-          <li><b>Debt sizing.</b> CFADS (pre-tax) is discounted at the all-in rate over the debt tenor. Capacity at the target DSCR = PV of CFADS ÷ target DSCR. With "lower of" sizing, the debt is the lower of that capacity and maximum gearing × capex.</li>
+          <li><b>Interest rates.</b> All-in rate = margin + BBSW, except on the hedged share of the debt (for example 75% for 10 years), where the swap rate replaces BBSW.</li>
+          <li><b>Debt sizing.</b> Base case (P50) CFADS, after agency fees, is discounted period by period over the debt tenor. The debt is the lowest of (i) maximum gearing × capex, (ii) PV of CFADS ÷ target DSCR, (iii) PV of one-year P99 CFADS ÷ 1.00x.</li>
           <li><b>Construction.</b> Capex follows the drawdown profile; debt is drawn pro rata at the effective gearing. Equity pays its share of capex plus IDC, commitment fee and the upfront fee.</li>
-          <li><b>Repayment.</b> Sculpted: debt service in each period = CFADS ÷ the constant DSCR that repays the debt exactly at maturity (PV of CFADS ÷ debt). Annuity and linear profiles are also available.</li>
+          <li><b>Repayment.</b> Sculpted: debt service in each period = base case CFADS ÷ the constant DSCR that repays the debt exactly at maturity (PV of CFADS ÷ debt). Annuity and linear profiles are also available. The principal schedule is then fixed: the P90, P99 and Downside cases, the sensitivities and the breakevens all run against it, as lenders test a deal after financial close.</li>
           <li><b>Tax.</b> Straight-line depreciation of the total project cost from COD; taxable income = EBITDA − depreciation − interest; losses carried forward; 30% corporate tax.</li>
           <li><b>Ratios.</b> DSCR pre- and post-tax per period, 12-month historic DSCR (tested from the second calculation date), LLCR and PLCR from a backward PV recursion.</li>
+          <li><b>Maintenance reserve.</b> The inverter replacement (real cost, indexed to CPI) is spent over the operating years set in the term sheet; the MRA is funded equally over the years before, after the DSRA in the waterfall. A replacement the MRA cannot cover is paid from cash. It is deductible for tax when paid.</li>
           <li><b>DSRA and waterfall.</b> DSRA target = next 6 months of debt service, funded by equity at COD, topped up from cash flow and released when the target falls. Distributions are blocked during lock-up or while the DSRA is short; trapped cash is released once the test is passed again.</li>
           <li><b>Equity returns.</b> Equity IRR on the period flows (contributions, DSRA funding, distributions), annualised as (1 + IRR)² − 1, or (1 + IRR)⁴ − 1 when quarterly. No terminal value after the PPA.</li>
         </ol>
@@ -450,7 +470,8 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
         <ul>
           <li>Sculpting follows the term sheet on <b>pre-tax</b> CFADS. The post-tax DSCR is shown next to it, because tax can push it below the sculpting target once tax losses run out.</li>
           <li>The DSRA is funded by a separate equity contribution at COD, outside the sources and uses at financial close.</li>
-          <li>Interest is calculated as balance × annual rate ÷ 2, or ÷ 4 when quarterly (no day count).</li>
+          <li>Interest is calculated as balance × annual rate ÷ 2, or ÷ 4 when quarterly (no day count). Swaps simply replace BBSW on the hedged share: no mark-to-market or break costs.</li>
+          <li>Lender cases: P90 and P99 apply the one-year energy yield to every year (conservative); Downside is P90 with operating costs +10% and BBSW +100 bp on the unhedged debt.</li>
           <li>In a quarterly model, the capex of each construction semester is spread equally over its two quarters.</li>
         </ul>
 
@@ -462,7 +483,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
         </ul>
 
         <h3>Not in this version</h3>
-        <p>Interest rate hedging, agency fees, maintenance reserve, cash sweep, P90 / P99 sizing, margin step-ups, multiple tranches and terminal value.</p>
+        <p>Cash sweep, margin step-ups, multiple tranches, a DSRA letter of credit, swap mark-to-market and terminal value.</p>
       </div>
     </section>
 
@@ -533,19 +554,51 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     return errors;
   }
 
-  function run(deal) {
+  // Lender cases. Each one changes the operating cash flows (energy, opex) and/or the base rate.
+  // The debt and its repayment schedule always come from the base case: they are fixed at
+  // financial close, and every other case is tested against them.
+  const SCENARIOS = {
+    base: { label: 'Base case (P50)' },
+    p90: { label: 'P90 (one-year)' },
+    p99: { label: 'P99 (one-year)' },
+    downside: { label: 'Downside (P90, opex +10%, BBSW +100 bp)' },
+  };
+  function scenarioParams(deal) {
+    const O = deal.operations, dn = deal.downside || {};
+    const p90 = O.p90_factor || 1, p99 = O.p99_factor || 1;
+    switch (deal.scenario || 'base') {
+      case 'p90': return { energy: p90, opex: 1, rate: 0 };
+      case 'p99': return { energy: p99, opex: 1, rate: 0 };
+      case 'downside': return { energy: p90, opex: 1 + (dn.opex_uplift == null ? 0.10 : dn.opex_uplift), rate: dn.rate_shock == null ? 0.01 : dn.rate_shock };
+      default: return { energy: 1, opex: 1, rate: 0 };
+    }
+  }
+  // The part of a result that is fixed at financial close: debt amount and principal per period.
+  function scheduleOf(res) { return { amount: res.summary.amount, principal: res.series.principal.slice() }; }
+
+  // opts.schedule: { amount, principal[] } runs the deal against a given debt schedule
+  // (used for stress cases and sensitivities) instead of sizing and sculpting it.
+  function run(deal, opts) {
+    opts = opts || {};
     const errors = validate(deal);
+    if (deal.scenario && !SCENARIOS[deal.scenario]) errors.push('Unknown scenario "' + deal.scenario + '".');
     if (errors.length) return { ok: false, errors };
+    if ((deal.scenario || 'base') !== 'base' && !opts.schedule) {
+      const b = run(Object.assign({}, deal, { scenario: 'base' }));
+      if (!b.ok) return b;
+      return run(deal, { schedule: scheduleOf(b) });
+    }
 
     const C = deal.construction, O = deal.operations, T = deal.tax, D = deal.senior_debt;
+    const M = deal.maintenance || {};
+    const sc = scenarioParams(deal);
     const fc = parseDate(deal.timeline.financial_close);
     const pm = monthsPerPeriod(deal);                           // months per period
     const ppy = 12 / pm;                                        // periods per year
     const nC = monthsFrom(fc, deal.timeline.cod) / pm;          // construction periods
     const nM = monthsFrom(fc, deal.timeline.debt_maturity) / pm; // last debt period
     const N = monthsFrom(fc, deal.timeline.ppa_end) / pm;        // last period
-    const r = D.base_rate + D.margin;
-    const rs = r / ppy;                                         // interest rate per period
+    const r = D.base_rate + D.margin;                           // unhedged all-in rate p.a.
 
     // ---- Timeline -------------------------------------------------------
     const periods = [];
@@ -563,34 +616,64 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     const fy1 = periods[0].fy;
     const z = () => new Array(N).fill(0);
 
-    // ---- B. Operations (computed first: sizing depends on CFADS) ---------
-    const energy = z(), revenue = z(), opex = z(), ebitda = z(), index = z();
-    for (let i = nC; i < N; i++) {
-      const p = periods[i];
-      const idx = Math.pow(1 + O.cpi, p.fy - fy1);
-      const deg = Math.pow(1 - O.degradation, p.opYear - 1);
-      const annualE = O.capacity_mw * 8760 * O.capacity_factor_p50 * O.availability * deg;
-      const priceIdx = 1 + (idx - 1) * O.ppa_indexation;
-      index[i] = idx;
-      energy[i] = annualE / ppy;
-      revenue[i] = (annualE * O.ppa_price_fc * priceIdx / 1000) / ppy;
-      opex[i] = (O.opex_real_fc * idx) / ppy;
-      ebitda[i] = revenue[i] - opex[i];
+    // ---- Interest rates per period ----------------------------------------
+    // A share of the debt is swapped to a fixed rate for the first years from financial close.
+    // baseRate: base case (used to size and sculpt); rate: this case (BBSW shock on the unhedged part).
+    const hedgeRatio = D.hedge_ratio || 0, hedgeMonths = (D.hedge_years || 0) * 12;
+    const swap = D.swap_rate == null ? D.base_rate : D.swap_rate;
+    const hedgeShare = z(), baseRate = z(), rate = z();
+    for (let i = 0; i < N; i++) {
+      hedgeShare[i] = pm * (i + 1) <= hedgeMonths ? hedgeRatio : 0;
+      const h = hedgeShare[i];
+      baseRate[i] = (D.margin + h * swap + (1 - h) * D.base_rate) / ppy;
+      rate[i] = (D.margin + h * swap + (1 - h) * (D.base_rate + sc.rate)) / ppy;
     }
-    const cfadsPre = ebitda.slice();
+
+    // ---- B. Operations (computed first: sizing depends on CFADS) ---------
+    // ops(energy factor, opex factor) -> energy, revenue, opex, EBITDA for every period.
+    const index = z(), agency = z();
+    for (let i = nC; i < N; i++) {
+      index[i] = Math.pow(1 + O.cpi, periods[i].fy - fy1);
+      if (i < nM) agency[i] = (D.agency_fee || 0) / ppy; // facility agent and security trustee, while the debt is outstanding
+    }
+    function ops(eF, oF) {
+      const energy = z(), revenue = z(), opex = z(), ebitda = z();
+      for (let i = nC; i < N; i++) {
+        const p = periods[i];
+        const deg = Math.pow(1 - O.degradation, p.opYear - 1);
+        const annualE = O.capacity_mw * 8760 * O.capacity_factor_p50 * O.availability * deg * eF;
+        const priceIdx = 1 + (index[i] - 1) * O.ppa_indexation;
+        energy[i] = annualE / ppy;
+        revenue[i] = (annualE * O.ppa_price_fc * priceIdx / 1000) / ppy;
+        opex[i] = (O.opex_real_fc * index[i] * oF) / ppy;
+        ebitda[i] = revenue[i] - opex[i];
+      }
+      return { energy, revenue, opex, ebitda };
+    }
+    const { energy, revenue, opex, ebitda } = ops(sc.energy, sc.opex);
+    const cfadsPre = ebitda.map((e, i) => e - agency[i]);
+    const baseOps = ops(1, 1); // base case P50, always: the debt is sized and sculpted on it
+    const sculptCfads = baseOps.ebitda.map((e, i) => e - agency[i]);
+    const cfadsP99 = O.p99_factor ? ops(O.p99_factor, 1).ebitda.map((e, i) => e - agency[i]) : null;
 
     // ---- Debt sizing ----------------------------------------------------
     const nRep = nM - nC;
-    const df = []; // discount factor for each repayment period, from COD
-    for (let k = 1; k <= nRep; k++) df.push(Math.pow(1 + rs, -k));
-    const pvCfads = sum(df.map((f, k) => f * cfadsPre[nC + k]));
+    // PV at COD of a cash flow over the debt tenor, discounted period by period.
+    const pvAtCod = (cf, rt) => { let pv = 0; for (let i = nM - 1; i >= nC; i--) pv = (cf[i] + pv) / (1 + rt[i]); return pv; };
+    const pvCfads = pvAtCod(sculptCfads, baseRate);
     const capacityAtTarget = pvCfads / D.target_dscr;
+    const capacityP99 = cfadsP99 ? pvAtCod(cfadsP99, baseRate) / 1.0 : null;
     const gearingCap = C.capex_total * D.gearing;
     let amount = D.amount;
     let sizingBinding = 'fixed input';
-    if (D.sizing === 'lower_of') {
-      amount = Math.min(gearingCap, capacityAtTarget);
-      sizingBinding = gearingCap <= capacityAtTarget ? 'gearing' : 'DSCR';
+    if (opts.schedule) {
+      amount = opts.schedule.amount;
+      sizingBinding = 'fixed at base case';
+    } else if (D.sizing === 'lower_of') {
+      const caps = [['gearing', gearingCap], ['DSCR', capacityAtTarget]];
+      if (capacityP99 != null) caps.push(['P99', capacityP99]);
+      caps.sort((a, b) => a[1] - b[1]);
+      [sizingBinding, amount] = caps[0];
     }
     const effGearing = amount / C.capex_total;
 
@@ -603,7 +686,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       capex[i] = C.capex_total * C.capex_profile[Math.floor(i * pm / 6)] * pm / 6;
       draw[i] = capex[i] * effGearing;
       debtOpen[i] = bal;
-      idc[i] = bal * rs;
+      idc[i] = bal * rate[i];
       commit[i] = undrawn * D.margin * D.commitment_fee_pct_margin / ppy;
       if (i === 0) upfront[i] = amount * D.upfront_fee;
       equityIn[i] = capex[i] - draw[i] + idc[i] + commit[i] + upfront[i];
@@ -615,27 +698,40 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     const projectCost = C.capex_total + totalIdc + totalCommit + totalUpfront;
 
     // ---- C. Repayment profile -------------------------------------------
-    let sculptDscr = null;
-    if (D.repayment === 'sculpted') {
-      sculptDscr = pvCfads / amount;
-      for (let k = 0; k < nRep; k++) debtService[nC + k] = cfadsPre[nC + k] / sculptDscr;
-    } else if (D.repayment === 'annuity') {
-      const pmt = amount * rs / (1 - Math.pow(1 + rs, -nRep));
-      for (let k = 0; k < nRep; k++) debtService[nC + k] = pmt;
-    }
+    // Principal comes from the base case: sculpted (base CFADS / constant DSCR, less base-case
+    // interest), annuity (at the unhedged rate) or linear. Interest is then this case's rate.
+    const sculptDscr = D.repayment === 'sculpted' ? pvCfads / amount : null;
+    const rsU = r / ppy;
+    const pmt = amount * rsU / (1 - Math.pow(1 + rsU, -nRep));
     for (let i = nC; i < nM; i++) {
       debtOpen[i] = bal;
-      interest[i] = bal * rs;
-      if (D.repayment === 'linear') {
-        principal[i] = amount / nRep;
-        debtService[i] = principal[i] + interest[i];
-      } else {
-        principal[i] = debtService[i] - interest[i];
-      }
+      interest[i] = bal * rate[i];
+      if (opts.schedule) principal[i] = opts.schedule.principal[i];
+      else if (D.repayment === 'linear') principal[i] = amount / nRep;
+      else if (D.repayment === 'annuity') principal[i] = pmt - bal * rsU;
+      else principal[i] = sculptCfads[i] / sculptDscr - bal * baseRate[i];
+      debtService[i] = interest[i] + principal[i];
       bal -= principal[i];
       debtClose[i] = bal;
     }
     const balanceAtMaturity = bal;
+
+    // ---- Maintenance reserve (planned amounts) ---------------------------
+    // Inverter replacement spent equally over operating years from..to, in nominal terms;
+    // the MRA is funded equally over the funding years just before, up to the total spend.
+    const mraSpend = z(), mraPlan = z();
+    if (M.cost_real > 0) {
+      const spendYears = M.to_year - M.from_year + 1;
+      for (let i = nC; i < N; i++) {
+        const y = periods[i].opYear;
+        if (y >= M.from_year && y <= M.to_year) mraSpend[i] = M.cost_real * index[i] / (spendYears * ppy);
+      }
+      const target = sum(mraSpend);
+      for (let i = nC; i < N; i++) {
+        const y = periods[i].opYear;
+        if (y >= M.from_year - M.funding_years && y < M.from_year) mraPlan[i] = target / (M.funding_years * ppy);
+      }
+    }
 
     // ---- D. Tax ---------------------------------------------------------
     const depreciation = z(), taxable = z(), lossUsed = z(), lossBal = z(), tax = z();
@@ -643,7 +739,8 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     let losses = 0;
     for (let i = nC; i < N; i++) {
       if (i - nC < T.depreciation_years * ppy) depreciation[i] = depPerPeriod;
-      taxable[i] = ebitda[i] - depreciation[i] - interest[i];
+      // Agency fees and the inverter replacement are deducted when paid.
+      taxable[i] = ebitda[i] - agency[i] - mraSpend[i] - depreciation[i] - interest[i];
       if (taxable[i] < 0) {
         losses += -taxable[i];
       } else {
@@ -654,23 +751,23 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       }
       lossBal[i] = losses;
     }
-    const cfadsPost = ebitda.map((e, i) => e - tax[i]);
+    const cfadsPost = cfadsPre.map((c, i) => c - tax[i]);
 
     // ---- G. Ratios ------------------------------------------------------
     const dscrPre = z().map(() => null), dscrPost = z().map(() => null);
     const llcrPre = z().map(() => null), llcrPost = z().map(() => null);
     const hDscr = z().map(() => null);
+    // Backward PV recursion: PV at the start of period i of CFADS from i to maturity.
+    let pvPre = 0, pvPost = 0;
+    for (let i = nM - 1; i >= nC; i--) {
+      pvPre = (cfadsPre[i] + pvPre) / (1 + rate[i]);
+      pvPost = (cfadsPost[i] + pvPost) / (1 + rate[i]);
+      llcrPre[i] = pvPre / debtOpen[i];
+      llcrPost[i] = pvPost / debtOpen[i];
+    }
     for (let i = nC; i < nM; i++) {
       dscrPre[i] = cfadsPre[i] / debtService[i];
       dscrPost[i] = cfadsPost[i] / debtService[i];
-      let pvPre = 0, pvPost = 0;
-      for (let j = i; j < nM; j++) {
-        const f = Math.pow(1 + rs, -(j - i + 1));
-        pvPre += cfadsPre[j] * f;
-        pvPost += cfadsPost[j] * f;
-      }
-      llcrPre[i] = pvPre / debtOpen[i];
-      llcrPost[i] = pvPost / debtOpen[i];
       // Historic DSCR over the last 12 months (2 semesters or 4 quarters), once 12 months have passed.
       if (i >= nC + ppy - 1) {
         let cf = 0, ds = 0;
@@ -679,10 +776,10 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       }
     }
     let pvPpa = 0;
-    for (let j = nC; j < N; j++) pvPpa += cfadsPre[j] * Math.pow(1 + rs, -(j - nC + 1));
+    for (let j = N - 1; j >= nC; j--) pvPpa = (cfadsPre[j] + pvPpa) / (1 + rate[j]);
     const plcrCod = pvPpa / amount;
 
-    // ---- E/F. DSRA and waterfall ----------------------------------------
+    // ---- E/F. DSRA, MRA and waterfall -----------------------------------
     const kDs = deal.dsra.months_of_ds / pm;
     const dsraTarget = z();
     for (let i = nC - 1; i < N; i++) {
@@ -691,11 +788,12 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       dsraTarget[i] = s;
     }
     const dsraFund = z(), dsraTopUp = z(), dsraRelease = z(), dsraDraw = z(), dsraBal = z();
+    const mraFund = z(), mraFromCash = z(), mraBal = z();
     const cashAfterDs = z(), trapped = z(), trapBal = z(), distributions = z();
     const lockup = z().map(() => false), defaultFlag = z().map(() => false), shortfall = z();
     dsraFund[nC - 1] = dsraTarget[nC - 1];
     dsraBal[nC - 1] = dsraFund[nC - 1];
-    let dsra = dsraBal[nC - 1], trap = 0;
+    let dsra = dsraBal[nC - 1], trap = 0, mra = 0;
     const cov = deal.covenants;
     for (let i = nC; i < N; i++) {
       let cash = cfadsPost[i] - debtService[i];
@@ -710,24 +808,38 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       else if (gap < 0) { dsraRelease[i] = -gap; dsra += gap; cash -= gap; }
       dsraBal[i] = dsra;
 
+      // MRA: funded from the cash left, then pays the inverter replacement; any gap is paid from cash.
+      mraFund[i] = Math.min(mraPlan[i], Math.max(0, cash));
+      mra += mraFund[i]; cash -= mraFund[i];
+      const fromMra = Math.min(mra, mraSpend[i]);
+      mra -= fromMra;
+      mraFromCash[i] = mraSpend[i] - fromMra;
+      cash -= mraFromCash[i];
+      mraBal[i] = mra;
+
       if (hDscr[i] !== null) {
         lockup[i] = hDscr[i] < cov.lockup_dscr;
         defaultFlag[i] = hDscr[i] < cov.default_dscr;
       }
       const dsraFull = dsra >= dsraTarget[i] - 1e-6;
-      if (lockup[i] || !dsraFull) {
+      if (cash < 0) {
+        distributions[i] = cash; // the sponsor covers a maintenance gap the cash flow cannot
+      } else if (lockup[i] || !dsraFull) {
         trapped[i] = cash; trap += cash;
       } else {
         distributions[i] = cash + trap; trap = 0;
       }
-      if (i === N - 1) { distributions[i] += trap + dsra; trap = 0; dsraRelease[i] += dsra; dsra = 0; dsraBal[i] = 0; }
+      if (i === N - 1) {
+        distributions[i] += trap + dsra + mra; trap = 0;
+        dsraRelease[i] += dsra; dsra = 0; dsraBal[i] = 0; mra = 0; mraBal[i] = 0;
+      }
       trapBal[i] = trap;
     }
 
     // ---- H. Equity returns ----------------------------------------------
     const equityFlows = z().map((_, i) => -equityIn[i] - dsraFund[i] + distributions[i]);
-    const irrSemi = irr(equityFlows); // per period
-    const equityIrr = irrSemi === null ? null : Math.pow(1 + irrSemi, ppy) - 1;
+    const irrPer = irr(equityFlows); // per period
+    const equityIrr = irrPer === null ? null : Math.pow(1 + irrPer, ppy) - 1;
 
     // ---- Summary & checks ------------------------------------------------
     const debtIdx = [];
@@ -751,18 +863,20 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     return {
       ok: true,
       errors: [],
-      meta: { nC, nM, N, nRep, rate: r, pm, ppy, firstOpLabel: periods[nC].label, maturityLabel: periods[nM - 1].label },
+      meta: { nC, nM, N, nRep, rate: r, pm, ppy, scenario: deal.scenario || 'base', scenarioLabel: SCENARIOS[deal.scenario || 'base'].label,
+        firstOpLabel: periods[nC].label, maturityLabel: periods[nM - 1].label },
       periods,
       series: {
-        capex, draw, idc, commit, upfront, equityIn, index,
-        energy, revenue, opex, ebitda, cfadsPre, depreciation, taxable, lossUsed, lossBal, tax, cfadsPost,
+        capex, draw, idc, commit, upfront, equityIn, index, hedgeShare, rate, baseRate,
+        energy, revenue, opex, ebitda, agency, cfadsPre, sculptCfads, energyP50: baseOps.energy, opexBase: baseOps.opex, cfadsP99: cfadsP99 || z(), depreciation, taxable, lossUsed, lossBal, tax, cfadsPost,
         debtOpen, interest, principal, debtService, debtClose,
         dscrPre, dscrPost, hDscr, llcrPre, llcrPost,
         dsraTarget, dsraFund, dsraTopUp, dsraRelease, dsraDraw, dsraBal,
+        mraPlan, mraSpend, mraFund, mraFromCash, mraBal,
         cashAfterDs, trapped, trapBal, distributions, equityFlows, lockup, defaultFlag, shortfall,
       },
       summary: {
-        amount, effGearing, sizingBinding,
+        amount, effGearing, sizingBinding, gearingCap, capacityP99,
         capex: C.capex_total, idc: totalIdc, commitmentFees: totalCommit, upfrontFee: totalUpfront,
         projectCost, equityAtFc: totalEquity, dsraAtCod: dsraFund[nC - 1],
         sculptDscr, capacityAtTarget, headroom: capacityAtTarget / amount - 1,
@@ -772,6 +886,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
         firstTaxLabel: firstTax >= 0 ? periods[firstTax].label : null,
         lockupPeriods: lockup.filter(Boolean).length, defaultPeriods: defaultFlag.filter(Boolean).length,
         equityIrr, totalDistributions: sum(distributions),
+        maintenance: sum(mraSpend), maintenanceFromCash: sum(mraFromCash), agencyFees: sum(agency),
         firstOpYear: {
           energy: year1(energy), revenue: year1(revenue), opex: year1(opex), ebitda: year1(ebitda),
           margin: year1(ebitda) / year1(revenue),
@@ -782,7 +897,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     };
   }
 
-  const api = { run, validate, irr, version: '1.0.0' };
+  const api = { run, validate, irr, scheduleOf, SCENARIOS, version: '2.0.0' };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.PFEngine = api;
 })(typeof window !== 'undefined' ? window : globalThis);
@@ -791,8 +906,8 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
  * Random deal generator — v1
  * Draws a fictional Australian solar project finance deal from realistic ranges.
  * Same seed -> same deal, so a deal can be shared by its number ("Deal #4821").
- * The debt is sized like a real bank would: lowest of max gearing and the amount
- * sculpted at the target DSCR, rounded down to AUD 0.5m.
+ * The debt is sized like a real bank would: lowest of max gearing, the amount sculpted at the
+ * target DSCR on P50 and at 1.00x on one-year P99, rounded down to AUD 0.5m.
  * All names and parties are made up.
  */
 (function (root) {
@@ -913,6 +1028,17 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     // The PPA price is what makes a deal work for the sponsor: pick the lowest price on a
     // AUD 0.50 grid that gives an equity IRR at or above a drawn target.
     const targetIrr = between(0.055, 0.085, 0.0025);
+    // Lender terms added in v2 (drawn after the v1 terms, so a deal number keeps its project).
+    const p90 = between(0.90, 0.94, 0.005);
+    Object.assign(deal.operations, { p90_factor: p90, p99_factor: +(p90 - between(0.04, 0.06, 0.005)).toFixed(3) });
+    Object.assign(deal.senior_debt, {
+      agency_fee: between(50, 100, 5),
+      hedge_ratio: pick([0.70, 0.75, 0.80]),
+      hedge_years: pick([7, 10]),
+      swap_rate: +(deal.senior_debt.base_rate + between(0, 0.003, 0.0005)).toFixed(6),
+    });
+    const mraFrom = pick([10, 11]);
+    deal.maintenance = { cost_real: mw * between(40, 60, 1), from_year: mraFrom, to_year: mraFrom + 2, funding_years: 3 };
     const irrAt = (price) => {
       deal.operations.ppa_price_fc = price;
       if (!size(deal)) return -1;
@@ -932,7 +1058,8 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
   }
 
   // Sizes the debt like a lender: lowest of (i) max gearing, (ii) sculpted at the target DSCR on
-  // pre-tax P50 CFADS, (iii) the amount keeping the minimum post-tax DSCR at least 0.05x above lock-up.
+  // pre-tax P50 CFADS, (iii) sculpted at 1.00x on one-year P99 CFADS (both inside engine 'lower_of'),
+  // (iv) the amount keeping the minimum post-tax DSCR at least 0.05x above lock-up.
   // The result is rounded down to AUD 0.5m and stored as a fixed facility amount.
   function size(deal) {
     const D = deal.senior_debt;
@@ -987,6 +1114,16 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       'dsra.months_of_ds': 'Section 4 · DSRA: next 6 months of scheduled debt service',
       'covenants.lockup_dscr': 'Section 4 · Lock-up < ' + d.covenants.lockup_dscr.toFixed(2) + 'x',
       'covenants.default_dscr': 'Section 4 · Event of Default < ' + d.covenants.default_dscr.toFixed(2) + 'x',
+      'operations.p90_factor': 'Section 6 · Energy yield (one-year): P90 ' + pct(O.p90_factor, 1),
+      'operations.p99_factor': 'Section 6 · Energy yield (one-year): P99 ' + pct(O.p99_factor, 1),
+      'senior_debt.agency_fee': 'Section 3 · Agency Fee: AUD ' + D.agency_fee + 'k p.a.',
+      'senior_debt.hedge_ratio': 'Section 3 · Interest Rate Hedging: hedge ' + pct(D.hedge_ratio, 0) + ' of debt',
+      'senior_debt.hedge_years': 'Section 3 · Interest Rate Hedging: for ' + D.hedge_years + ' years',
+      'senior_debt.swap_rate': 'Section 3 · Interest Rate Hedging: swap rate of ' + pct(D.swap_rate),
+      'maintenance.cost_real': 'Section 4 · Maintenance Reserve Account: AUD ' + (d.maintenance.cost_real / 1000).toFixed(2) + 'm real',
+      'maintenance.from_year': 'Section 4 · Maintenance Reserve Account: years ' + d.maintenance.from_year + ' to ' + d.maintenance.to_year,
+      'maintenance.to_year': 'Section 4 · Maintenance Reserve Account: years ' + d.maintenance.from_year + ' to ' + d.maintenance.to_year,
+      'maintenance.funding_years': 'Section 4 · Maintenance Reserve Account: over the ' + d.maintenance.funding_years + ' years before',
     };
   }
 
@@ -1089,20 +1226,24 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     L.push('| Margin | ' + pct(D.margin) + ' p.a. during construction and operations. |');
     L.push('| Base case BBSW | ' + pct(D.base_rate) + ' p.a. (lenders\' planning assumption). |');
     L.push('| Upfront Fee | ' + pct(D.upfront_fee) + ' of the Senior Facility (AUD ' + nf(s.upfrontFee) + 'k), payable on financial close. |');
-    L.push('| Commitment Fee | ' + pct(D.commitment_fee_pct_margin, 0) + ' of the Margin (' + pct(D.margin * D.commitment_fee_pct_margin) + ' p.a.) on undrawn commitments, payable semi-annually in arrears during the Availability Period. |', '');
+    L.push('| Commitment Fee | ' + pct(D.commitment_fee_pct_margin, 0) + ' of the Margin (' + pct(D.margin * D.commitment_fee_pct_margin) + ' p.a.) on undrawn commitments, payable semi-annually in arrears during the Availability Period. |');
+    L.push('| Agency Fee | AUD ' + D.agency_fee + 'k p.a. in total (Facility Agent and Security Trustee), payable while the Senior Facility is outstanding. |');
+    L.push('| Interest Rate Hedging | The Borrower must hedge ' + pct(D.hedge_ratio, 0) + ' of projected debt outstanding for ' + D.hedge_years + ' years from financial close, through interest rate swaps with the Lenders. Base case swap rate of ' + pct(D.swap_rate) + ' p.a. |', '');
 
     L.push('## 4. Repayment, accounts and financial covenants', '');
     L.push('| Term | Description |', '| --- | --- |');
     L.push('| Repayment | ' + (res.meta.nRep) + ' semi-annual instalments from ' + firstRepay + ' to ' + longDate(T.debt_maturity) + ', sculpted to the P50 CFADS profile of the Agreed Base Case. |');
     L.push('| Target DSCR (sculpting) | ' + D.target_dscr.toFixed(2) + 'x on P50 CFADS. |');
-    L.push('| Sizing | Senior debt is the lowest of: (i) a maximum of ' + pct(D.gearing, 0) + ' of construction capex; (ii) the amount sculpted at ' + D.target_dscr.toFixed(2) + 'x on pre-tax P50 CFADS; (iii) the amount for which the minimum post-tax DSCR of the Agreed Base Case is at least ' + (cov.lockup_dscr + 0.05).toFixed(2) + 'x. Binding constraint: ' + M.sizing_binding + '. |');
-    L.push('| Debt Service Reserve Account | Balance equal to the next 6 months of scheduled senior debt service, funded in cash by the Sponsor at COD. |', '');
+    L.push('| Sizing | Senior debt is the lowest of: (i) a maximum of ' + pct(D.gearing, 0) + ' of construction capex; (ii) the amount sculpted at ' + D.target_dscr.toFixed(2) + 'x on pre-tax P50 CFADS; (iii) the amount sculpted at 1.00x on one-year P99 CFADS; (iv) the amount for which the minimum post-tax DSCR of the Agreed Base Case is at least ' + (cov.lockup_dscr + 0.05).toFixed(2) + 'x. Binding constraint: ' + M.sizing_binding + '. |');
+    L.push('| Debt Service Reserve Account | Balance equal to the next 6 months of scheduled senior debt service, funded in cash by the Sponsor at COD. |');
+    const MR = deal.maintenance;
+    L.push('| Maintenance Reserve Account | Funded from cash flow over the ' + MR.funding_years + ' years before the inverter replacement (AUD ' + (MR.cost_real / 1000).toFixed(2) + 'm real, spent in operating years ' + MR.from_year + ' to ' + MR.to_year + '). |', '');
     L.push('**Financial covenants (tested semi-annually from the second calculation date after COD)**', '');
     L.push('| Ratio | Calculation | Level |', '| --- | --- | --- |');
     L.push('| Historic DSCR | CFADS over the last 12 months ÷ senior debt service over the same period | Lock-up < ' + cov.lockup_dscr.toFixed(2) + 'x; Event of Default < ' + cov.default_dscr.toFixed(2) + 'x |');
     L.push('| Maximum gearing | Senior debt ÷ construction capex at financial close | ' + pct(D.gearing, 0) + ' |', '');
     L.push('**Cash flow waterfall (operations)**', '');
-    L.push('1. Operating costs and taxes', '2. Senior interest', '3. Senior principal', '4. Top-up of the Debt Service Reserve Account', '5. Distribution Account, subject to the Distribution Conditions', '');
+    L.push('1. Operating costs and taxes', '2. Agency fees', '3. Senior interest (net of swap payments)', '4. Senior principal', '5. Top-up of the Debt Service Reserve Account', '6. Funding of the Maintenance Reserve Account', '7. Distribution Account, subject to the Distribution Conditions', '');
     L.push('**Distribution Conditions:** no Default outstanding; historic DSCR at or above ' + cov.lockup_dscr.toFixed(2) + 'x; DSRA fully funded.', '');
 
     L.push('## 5. Security and conditions', '');
@@ -1117,6 +1258,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     L.push('| Capacity | ' + O.capacity_mw + ' MWac |  |');
     L.push('| P50 capacity factor | ' + pct(O.capacity_factor_p50, 1) + ' (' + M.technology + ') |  |');
     L.push('| Availability | ' + pct(O.availability, 1) + ' |  |');
+    L.push('| Energy yield (one-year) | P90 ' + pct(O.p90_factor, 1) + ' / P99 ' + pct(O.p99_factor, 1) + ' of P50 energy |  |');
     L.push('| Degradation | ' + pct(O.degradation) + ' p.a. from operating year 2 |  |');
     L.push('| Net energy |  | ' + nf(fy.energy) + ' MWh |');
     L.push('| PPA price | AUD ' + O.ppa_price_fc.toFixed(2) + '/MWh at FC' + (indexed ? ', 100% CPI' : ', flat') + ' | AUD ' + price1.toFixed(2) + '/MWh |');
@@ -1230,7 +1372,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     const deal = {
       meta: { name: 'Uploaded deal', currency: 'AUD', units: 'k', uploaded: true },
       timeline: {}, construction: {}, operations: {}, tax: {}, senior_debt: { sizing: 'fixed', repayment: 'sculpted' },
-      dsra: {}, covenants: {}, sources: {},
+      dsra: {}, covenants: {}, maintenance: {}, sources: {},
     };
     const missing = [], assumed = [];
     const short = (s) => (s.length > 90 ? s.slice(0, 88) + '…' : s);
@@ -1295,6 +1437,8 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     }
     need('operations.opex_real_fc', take('operations.opex_real_fc', /^operating costs/i, /AUD\s*([\d.]+)m p\.a\. real/, (v) => num(v) * 1000), 'operating costs ("AUD …m p.a. real")');
     if (!take('operations.cpi', /^CPI$/i, /([\d.]+)%/, pct)) assume('operations.cpi', 0.025, 'CPI 2.5% p.a.');
+    if (!take('operations.p90_factor', /energy yield/i, /P90\s*([\d.]+)%/i, pct)) assume('operations.p90_factor', 0.92, 'one-year P90 at 92% of P50 energy');
+    if (!take('operations.p99_factor', /energy yield/i, /P99\s*([\d.]+)%/i, pct)) assume('operations.p99_factor', 0.87, 'one-year P99 at 87% of P50 energy');
 
     // Tax
     if (!take('tax.rate', /corporate tax/i, /^([\d.]+)%/, pct)) assume('tax.rate', 0.30, 'Australian corporate tax rate 30%');
@@ -1307,6 +1451,10 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     need('senior_debt.margin', take('senior_debt.margin', /^margin$/i, /([\d.]+)%/, pct), 'margin');
     if (!take('senior_debt.upfront_fee', /upfront fee/i, /([\d.]+)% of the (?:Senior )?Facility/i, pct)) assume('senior_debt.upfront_fee', 0.015, 'upfront fee 1.50%');
     if (!take('senior_debt.commitment_fee_pct_margin', /commitment fee/i, /(\d+(?:\.\d+)?)% of the Margin/i, pct)) assume('senior_debt.commitment_fee_pct_margin', 0.40, 'commitment fee 40% of the margin');
+    if (!take('senior_debt.agency_fee', /agency fee/i, /AUD\s*([\d,.]+)k p\.a\./i, num)) assume('senior_debt.agency_fee', 0, 'no agency fee stated');
+    if (!take('senior_debt.hedge_ratio', /hedging/i, /hedge (?:at least )?([\d.]+)% of/i, pct)) assume('senior_debt.hedge_ratio', 0, 'no interest rate hedging stated');
+    if (!take('senior_debt.hedge_years', /hedging/i, /for (?:at least )?(\d+) years/i, num)) assume('senior_debt.hedge_years', 0, 'no hedging tenor stated');
+    if (!take('senior_debt.swap_rate', /hedging/i, /swap rate of ([\d.]+)%/i, pct)) assume('senior_debt.swap_rate', deal.senior_debt.base_rate || 0, 'swap rate equal to base case BBSW');
     if (take('senior_debt.repayment', /^repayment$/i, /(sculpted|annuity|linear|straight-line|equal)/i, (v) => ({ 'straight-line': 'linear', equal: 'annuity' }[v.toLowerCase()] || v.toLowerCase())) === false) {
       deal.sources['senior_debt.repayment'] = 'ASSUMED: sculpted repayment';
     }
@@ -1315,6 +1463,10 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     // Reserves and covenants
     if (!take('dsra.months_of_ds', /debt service reserve/i, /next (\d+) months/, num)) assume('dsra.months_of_ds', 6, 'DSRA of 6 months of debt service');
     if (!take('covenants.lockup_dscr', /historic dscr/i, /Lock-up\s*<\s*([\d.]+)x/i, num)) assume('covenants.lockup_dscr', 1.10, 'lock-up at 1.10x');
+    if (!take('maintenance.cost_real', /maintenance reserve/i, /AUD\s*([\d.]+)m real/i, (v) => num(v) * 1000)) assume('maintenance.cost_real', 0, 'no maintenance reserve stated');
+    if (!take('maintenance.from_year', /maintenance reserve/i, /years (\d+) to \d+/i, num)) assume('maintenance.from_year', 10, 'replacement from operating year 10');
+    if (!take('maintenance.to_year', /maintenance reserve/i, /years \d+ to (\d+)/i, num)) assume('maintenance.to_year', 12, 'replacement to operating year 12');
+    if (!take('maintenance.funding_years', /maintenance reserve/i, /over the (\d+) years before/i, num)) assume('maintenance.funding_years', 3, 'funded over 3 years');
     if (!take('covenants.default_dscr', /historic dscr/i, /Default\s*<\s*([\d.]+)x/i, num)) assume('covenants.default_dscr', 1.05, 'event of default at 1.05x');
 
     return { ok: missing.length === 0, deal, missing, assumed };
@@ -1707,39 +1859,47 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
 })(typeof window !== 'undefined' ? window : globalThis);
 
 /*
- * Excel export — v1
- * Rebuilds the whole model as live Excel formulas: change an input in the Inputs sheet and
- * every line recalculates. Sheets: Cover, Inputs, Calc, Outputs, Checks.
- * Calc follows the same order as engine.js (see SPEC.md section 5). Each formula cell also
- * carries the engine's value as a cached result, and the Checks sheet compares the two.
+ * Excel export — v2
+ * Rebuilds the whole model as live Excel formulas, laid out like a bank's project finance model:
+ *   Cover · Dashboard · Inputs · Scenarios · Timing · Operations · Construction · Debt · Tax ·
+ *   Reserves · Waterfall · Ratios · Returns · Annual · Checks
+ * Every calculation sheet has the same period columns (D = period 1), so a formula can point at
+ * the same column of another sheet. Change an input (or the scenario) and everything recalculates.
+ * Each formula cell also carries the engine's value as a cached result; the Checks sheet compares
+ * the two. Calculation order follows engine.js (see SPEC.md section 5).
  */
 (function (root) {
   'use strict';
 
-  const X = typeof module !== 'undefined' && module.exports ? require('./xlsx.js') : root.PFXlsx;
+  const node = typeof module !== 'undefined' && module.exports;
+  const X = node ? require('./xlsx.js') : root.PFXlsx;
+  const E = node ? require('./engine.js') : root.PFEngine;
 
   const C_ACCENT = '2F5BEA', C_INPUT_BG = 'EEF2FE', C_MUTED = '6B7280', C_HEAD_BG = 'F6F7F9', C_GOOD = '15803D';
   const C_NAVY = '1B2333', C_GOOD_BG = 'DCFCE7', C_CONSTR_BG = 'FFF4E0';
-  const F_K = '#,##0;(#,##0);"–"', F_K1 = '#,##0.0;(#,##0.0);"–"', F_X = '0.000"x"', F_PCT = '0.00%', F_PCT1 = '0.0%';
-  const F_DATE = 'dd-mmm-yyyy', F_MONTH = 'mmm-yy', F_INT = '0', F_PRICE = '#,##0.00';
+  const F_K = '#,##0;(#,##0);"–"', F_X = '0.000"x"', F_PCT = '0.00%', F_PCT1 = '0.0%';
+  const F_DATE = 'dd-mmm-yyyy', F_MONTH = 'mmm-yy', F_INT = '0', F_PRICE = '#,##0.00', F_RATE = '0.0000%';
+  const SCENARIO_NAMES = ['Base case (P50)', 'P90 (one-year)', 'P99 (one-year)', 'Downside'];
+  const SCENARIO_KEYS = ['base', 'p90', 'p99', 'downside'];
 
   function buildWorkbook(deal, res) {
     const wb = new X.Workbook();
     const st = {
-      title: wb.style({ bold: true, size: 16 }),
       h: wb.style({ bold: true, size: 11, color: C_ACCENT }),
       note: wb.style({ italic: true, color: C_MUTED }),
       noteWrap: wb.style({ color: C_MUTED, wrap: true }),
       bold: wb.style({ bold: true }),
       head: wb.style({ bold: true, fill: C_HEAD_BG, border: 'bottom' }),
       headR: wb.style({ bold: true, fill: C_HEAD_BG, border: 'bottom', align: 'right' }),
+      headC: wb.style({ bold: true, fill: C_HEAD_BG, border: 'bottom', align: 'center' }),
       muted: wb.style({ color: C_MUTED }),
-      good: wb.style({ bold: true, color: C_GOOD }),
       banner: wb.style({ bold: true, size: 14, color: 'FFFFFF', fill: C_NAVY, valign: 'center' }),
       bannerFill: wb.style({ fill: C_NAVY }),
       group: wb.style({ bold: true, color: C_ACCENT, fill: C_INPUT_BG }),
       ok: wb.style({ bold: true, align: 'center', color: C_GOOD, fill: C_GOOD_BG }),
     };
+    const inp = (numFmt) => wb.style({ color: C_ACCENT, fill: C_INPUT_BG, numFmt });
+    const calc = (numFmt, bold) => wb.style(bold ? { numFmt, bold: true } : { numFmt });
     // Dark title band across the top of a sheet, with a one-line note under it.
     const banner = (ws, title, note, lastCol) => {
       ws.height(1, 30);
@@ -1747,42 +1907,49 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       for (let c = 2; c <= lastCol; c++) ws.set(X.colName(c) + '1', '', st.bannerFill);
       ws.set('A2', note, st.note);
     };
-    const inp = (numFmt) => wb.style({ color: C_ACCENT, fill: C_INPUT_BG, numFmt });
-    const calc = (numFmt, bold) => wb.style(bold ? { numFmt, bold: true } : { numFmt });
 
     const S = res.series, P = res.periods, N = res.meta.N, sum = res.summary;
+    const nC = res.meta.nC, nM = res.meta.nM;
+    const PM = res.meta.pm, PPY = res.meta.ppy;
+    const PERIOD_WORD = PM === 3 ? 'quarterly' : 'semi-annual';
     const FIRST = 4; // column D holds period 1
     const col = (t) => X.colName(FIRST + t - 1);
     const LAST = col(N);
-    const PM = res.meta.pm, PPY = res.meta.ppy;
-    const PERIOD_WORD = PM === 3 ? 'quarterly' : 'semi-annual';
+    const T = deal.timeline, Cn = deal.construction, O = deal.operations, D = deal.senior_debt;
+    const MR = Object.assign({ cost_real: 0, from_year: 10, to_year: 12, funding_years: 3 }, deal.maintenance || {});
+    const DN = Object.assign({ opex_uplift: 0.10, rate_shock: 0.01 }, deal.downside || {});
+    const scIndex = Math.max(0, SCENARIO_KEYS.indexOf(deal.scenario || 'base'));
+    const sumOf = (a) => a.reduce((x, y) => x + (y || 0), 0);
 
     // ---------------- Inputs ----------------
     const wsI = wb.addSheet('Inputs');
-    wsI.width(1, 40).width(2, 16).width(3, 12).width(4, 80);
     wsI.tab = C_ACCENT;
+    wsI.width(1, 44).width(2, 18).width(3, 16).width(4, 80);
     banner(wsI, 'Inputs', 'Blue cells are inputs: change them and the whole model recalculates. Column D gives the term sheet clause each input comes from.', 4);
     let r = 4;
     const src = (path) => (deal.sources && deal.sources[path]) || '';
-    const section = (ws, title) => { r++; ws.set('A' + r, title, st.h); r++; };
+    const section = (title) => { r++; wsI.set('A' + r, title, st.h); r++; };
     const input = (name, label, value, fmt, unit, path, list) => {
       wsI.set('A' + r, label);
       wsI.set('B' + r, value, inp(fmt));
       wsI.set('C' + r, unit || '', st.muted);
-      wsI.set('D' + r, src(path), st.muted);
+      wsI.set('D' + r, /^[a-z_]+\.[a-z_0-9]+$/.test(path || '') ? src(path) : (path || ''), st.muted);
       if (list) wsI.dropdown('B' + r, list);
       wb.defineName(name, 'Inputs!$B$' + r);
       r++;
     };
-    const T = deal.timeline, Cn = deal.construction, O = deal.operations, D = deal.senior_debt;
     wsI.set('A' + r, 'Input', st.head); wsI.set('B' + r, 'Value', st.headR); wsI.set('C' + r, 'Unit', st.head); wsI.set('D' + r, 'Term sheet source', st.head); r++;
-    section(wsI, 'Timeline');
+    section('Scenario');
+    input('scenario', 'Active scenario', SCENARIO_NAMES[scIndex], '', 'drop-down', 'Model choice. The debt is always sized and sculpted on the base case.', SCENARIO_NAMES);
+    input('downside_opex', 'Downside: operating cost uplift', DN.opex_uplift, F_PCT1, '', 'Model choice (lender downside case)');
+    input('downside_rate', 'Downside: BBSW shock on the unhedged debt', DN.rate_shock, F_PCT, '', 'Model choice (lender downside case)');
+    section('Timeline');
     input('months_per_period', 'Months per period (' + PERIOD_WORD + ')', PM, F_INT, 'fixed at export', 'timeline.periodicity');
     input('fc_date', 'Financial close', X.excelDate(T.financial_close), F_DATE, '', 'timeline.financial_close');
     input('cod_date', 'Commercial operation date (COD)', X.excelDate(T.cod), F_DATE, '', 'timeline.cod');
     input('maturity_date', 'Final maturity', X.excelDate(T.debt_maturity), F_DATE, '', 'timeline.debt_maturity');
     input('ppa_end_date', 'PPA expiry', X.excelDate(T.ppa_end), F_DATE, '', 'timeline.ppa_end');
-    section(wsI, 'Construction');
+    section('Construction');
     input('capex_total', 'Construction capex', Cn.capex_total, F_K, deal.meta.currency + ' k', 'construction.capex_total');
     const profStart = r;
     Cn.capex_profile.forEach((x, i) => {
@@ -1793,16 +1960,18 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       r++;
     });
     wb.defineName('capex_profile', 'Inputs!$B$' + profStart + ':$B$' + (r - 1));
-    section(wsI, 'Operations');
+    section('Operations');
     input('capacity_mw', 'Capacity', O.capacity_mw, '#,##0.0', 'MWac', 'operations.capacity_mw');
     input('cf_p50', 'P50 capacity factor', O.capacity_factor_p50, F_PCT, '', 'operations.capacity_factor_p50');
+    input('p90_factor', 'One-year P90 energy (share of P50)', O.p90_factor || 1, F_PCT1, '', 'operations.p90_factor');
+    input('p99_factor', 'One-year P99 energy (share of P50)', O.p99_factor || 1, F_PCT1, '', 'operations.p99_factor');
     input('availability', 'Availability', O.availability, F_PCT, '', 'operations.availability');
     input('degradation', 'Degradation', O.degradation, F_PCT, '% p.a.', 'operations.degradation');
     input('ppa_price', 'PPA price at financial close', O.ppa_price_fc, F_PRICE, deal.meta.currency + '/MWh', 'operations.ppa_price_fc');
     input('ppa_indexation', 'PPA indexation', O.ppa_indexation, '0%', '% of CPI', 'operations.ppa_indexation');
     input('opex_real', 'Operating costs (real, at financial close)', O.opex_real_fc, F_K, 'k p.a.', 'operations.opex_real_fc');
     input('cpi', 'CPI', O.cpi, F_PCT, '% p.a.', 'operations.cpi');
-    section(wsI, 'Senior debt');
+    section('Senior debt');
     input('sizing', 'Debt sizing', D.sizing === 'lower_of' ? 'lower_of' : 'fixed', '', 'fixed / lower_of', 'senior_debt.sizing', ['fixed', 'lower_of']);
     input('debt_amount_input', 'Facility amount (used when sizing = fixed)', D.amount, F_K, deal.meta.currency + ' k', 'senior_debt.amount');
     input('max_gearing', 'Maximum gearing (of capex)', D.gearing, F_PCT1, '', 'senior_debt.gearing');
@@ -1810,272 +1979,426 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     input('margin', 'Margin', D.margin, F_PCT, '', 'senior_debt.margin');
     input('upfront_fee_pct', 'Upfront fee', D.upfront_fee, F_PCT, '% of facility', 'senior_debt.upfront_fee');
     input('commit_fee_pct', 'Commitment fee', D.commitment_fee_pct_margin, F_PCT1, '% of margin', 'senior_debt.commitment_fee_pct_margin');
+    input('agency_fee', 'Agency fees (facility agent and security trustee)', D.agency_fee || 0, F_K, 'k p.a.', 'senior_debt.agency_fee');
     input('repayment', 'Repayment profile', D.repayment, '', 'sculpted / annuity / linear', 'senior_debt.repayment', ['sculpted', 'annuity', 'linear']);
-    input('target_dscr', 'Target DSCR', D.target_dscr, '0.00"x"', '', 'senior_debt.target_dscr');
-    section(wsI, 'Tax');
+    input('target_dscr', 'Target DSCR (P50)', D.target_dscr, '0.00"x"', '', 'senior_debt.target_dscr');
+    section('Interest rate hedging');
+    input('hedge_ratio', 'Share of the debt swapped to fixed', D.hedge_ratio || 0, F_PCT1, '', 'senior_debt.hedge_ratio');
+    input('hedge_years', 'Hedging tenor from financial close', D.hedge_years || 0, F_INT, 'years', 'senior_debt.hedge_years');
+    input('swap_rate', 'Swap rate (replaces BBSW on the hedged share)', D.swap_rate == null ? D.base_rate : D.swap_rate, F_PCT, '', 'senior_debt.swap_rate');
+    section('Tax');
     input('tax_rate', 'Corporate tax rate', deal.tax.rate, F_PCT1, '', 'tax.rate');
     input('dep_years', 'Tax depreciation (straight line)', deal.tax.depreciation_years, F_INT, 'years', 'tax.depreciation_years');
-    section(wsI, 'Reserves and covenants');
+    section('Reserves and covenants');
     input('dsra_months', 'DSRA size', deal.dsra.months_of_ds, F_INT, 'months of debt service', 'dsra.months_of_ds');
+    input('mra_cost', 'Inverter replacement (MRA), real at financial close', MR.cost_real, F_K, deal.meta.currency + ' k', 'maintenance.cost_real');
+    input('mra_from', 'Replacement from operating year', MR.from_year, F_INT, '', 'maintenance.from_year');
+    input('mra_to', 'Replacement to operating year', MR.to_year, F_INT, '', 'maintenance.to_year');
+    input('mra_years', 'MRA funded over the years before', MR.funding_years, F_INT, 'years', 'maintenance.funding_years');
     input('lockup_dscr', 'Lock-up DSCR (12-month historic)', deal.covenants.lockup_dscr, '0.00"x"', '', 'covenants.lockup_dscr');
     input('default_dscr', 'Event of default DSCR', deal.covenants.default_dscr, '0.00"x"', '', 'covenants.default_dscr');
 
-    section(wsI, 'Derived (formulas, do not edit)');
+    section('Derived (formulas, do not edit)');
     const derived = (name, label, f, v, fmt, unit) => {
       wsI.set('A' + r, label); wsI.set('B' + r, { f, v }, calc(fmt)); wsI.set('C' + r, unit || '', st.muted);
       wb.defineName(name, 'Inputs!$B$' + r); r++;
     };
-    derived('all_in_rate', 'All-in interest rate', 'base_rate+margin', res.meta.rate, F_PCT, 'p.a.');
+    derived('all_in_rate', 'All-in interest rate, unhedged', 'base_rate+margin', res.meta.rate, F_PCT, 'p.a.');
     derived('periods_per_year', 'Periods per year', '12/months_per_period', PPY, F_INT, '');
-    derived('period_rate', 'Interest rate per period', 'all_in_rate/periods_per_year', res.meta.rate / PPY, '0.0000%', '');
-    derived('n_constr', 'Construction periods', '((YEAR(cod_date)-YEAR(fc_date))*12+MONTH(cod_date)-MONTH(fc_date))/months_per_period', res.meta.nC, F_INT, '');
+    derived('period_rate', 'Unhedged interest rate per period (annuity profile)', 'all_in_rate/periods_per_year', res.meta.rate / PPY, F_RATE, '');
+    derived('n_constr', 'Construction periods', '((YEAR(cod_date)-YEAR(fc_date))*12+MONTH(cod_date)-MONTH(fc_date))/months_per_period', nC, F_INT, '');
     derived('fy_first', 'Financial year of period 1 (Jul–Jun)', 'YEAR(EDATE(fc_date,months_per_period)-1)+IF(MONTH(EDATE(fc_date,months_per_period)-1)>6,1,0)', P[0].fy, F_INT, '');
     derived('dsra_periods', 'DSRA size in periods', 'dsra_months/months_per_period', deal.dsra.months_of_ds / PM, F_INT, '');
 
-    // ---------------- Calc ----------------
-    // Rows are declared once with a formula template; row numbers are assigned first so that
-    // any row can refer to any other (e.g. opening debt = previous closing debt).
-    const ROWS = [];
-    const G = (title) => ROWS.push({ group: title });
-    const L = (key, label, unit, fmt, f, opt) => ROWS.push(Object.assign({ key, label, unit, fmt, f }, opt || {}));
-    const V = (key, label, unit, fmt, f, opt) => ROWS.push(Object.assign({ key, label, unit, fmt, f, scalar: true }, opt || {}));
+    // ---------------- Scenarios ----------------
+    const wsS = wb.addSheet('Scenarios');
+    wsS.tab = C_ACCENT;
+    wsS.width(1, 30).width(2, 16).width(3, 16).width(4, 16).width(5, 60);
+    banner(wsS, 'Scenarios', 'Lender cases. Pick the active one on the Inputs sheet. Sizing and sculpting always use the base case: the other cases run against that repayment schedule.', 5);
+    wsS.set('A4', 'Scenario', st.head); wsS.set('B4', 'Energy (× P50)', st.headR); wsS.set('C4', 'Opex (× base)', st.headR); wsS.set('D4', 'BBSW shock', st.headR); wsS.set('E4', 'What it tests', st.head);
+    const scRows = [
+      [SCENARIO_NAMES[0], 1, 1, 0, 'The Agreed Base Case: sizes and sculpts the debt.'],
+      [SCENARIO_NAMES[1], { f: 'p90_factor', v: O.p90_factor || 1 }, 1, 0, 'A bad year of sun (90% probability of exceeding), every year.'],
+      [SCENARIO_NAMES[2], { f: 'p99_factor', v: O.p99_factor || 1 }, 1, 0, 'A very bad year of sun (99% probability of exceeding), every year.'],
+      [SCENARIO_NAMES[3], { f: 'p90_factor', v: O.p90_factor || 1 }, { f: '1+downside_opex', v: 1 + DN.opex_uplift }, { f: 'downside_rate', v: DN.rate_shock }, 'P90 energy, higher operating costs and higher rates together.'],
+    ];
+    scRows.forEach(([name, e, o, rt, what], i) => {
+      const row = 5 + i;
+      wsS.set('A' + row, name, st.bold);
+      wsS.set('B' + row, e, calc(F_PCT1)); wsS.set('C' + row, o, calc(F_PCT1)); wsS.set('D' + row, rt, calc(F_PCT));
+      wsS.set('E' + row, what, st.muted);
+    });
+    const scVals = scRows.map(([, e, o, rt]) => [typeof e === 'object' ? e.v : e, typeof o === 'object' ? o.v : o, typeof rt === 'object' ? rt.v : rt]);
+    wsS.set('A10', 'Active scenario', st.h);
+    const activeRow = (row, label, name, f, v, fmt) => { wsS.set('A' + row, label); wsS.set('B' + row, { f, v }, calc(fmt, true)); wb.defineName(name, 'Scenarios!$B$' + row); };
+    activeRow(11, 'Scenario number', 'sc_no', 'IF(scenario="' + SCENARIO_NAMES[1] + '",2,IF(scenario="' + SCENARIO_NAMES[2] + '",3,IF(scenario="' + SCENARIO_NAMES[3] + '",4,1)))', scIndex + 1, F_INT);
+    activeRow(12, 'Energy factor', 'sc_energy', 'INDEX(Scenarios!$B$5:$B$8,sc_no)', scVals[scIndex][0], F_PCT1);
+    activeRow(13, 'Operating cost factor', 'sc_opex', 'INDEX(Scenarios!$C$5:$C$8,sc_no)', scVals[scIndex][1], F_PCT1);
+    activeRow(14, 'BBSW shock', 'sc_rate', 'INDEX(Scenarios!$D$5:$D$8,sc_no)', scVals[scIndex][2], F_PCT);
 
-    G('Timeline');
+    // ---------------- Period sheets ----------------
+    // Rows are declared once per sheet with a formula template; row numbers are assigned first so
+    // that any row can refer to any other, on any sheet.
+    const SHEETS = [];
+    let cur = null;
+    const sheet = (name, note, tab) => { cur = { name, note, tab, rows: [] }; SHEETS.push(cur); };
+    const G = (title) => cur.rows.push({ group: title });
+    const L = (key, label, unit, fmt, f, opt) => cur.rows.push(Object.assign({ key, label, unit, fmt, f }, opt || {}));
+    const V = (key, label, unit, fmt, f, opt) => cur.rows.push(Object.assign({ key, label, unit, fmt, f, scalar: true }, opt || {}));
+
+    // Base-case and P99 PVs are not engine series: rebuild them for the cached values.
+    const pvBack = (cf, rt, last) => { const out = new Array(N).fill(0); let pv = 0; for (let i = last - 1; i >= nC; i--) { pv = (cf[i] + pv) / (1 + rt[i]); out[i] = pv; } return out; };
+    const pvBaseS = pvBack(S.sculptCfads, S.baseRate, nM), pvP99S = pvBack(S.cfadsP99, S.baseRate, nM);
+    const pvPreS = pvBack(S.cfadsPre, S.rate, nM), pvPostS = pvBack(S.cfadsPost, S.rate, nM), pvPpaS = pvBack(S.cfadsPre, S.rate, N);
+    const debtIdx = (i) => i >= nC && i < nM;
+
+    sheet('Timing', 'Period dates and flags used by every other sheet.', C_MUTED);
     L('start', 'Period start', '', F_DATE, (c) => 'EDATE(fc_date,months_per_period*(' + c.t + '-1))', { cache: (i) => X.excelDate(periodStart(P[i], PM)) });
     L('end', 'Period end', '', F_DATE, (c) => 'EDATE(fc_date,months_per_period*' + c.t + ')-1', { cache: (i) => X.excelDate(periodEnd(P[i])) });
-    L('f_con', 'Construction flag', 'flag', F_INT, (c) => 'IF(' + c('end') + '<cod_date,1,0)', { cache: (i) => (i < res.meta.nC ? 1 : 0) });
-    L('f_cod', 'COD flag (last construction period)', 'flag', F_INT, (c) => 'IF(AND(' + c('f_con') + '=1,' + c.n('f_con') + '=0),1,0)', { cache: (i) => (i === res.meta.nC - 1 ? 1 : 0) });
-    L('f_op', 'Operations flag', 'flag', F_INT, (c) => 'IF(AND(' + c('start') + '>=cod_date,' + c('end') + '<=ppa_end_date),1,0)', { cache: (i) => (i >= res.meta.nC ? 1 : 0) });
-    L('f_first', 'First operating period', 'flag', F_INT, (c) => 'IF(AND(' + c('f_op') + '=1,' + c.p('f_op') + '=0),1,0)', { cache: (i) => (i === res.meta.nC ? 1 : 0) });
+    G('Phase flags');
+    L('f_con', 'Construction', 'flag', F_INT, (c) => 'IF(' + c('end') + '<cod_date,1,0)', { cache: (i) => (i < nC ? 1 : 0) });
+    L('f_cod', 'COD (last construction period)', 'flag', F_INT, (c) => 'IF(AND(' + c('f_con') + '=1,' + c.n('f_con') + '=0),1,0)', { cache: (i) => (i === nC - 1 ? 1 : 0) });
+    L('f_op', 'Operations', 'flag', F_INT, (c) => 'IF(AND(' + c('start') + '>=cod_date,' + c('end') + '<=ppa_end_date),1,0)', { cache: (i) => (i >= nC ? 1 : 0) });
+    L('f_first', 'First operating period', 'flag', F_INT, (c) => 'IF(AND(' + c('f_op') + '=1,' + c.p('f_op') + '=0),1,0)', { cache: (i) => (i === nC ? 1 : 0) });
     L('f_last', 'Last operating period', 'flag', F_INT, (c) => 'IF(AND(' + c('f_op') + '=1,' + c.n('f_op') + '=0),1,0)', { cache: (i) => (i === N - 1 ? 1 : 0) });
-    L('f_debt', 'Debt repayment flag', 'flag', F_INT, (c) => 'IF(AND(' + c('start') + '>=cod_date,' + c('end') + '<=maturity_date),1,0)', { cache: (i) => (i >= res.meta.nC && i < res.meta.nM ? 1 : 0) });
+    L('f_debt', 'Debt repayment', 'flag', F_INT, (c) => 'IF(AND(' + c('start') + '>=cod_date,' + c('end') + '<=maturity_date),1,0)', { cache: (i) => (debtIdx(i) ? 1 : 0) });
+    G('Calendar');
     L('fy', 'Financial year (Jul–Jun)', 'FY', F_INT, (c) => 'YEAR(' + c('end') + ')+IF(MONTH(' + c('end') + ')>6,1,0)', { cache: (i) => P[i].fy });
+    L('f_fyend', 'Financial year end (30 June)', 'flag', F_INT, (c) => 'IF(MONTH(' + c('end') + ')=6,1,0)', { cache: (i) => (P[i].month === 6 ? 1 : 0) });
     L('opyear', 'Operating year', '', F_INT, (c) => 'IF(' + c('f_op') + '=1,INT((' + c.t + '-n_constr-1)/periods_per_year)+1,0)', { cache: (i) => P[i].opYear });
-    L('index', 'CPI index (annual steps from FC)', '', '0.0000', (c) => 'IF(' + c('f_op') + '=1,(1+cpi)^(' + c('fy') + '-fy_first),0)', { cache: (i) => S.index[i] });
+    L('index', 'CPI index (annual steps from FC)', '', '0.0000', (c) => 'IF(' + c('f_op') + '=1,(1+cpi)^(' + c('fy') + '-fy_first),0)', { cache: 'index' });
     L('degf', 'Degradation factor', '', '0.0000', (c) => 'IF(' + c('f_op') + '=1,(1-degradation)^(' + c('opyear') + '-1),0)',
-      { cache: (i) => (i >= res.meta.nC ? Math.pow(1 - O.degradation, P[i].opYear - 1) : 0) });
+      { cache: (i) => (i >= nC ? Math.pow(1 - O.degradation, P[i].opYear - 1) : 0) });
+    L('hedge', 'Share of the debt hedged', '%', F_PCT1, (c) => 'IF(' + c('end') + '<=EDATE(fc_date,12*hedge_years)-1,hedge_ratio,0)', { cache: 'hedgeShare' });
 
-    G('Operations');
-    L('energy', 'Net energy', 'MWh', F_K, (c) => 'IF(' + c('f_op') + '=1,capacity_mw*8760*cf_p50*availability*' + c('degf') + '/periods_per_year,0)', { cache: 'energy', total: true });
+    sheet('Operations', 'Energy, revenue and costs. Scenario rows use the active scenario; base case rows feed the debt sizing.', C_GOOD);
+    G('Active scenario');
+    L('energyP50', 'Net energy, P50', 'MWh', F_K, (c) => 'IF(' + c('f_op') + '=1,capacity_mw*8760*cf_p50*availability*' + c('degf') + '/periods_per_year,0)', { cache: 'energyP50', total: true });
+    L('energy', 'Net energy, active scenario', 'MWh', F_K, (c) => c('energyP50') + '*sc_energy', { cache: 'energy', total: true });
     L('price', 'PPA price', '/MWh', F_PRICE, (c) => 'IF(' + c('f_op') + '=1,ppa_price*(1+(' + c('index') + '-1)*ppa_indexation),0)',
       { cache: (i) => (S.energy[i] ? S.revenue[i] * 1000 / S.energy[i] : 0) });
     L('revenue', 'Revenue', 'k', F_K, (c) => c('energy') + '*' + c('price') + '/1000', { cache: 'revenue', total: true });
-    L('opex', 'Operating costs', 'k', F_K, (c) => 'IF(' + c('f_op') + '=1,opex_real*' + c('index') + '/periods_per_year,0)', { cache: 'opex', total: true });
+    L('opex', 'Operating costs', 'k', F_K, (c) => 'IF(' + c('f_op') + '=1,opex_real*' + c('index') + '*sc_opex/periods_per_year,0)', { cache: 'opex', total: true });
     L('ebitda', 'EBITDA', 'k', F_K, (c) => c('revenue') + '-' + c('opex'), { cache: 'ebitda', total: true, bold: true });
-    L('cfadsPre', 'CFADS pre-tax', 'k', F_K, (c) => c('ebitda'), { cache: 'cfadsPre', total: true, bold: true });
+    L('agency', 'Agency fees', 'k', F_K, (c) => 'IF(' + c('f_debt') + '=1,agency_fee/periods_per_year,0)', { cache: 'agency', total: true });
+    L('cfadsPre', 'CFADS pre-tax', 'k', F_K, (c) => c('ebitda') + '-' + c('agency'), { cache: 'cfadsPre', total: true, bold: true });
+    G('Base case (P50) and P99, for sizing and sculpting');
+    L('opexBase', 'Operating costs, base case', 'k', F_K, (c) => 'IF(' + c('f_op') + '=1,opex_real*' + c('index') + '/periods_per_year,0)', { cache: 'opexBase', total: true });
+    L('sculptCfads', 'CFADS pre-tax, base case P50', 'k', F_K, (c) => c('energyP50') + '*' + c('price') + '/1000-' + c('opexBase') + '-' + c('agency'), { cache: 'sculptCfads', total: true, bold: true });
+    L('cfadsP99', 'CFADS pre-tax, one-year P99', 'k', F_K, (c) => c('energyP50') + '*p99_factor*' + c('price') + '/1000-' + c('opexBase') + '-' + c('agency'),
+      { cache: (i) => (O.p99_factor ? S.cfadsP99[i] : S.sculptCfads[i]), total: true });
 
-    G('Debt sizing');
-    L('pvPre', 'PV of remaining pre-tax CFADS to maturity', 'k', F_K, (c) => 'IF(' + c('f_debt') + '=1,(' + c('cfadsPre') + '+' + c.n('pvPre') + ')/(1+period_rate),0)',
-      { cache: (i) => (res.series.llcrPre[i] != null ? res.series.llcrPre[i] * S.debtOpen[i] : 0) });
-    V('pv_cfads_debt', 'PV of pre-tax CFADS over the debt tenor, at COD', 'k', F_K, (R) => 'SUMPRODUCT(' + R('f_first') + ',' + R('pvPre') + ')', { cache: sum.capacityAtTarget * D.target_dscr });
-    V('capacity_at_target', 'Debt capacity at target DSCR', 'k', F_K, () => 'pv_cfads_debt/target_dscr', { cache: sum.capacityAtTarget });
-    V('gearing_cap', 'Debt capacity at maximum gearing', 'k', F_K, () => 'capex_total*max_gearing', { cache: Cn.capex_total * D.gearing });
-    V('debt_amount', 'Senior debt amount', 'k', F_K, () => 'IF(sizing="lower_of",MIN(gearing_cap,capacity_at_target),debt_amount_input)', { cache: sum.amount, bold: true });
-    V('eff_gearing', 'Effective gearing (of capex)', '', F_PCT, () => 'debt_amount/capex_total', { cache: sum.effGearing });
-    V('n_rep', 'Number of repayment periods', '', F_INT, (R) => 'SUM(' + R('f_debt') + ')', { cache: res.meta.nRep });
-    V('sculpt_dscr', 'Sculpted DSCR (PV of CFADS ÷ debt)', '', F_X, () => 'pv_cfads_debt/debt_amount', { cache: sum.capacityAtTarget * D.target_dscr / sum.amount });
-    V('annuity_pmt', 'Annuity payment per period (if annuity)', 'k', F_K, () => 'debt_amount*period_rate/(1-(1+period_rate)^-n_rep)',
-      { cache: sum.amount * res.meta.rate / PPY / (1 - Math.pow(1 + res.meta.rate / PPY, -res.meta.nRep)) });
-
-    G('Construction');
+    sheet('Construction', 'Capex, drawdowns and financing costs until COD.', C_MUTED);
     L('capex', 'Capex', 'k', F_K, (c) => 'IF(' + c('f_con') + '=1,capex_total*INDEX(capex_profile,INT((' + c.t + '-1)*months_per_period/6)+1)*months_per_period/6,0)', { cache: 'capex', total: true });
     L('draw', 'Debt drawdown', 'k', F_K, (c) => c('capex') + '*eff_gearing', { cache: 'draw', total: true });
-    L('idc', 'Interest during construction', 'k', F_K, (c) => 'IF(' + c('f_con') + '=1,' + c('debtOpen') + '*period_rate,0)', { cache: 'idc', total: true });
+    L('idc', 'Interest during construction', 'k', F_K, (c) => 'IF(' + c('f_con') + '=1,' + c('debtOpen') + '*' + c('rate') + ',0)', { cache: 'idc', total: true });
     L('commit', 'Commitment fee', 'k', F_K, (c) => 'IF(' + c('f_con') + '=1,(debt_amount-' + c('debtOpen') + ')*margin*commit_fee_pct/periods_per_year,0)', { cache: 'commit', total: true });
     L('upfront', 'Upfront fee', 'k', F_K, (c) => 'IF(' + c.t + '=1,debt_amount*upfront_fee_pct,0)', { cache: 'upfront', total: true });
     L('equityIn', 'Equity contribution', 'k', F_K, (c) => c('capex') + '-' + c('draw') + '+' + c('idc') + '+' + c('commit') + '+' + c('upfront'), { cache: 'equityIn', total: true, bold: true });
     V('project_cost', 'Total project cost', 'k', F_K, (R) => 'capex_total+SUM(' + R('idc') + ')+SUM(' + R('commit') + ')+SUM(' + R('upfront') + ')', { cache: sum.projectCost, bold: true });
 
-    G('Senior debt');
+    sheet('Debt', 'Interest rates with hedging, debt sizing (three constraints), sculpting and the debt schedule.', C_ACCENT);
+    G('Interest rates (per period)');
+    L('baseRate', 'Rate, base case (sizing and sculpting)', '%', F_RATE, (c) => '(margin+' + c('hedge') + '*swap_rate+(1-' + c('hedge') + ')*base_rate)/periods_per_year', { cache: 'baseRate' });
+    L('rate', 'Rate, active scenario', '%', F_RATE, (c) => '(margin+' + c('hedge') + '*swap_rate+(1-' + c('hedge') + ')*(base_rate+sc_rate))/periods_per_year', { cache: 'rate' });
+    G('Debt sizing');
+    L('pvBase', 'PV of base case CFADS to maturity', 'k', F_K, (c) => 'IF(' + c('f_debt') + '=1,(' + c('sculptCfads') + '+' + c.n('pvBase') + ')/(1+' + c('baseRate') + '),0)', { cache: (i) => pvBaseS[i] });
+    L('pvP99', 'PV of P99 CFADS to maturity', 'k', F_K, (c) => 'IF(' + c('f_debt') + '=1,(' + c('cfadsP99') + '+' + c.n('pvP99') + ')/(1+' + c('baseRate') + '),0)', { cache: (i) => (O.p99_factor ? pvP99S[i] : pvBaseS[i]) });
+    V('pv_cfads_debt', 'PV of base case CFADS over the debt tenor, at COD', 'k', F_K, (R) => 'SUMPRODUCT(' + R('f_first') + ',' + R('pvBase') + ')', { cache: pvBaseS[nC] });
+    V('gearing_cap', '(i) Debt at maximum gearing', 'k', F_K, () => 'capex_total*max_gearing', { cache: Cn.capex_total * D.gearing });
+    V('capacity_at_target', '(ii) Debt sculpted at target DSCR on P50', 'k', F_K, () => 'pv_cfads_debt/target_dscr', { cache: sum.capacityAtTarget });
+    V('capacity_p99', '(iii) Debt sculpted at 1.00x on one-year P99', 'k', F_K, (R) => 'SUMPRODUCT(' + R('f_first') + ',' + R('pvP99') + ')', { cache: O.p99_factor ? sum.capacityP99 : pvBaseS[nC] });
+    V('debt_amount', 'Senior debt amount', 'k', F_K, () => 'IF(sizing="lower_of",MIN(gearing_cap,capacity_at_target,capacity_p99),debt_amount_input)', { cache: sum.amount, bold: true });
+    V('eff_gearing', 'Effective gearing (of capex)', '', F_PCT, () => 'debt_amount/capex_total', { cache: sum.effGearing });
+    V('n_rep', 'Number of repayment periods', '', F_INT, (R) => 'SUM(' + R('f_debt') + ')', { cache: res.meta.nRep });
+    V('sculpt_dscr', 'Sculpted DSCR (PV of base CFADS ÷ debt)', '', F_X, () => 'pv_cfads_debt/debt_amount', { cache: pvBaseS[nC] / sum.amount });
+    V('annuity_pmt', 'Annuity payment per period (if annuity)', 'k', F_K, () => 'debt_amount*period_rate/(1-(1+period_rate)^-n_rep)',
+      { cache: sum.amount * res.meta.rate / PPY / (1 - Math.pow(1 + res.meta.rate / PPY, -res.meta.nRep)) });
+    G('Debt schedule');
     L('debtOpen', 'Opening balance', 'k', F_K, (c) => (c.first ? '0' : c.p('debtClose')), { cache: 'debtOpen' });
-    L('interest', 'Interest', 'k', F_K, (c) => 'IF(' + c('f_debt') + '=1,' + c('debtOpen') + '*period_rate,0)', { cache: 'interest', total: true });
-    L('dsSched', 'Scheduled debt service (sculpted or annuity)', 'k', F_K,
-      (c) => 'IF(' + c('f_debt') + '=1,IF(repayment="sculpted",' + c('cfadsPre') + '/sculpt_dscr,IF(repayment="annuity",annuity_pmt,0)),0)',
-      { cache: (i) => (D.repayment === 'linear' ? 0 : S.debtService[i]) });
-    L('principal', 'Principal', 'k', F_K, (c) => 'IF(' + c('f_debt') + '=1,IF(repayment="linear",debt_amount/n_rep,' + c('dsSched') + '-' + c('interest') + '),0)', { cache: 'principal', total: true });
+    L('interest', 'Interest (active scenario rate)', 'k', F_K, (c) => 'IF(' + c('f_debt') + '=1,' + c('debtOpen') + '*' + c('rate') + ',0)', { cache: 'interest', total: true });
+    L('principal', 'Principal (fixed by the base case)', 'k', F_K,
+      (c) => 'IF(' + c('f_debt') + '=1,IF(repayment="linear",debt_amount/n_rep,IF(repayment="annuity",annuity_pmt-' + c('debtOpen') + '*period_rate,' + c('sculptCfads') + '/sculpt_dscr-' + c('debtOpen') + '*' + c('baseRate') + ')),0)',
+      { cache: 'principal', total: true });
     L('debtService', 'Debt service', 'k', F_K, (c) => c('interest') + '+' + c('principal'), { cache: 'debtService', total: true, bold: true });
     L('debtClose', 'Closing balance', 'k', F_K, (c) => c('debtOpen') + '+' + c('draw') + '-' + c('principal'), { cache: 'debtClose' });
+    L('debtCloseFy', 'Closing balance at financial year end', 'k', F_K, (c) => 'IF(' + c('f_fyend') + '=1,' + c('debtClose') + ',0)', { cache: (i) => (P[i].month === 6 ? S.debtClose[i] : 0) });
 
-    G('Tax');
+    sheet('Tax', 'Tax depreciation, losses carried forward and cash tax.', C_MUTED);
     L('depreciation', 'Tax depreciation', 'k', F_K, (c) => 'IF(AND(' + c('f_op') + '=1,' + c.t + '-n_constr<=dep_years*periods_per_year),project_cost/dep_years/periods_per_year,0)', { cache: 'depreciation', total: true });
-    L('taxable', 'Taxable income', 'k', F_K, (c) => 'IF(' + c('f_op') + '=1,' + c('ebitda') + '-' + c('depreciation') + '-' + c('interest') + ',0)', { cache: 'taxable', total: true });
+    L('taxable', 'Taxable income', 'k', F_K, (c) => 'IF(' + c('f_op') + '=1,' + c('ebitda') + '-' + c('agency') + '-' + c('mraSpend') + '-' + c('depreciation') + '-' + c('interest') + ',0)', { cache: 'taxable', total: true });
     L('lossUsed', 'Tax losses used', 'k', F_K, (c) => 'IF(' + c('taxable') + '>0,MIN(' + c.p('lossBal') + ',' + c('taxable') + '),0)', { cache: 'lossUsed', total: true });
     L('lossBal', 'Tax losses carried forward', 'k', F_K, (c) => c.p('lossBal') + '+MAX(0,-' + c('taxable') + ')-' + c('lossUsed'), { cache: 'lossBal' });
     L('tax', 'Cash tax', 'k', F_K, (c) => 'IF(' + c('taxable') + '>0,(' + c('taxable') + '-' + c('lossUsed') + ')*tax_rate,0)', { cache: 'tax', total: true });
-    L('cfadsPost', 'CFADS post-tax', 'k', F_K, (c) => c('ebitda') + '-' + c('tax'), { cache: 'cfadsPost', total: true, bold: true });
+    L('cfadsPost', 'CFADS post-tax', 'k', F_K, (c) => c('cfadsPre') + '-' + c('tax'), { cache: 'cfadsPost', total: true, bold: true });
 
-    G('Ratios');
-    L('dscrPre', 'DSCR pre-tax', 'x', F_X, (c) => 'IF(' + c('f_debt') + '=1,' + c('cfadsPre') + '/' + c('debtService') + ',"")', { cache: 'dscrPre' });
-    L('dscrPost', 'DSCR post-tax', 'x', F_X, (c) => 'IF(' + c('f_debt') + '=1,' + c('cfadsPost') + '/' + c('debtService') + ',"")', { cache: 'dscrPost', bold: true });
-    // 12 months = the last 2 semesters or the last 4 quarters (the number of terms is fixed at export).
-    const last12 = (c, key) => Array.from({ length: PPY }, (_, k) => c.back(key, k)).join('+');
-    L('hDscr', '12-month historic DSCR (tested)', 'x', F_X,
-      (c) => 'IF(AND(' + c('f_debt') + '=1,' + c.back('f_debt', PPY - 1) + '=1),(' + last12(c, 'cfadsPost') + ')/(' + last12(c, 'debtService') + '),"")',
-      { cache: 'hDscr' });
-    L('pvPost', 'PV of remaining post-tax CFADS to maturity', 'k', F_K, (c) => 'IF(' + c('f_debt') + '=1,(' + c('cfadsPost') + '+' + c.n('pvPost') + ')/(1+period_rate),0)',
-      { cache: (i) => (res.series.llcrPost[i] != null ? res.series.llcrPost[i] * S.debtOpen[i] : 0) });
-    L('llcrPre', 'LLCR pre-tax', 'x', F_X, (c) => 'IF(' + c('f_debt') + '=1,' + c('pvPre') + '/' + c('debtOpen') + ',"")', { cache: 'llcrPre' });
-    L('llcrPost', 'LLCR post-tax', 'x', F_X, (c) => 'IF(' + c('f_debt') + '=1,' + c('pvPost') + '/' + c('debtOpen') + ',"")', { cache: 'llcrPost' });
-    L('pvPpa', 'PV of remaining pre-tax CFADS to PPA expiry', 'k', F_K, (c) => 'IF(' + c('f_op') + '=1,(' + c('cfadsPre') + '+' + c.n('pvPpa') + ')/(1+period_rate),0)');
-    V('llcr_cod_pre', 'LLCR at COD, pre-tax', 'x', F_X, (R) => 'SUMPRODUCT(' + R('f_first') + ',' + R('pvPre') + ')/debt_amount', { cache: sum.llcrCodPre });
-    V('llcr_cod_post', 'LLCR at COD, post-tax', 'x', F_X, (R) => 'SUMPRODUCT(' + R('f_first') + ',' + R('pvPost') + ')/debt_amount', { cache: sum.llcrCodPost });
-    V('plcr_cod', 'PLCR at COD, pre-tax', 'x', F_X, (R) => 'SUMPRODUCT(' + R('f_first') + ',' + R('pvPpa') + ')/debt_amount', { cache: sum.plcrCod });
-
+    sheet('Reserves', 'Debt service reserve (DSRA) and maintenance reserve (MRA).', C_MUTED);
     G('Debt service reserve account (DSRA)');
     L('dsraTarget', 'Target balance (next DSRA months of debt service)', 'k', F_K,
       (c) => 'IF(' + c.t + '>=n_constr,' + Array.from({ length: 12 / PM }, (_, k) => 'IF(dsra_periods>=' + (k + 1) + ',' + c.ahead('debtService', k + 1) + ',0)').join('+') + ',0)', { cache: 'dsraTarget' });
     L('dsraFund', 'Initial funding by equity at COD', 'k', F_K, (c) => 'IF(' + c('f_cod') + '=1,' + c('dsraTarget') + ',0)', { cache: 'dsraFund', total: true });
-    L('cashAfterDs', 'Cash after debt service', 'k', F_K, (c) => 'IF(' + c('f_op') + '=1,' + c('cfadsPost') + '-' + c('debtService') + ',0)', { cache: 'cashAfterDs', total: true });
-    L('dsraDraw', 'DSRA drawing to cover a shortfall', 'k', F_K, (c) => 'IF(' + c('cashAfterDs') + '<0,MIN(' + c.p('dsraBal') + ',-' + c('cashAfterDs') + '),0)', { cache: 'dsraDraw', total: true });
-    L('shortfall', 'Debt service shortfall after DSRA', 'k', F_K, (c) => 'MAX(0,-' + c('cashAfterDs') + '-' + c('dsraDraw') + ')', { cache: 'shortfall', total: true });
-    L('cash1', 'Cash after DSRA drawing', 'k', F_K, (c) => 'MAX(0,' + c('cashAfterDs') + '+' + c('dsraDraw') + ')');
+    L('dsraDraw', 'Drawing to cover a shortfall', 'k', F_K, (c) => 'IF(' + c('cashAfterDs') + '<0,MIN(' + c.p('dsraBal') + ',-' + c('cashAfterDs') + '),0)', { cache: 'dsraDraw', total: true });
     L('dsraTopUp', 'Top-up from cash flow', 'k', F_K, (c) => 'IF(' + c('f_op') + '=1,MAX(0,MIN(' + c('dsraTarget') + '-(' + c.p('dsraBal') + '-' + c('dsraDraw') + '),' + c('cash1') + ')),0)', { cache: 'dsraTopUp', total: true });
     L('dsraRel', 'Release of excess over target', 'k', F_K, (c) => 'IF(' + c('f_op') + '=1,MAX(0,(' + c.p('dsraBal') + '-' + c('dsraDraw') + ')-' + c('dsraTarget') + '),0)', { total: true });
     L('dsraAfter', 'Balance after top-up and release', 'k', F_K, (c) => 'IF(' + c('f_op') + '=1,' + c.p('dsraBal') + '-' + c('dsraDraw') + '+' + c('dsraTopUp') + '-' + c('dsraRel') + ',0)');
     L('dsraFinal', 'Final release at PPA expiry', 'k', F_K, (c) => 'IF(' + c('f_last') + '=1,' + c('dsraAfter') + ',0)', { total: true });
     L('dsraBal', 'DSRA closing balance', 'k', F_K, (c) => 'IF(' + c('f_cod') + '=1,' + c('dsraFund') + ',IF(' + c('f_op') + '=1,' + c('dsraAfter') + '-' + c('dsraFinal') + ',0))', { cache: 'dsraBal', bold: true });
+    G('Maintenance reserve account (MRA): inverter replacement');
+    L('mraSpend', 'Inverter replacement (nominal)', 'k', F_K,
+      (c) => 'IF(AND(' + c('f_op') + '=1,' + c('opyear') + '>=mra_from,' + c('opyear') + '<=mra_to),mra_cost*' + c('index') + '/((mra_to-mra_from+1)*periods_per_year),0)', { cache: 'mraSpend', total: true });
+    V('mra_target', 'Total replacement to fund', 'k', F_K, (R) => 'SUM(' + R('mraSpend') + ')', { cache: sumOf(S.mraSpend) });
+    L('mraPlan', 'Planned funding', 'k', F_K,
+      (c) => 'IF(AND(' + c('f_op') + '=1,mra_years>0,' + c('opyear') + '>=mra_from-mra_years,' + c('opyear') + '<mra_from),mra_target/(mra_years*periods_per_year),0)', { cache: 'mraPlan', total: true });
+    L('mraFund', 'Funding from cash flow', 'k', F_K, (c) => 'MIN(' + c('mraPlan') + ',MAX(0,' + c('cashAfterDsra') + '))', { cache: 'mraFund', total: true });
+    L('mraFromMra', 'Replacement paid by the MRA', 'k', F_K, (c) => 'MIN(' + c.p('mraBal') + '+' + c('mraFund') + ',' + c('mraSpend') + ')', { total: true });
+    L('mraFromCash', 'Replacement paid from cash flow', 'k', F_K, (c) => c('mraSpend') + '-' + c('mraFromMra'), { cache: 'mraFromCash', total: true });
+    L('mraAfter', 'Balance before final release', 'k', F_K, (c) => c.p('mraBal') + '+' + c('mraFund') + '-' + c('mraFromMra'));
+    L('mraFinal', 'Final release at PPA expiry', 'k', F_K, (c) => 'IF(' + c('f_last') + '=1,' + c('mraAfter') + ',0)', { total: true });
+    L('mraBal', 'MRA closing balance', 'k', F_K, (c) => 'IF(' + c('f_op') + '=1,' + c('mraAfter') + '-' + c('mraFinal') + ',0)', { cache: 'mraBal', bold: true });
 
-    G('Cash flow waterfall and equity');
-    L('cashAvail', 'Cash available after DSRA', 'k', F_K, (c) => c('cash1') + '-' + c('dsraTopUp') + '+' + c('dsraRel'), { total: true });
+    sheet('Waterfall', 'Cash flow waterfall in the order of the term sheet, down to distributions.', C_GOOD);
+    L('wfCfads', '1. CFADS post-tax (after opex, agency fees, tax)', 'k', F_K, (c) => c('cfadsPost'), { cache: 'cfadsPost', total: true, bold: true });
+    L('wfDs', '2. Senior debt service', 'k', F_K, (c) => c('debtService'), { cache: 'debtService', total: true });
+    L('cashAfterDs', 'Cash after debt service', 'k', F_K, (c) => 'IF(' + c('f_op') + '=1,' + c('cfadsPost') + '-' + c('debtService') + ',0)', { cache: 'cashAfterDs', total: true });
+    L('shortfall', 'Debt service shortfall after DSRA', 'k', F_K, (c) => 'MAX(0,-' + c('cashAfterDs') + '-' + c('dsraDraw') + ')', { cache: 'shortfall', total: true });
+    L('cash1', 'Cash after DSRA drawing', 'k', F_K, (c) => 'MAX(0,' + c('cashAfterDs') + '+' + c('dsraDraw') + ')');
+    L('wfDsra', '3. DSRA top-up (−) / release (+)', 'k', F_K, (c) => c('dsraRel') + '-' + c('dsraTopUp'), { total: true });
+    L('cashAfterDsra', 'Cash after DSRA', 'k', F_K, (c) => c('cash1') + '-' + c('dsraTopUp') + '+' + c('dsraRel'), { total: true });
+    L('wfMra', '4. MRA funding and replacement paid from cash', 'k', F_K, (c) => '-' + c('mraFund') + '-' + c('mraFromCash'), { total: true });
+    L('cashAvail', 'Cash available for distribution', 'k', F_K, (c) => c('cashAfterDsra') + '-' + c('mraFund') + '-' + c('mraFromCash'), { total: true, bold: true });
     L('lockup', 'Lock-up flag (12m DSCR below lock-up)', 'flag', F_INT, (c) => 'IF(' + c('hDscr') + '="",0,IF(' + c('hDscr') + '<lockup_dscr,1,0))', { cache: (i) => (S.lockup[i] ? 1 : 0), total: true });
     L('defaultF', 'Default flag (12m DSCR below default level)', 'flag', F_INT, (c) => 'IF(' + c('hDscr') + '="",0,IF(' + c('hDscr') + '<default_dscr,1,0))', { cache: (i) => (S.defaultFlag[i] ? 1 : 0), total: true });
     L('blocked', 'Distribution blocked (lock-up or DSRA not full)', 'flag', F_INT, (c) => 'IF(' + c('f_op') + '=1,IF(OR(' + c('lockup') + '=1,' + c('dsraAfter') + '<' + c('dsraTarget') + '-0.000001),1,0),0)');
-    L('trapped', 'Cash trapped this period', 'k', F_K, (c) => 'IF(' + c('blocked') + '=1,' + c('cashAvail') + ',0)', { cache: 'trapped', total: true });
-    L('trapBal', 'Trapped cash balance', 'k', F_K, (c) => 'IF(' + c('f_last') + '=1,0,IF(' + c('blocked') + '=1,' + c.p('trapBal') + '+' + c('cashAvail') + ',0))', { cache: 'trapBal' });
-    L('distributions', 'Distributions to equity', 'k', F_K,
-      (c) => 'IF(' + c('f_op') + '=1,IF(' + c('blocked') + '=1,0,' + c('cashAvail') + '+' + c.p('trapBal') + ')+IF(' + c('f_last') + '=1,IF(' + c('blocked') + '=1,' + c.p('trapBal') + '+' + c('cashAvail') + ',0)+' + c('dsraFinal') + ',0),0)',
+    L('trapped', 'Cash trapped this period', 'k', F_K, (c) => 'IF(AND(' + c('blocked') + '=1,' + c('cashAvail') + '>=0),' + c('cashAvail') + ',0)', { cache: 'trapped', total: true });
+    L('trapBal', 'Trapped cash balance', 'k', F_K,
+      (c) => 'IF(' + c('f_last') + '=1,0,IF(' + c('cashAvail') + '<0,' + c.p('trapBal') + ',IF(' + c('blocked') + '=1,' + c.p('trapBal') + '+' + c('cashAvail') + ',0)))', { cache: 'trapBal' });
+    L('distributions', '5. Distributions to equity', 'k', F_K,
+      (c) => 'IF(' + c('f_op') + '=1,IF(' + c('cashAvail') + '<0,' + c('cashAvail') + ',IF(' + c('blocked') + '=1,0,' + c('cashAvail') + '+' + c.p('trapBal') + '))+IF(' + c('f_last') + '=1,IF(AND(' + c('blocked') + '=1,' + c('cashAvail') + '>=0),' + c.p('trapBal') + '+' + c('cashAvail') + ',IF(' + c('cashAvail') + '<0,' + c.p('trapBal') + ',0))+' + c('dsraFinal') + '+' + c('mraFinal') + ',0),0)',
       { cache: 'distributions', total: true, bold: true });
-    L('equityFlows', 'Equity cash flow', 'k', F_K, (c) => '-' + c('equityIn') + '-' + c('dsraFund') + '+' + c('distributions'), { cache: 'equityFlows', total: true, bold: true });
+
+    sheet('Ratios', 'Cover ratios of the active scenario: DSCR, 12-month historic DSCR, LLCR, PLCR.', C_ACCENT);
+    L('dscrPre', 'DSCR pre-tax', 'x', F_X, (c) => 'IF(' + c('f_debt') + '=1,' + c('cfadsPre') + '/' + c('debtService') + ',"")', { cache: 'dscrPre' });
+    L('dscrPost', 'DSCR post-tax', 'x', F_X, (c) => 'IF(' + c('f_debt') + '=1,' + c('cfadsPost') + '/' + c('debtService') + ',"")', { cache: 'dscrPost', bold: true });
+    // 12 months = the last 2 semesters or the last 4 quarters (the number of terms is fixed at export).
+    const last12 = (c, key) => Array.from({ length: PPY }, (_, k) => c.back(key, k)).join('+');
+    L('hDscr', '12-month historic DSCR (tested)', 'x', F_X,
+      (c) => 'IF(AND(' + c('f_debt') + '=1,' + c.back('f_debt', PPY - 1) + '=1),(' + last12(c, 'cfadsPost') + ')/(' + last12(c, 'debtService') + '),"")', { cache: 'hDscr' });
+    L('pvPre', 'PV of remaining pre-tax CFADS to maturity', 'k', F_K, (c) => 'IF(' + c('f_debt') + '=1,(' + c('cfadsPre') + '+' + c.n('pvPre') + ')/(1+' + c('rate') + '),0)', { cache: (i) => pvPreS[i] });
+    L('pvPost', 'PV of remaining post-tax CFADS to maturity', 'k', F_K, (c) => 'IF(' + c('f_debt') + '=1,(' + c('cfadsPost') + '+' + c.n('pvPost') + ')/(1+' + c('rate') + '),0)', { cache: (i) => pvPostS[i] });
+    L('llcrPre', 'LLCR pre-tax', 'x', F_X, (c) => 'IF(' + c('f_debt') + '=1,' + c('pvPre') + '/' + c('debtOpen') + ',"")', { cache: 'llcrPre' });
+    L('llcrPost', 'LLCR post-tax', 'x', F_X, (c) => 'IF(' + c('f_debt') + '=1,' + c('pvPost') + '/' + c('debtOpen') + ',"")', { cache: 'llcrPost' });
+    L('pvPpa', 'PV of remaining pre-tax CFADS to PPA expiry', 'k', F_K, (c) => 'IF(' + c('f_op') + '=1,(' + c('cfadsPre') + '+' + c.n('pvPpa') + ')/(1+' + c('rate') + '),0)', { cache: (i) => pvPpaS[i] });
+    V('min_dscr_post', 'Minimum DSCR post-tax', 'x', F_X, (R) => 'MIN(' + R('dscrPost') + ')', { cache: sum.minDscrPost, bold: true });
+    V('avg_dscr_post', 'Average DSCR post-tax', 'x', F_X, (R) => 'AVERAGE(' + R('dscrPost') + ')', { cache: sum.avgDscrPost });
+    V('llcr_cod_pre', 'LLCR at COD, pre-tax', 'x', F_X, (R) => 'SUMPRODUCT(' + R('f_first') + ',' + R('pvPre') + ')/debt_amount', { cache: sum.llcrCodPre });
+    V('llcr_cod_post', 'LLCR at COD, post-tax', 'x', F_X, (R) => 'SUMPRODUCT(' + R('f_first') + ',' + R('pvPost') + ')/debt_amount', { cache: sum.llcrCodPost });
+    V('plcr_cod', 'PLCR at COD, pre-tax', 'x', F_X, (R) => 'SUMPRODUCT(' + R('f_first') + ',' + R('pvPpa') + ')/debt_amount', { cache: sum.plcrCod });
+
+    sheet('Returns', 'Equity cash flows and returns of the active scenario.', C_GOOD);
+    L('retIn', 'Equity contributions during construction', 'k', F_K, (c) => '-' + c('equityIn'), { cache: (i) => -S.equityIn[i], total: true });
+    L('retDsra', 'DSRA funding at COD', 'k', F_K, (c) => '-' + c('dsraFund'), { cache: (i) => -S.dsraFund[i], total: true });
+    L('retDist', 'Distributions', 'k', F_K, (c) => c('distributions'), { cache: 'distributions', total: true });
+    L('equityFlows', 'Equity cash flow', 'k', F_K, (c) => c('retIn') + '+' + c('retDsra') + '+' + c('retDist'), { cache: 'equityFlows', total: true, bold: true });
+    let cum = 0;
+    const cumS = S.equityFlows.map((v) => (cum += v));
+    L('equityCum', 'Cumulative equity cash flow', 'k', F_K, (c) => c.p('equityCum') + '+' + c('equityFlows'), { cache: (i) => cumS[i] });
     V('equity_irr', 'Equity IRR (post-tax, nominal, annualised)', '', F_PCT, (R) => '(1+IRR(' + R('equityFlows') + '))^periods_per_year-1', { cache: sum.equityIrr, bold: true });
+    const invested = sumOf(S.equityIn) + sumOf(S.dsraFund);
+    V('cash_multiple', 'Cash multiple (distributions ÷ equity invested)', 'x', '0.00"x"', (R) => 'SUM(' + R('retDist') + ')/-(SUM(' + R('retIn') + ')+SUM(' + R('retDsra') + '))', { cache: sum.totalDistributions / invested });
 
-    // Assign row numbers: rows 1-6 hold the title and the timeline header.
+    // Assign row numbers on each sheet: rows 1-6 hold the title and the timeline header.
     const ROW = {};
-    let rr = 8;
-    for (const row of ROWS) {
-      if (row.group) { row.r = ++rr; rr++; continue; }
-      row.r = rr++;
-      ROW[row.key] = row.r;
+    for (const sh of SHEETS) {
+      let rr = 8;
+      for (const row of sh.rows) {
+        if (row.group) { row.r = ++rr; rr++; continue; }
+        row.r = rr++;
+        ROW[row.key] = { sheet: sh.name, r: row.r };
+      }
     }
-    ROW.t = 4;
+    const rangeOf = (key) => ROW[key].sheet + '!$' + col(1) + '$' + ROW[key].r + ':$' + LAST + '$' + ROW[key].r;
+    const R = rangeOf;
 
-    const wsC = wb.addSheet('Calc');
-    wsC.width(1, 46).width(2, 7).width(3, 14);
-    for (let t = 1; t <= N; t++) wsC.width(FIRST + t - 1, 11);
-    wsC.freezeAt('D7');
-    wsC.tab = C_MUTED;
-    banner(wsC, 'Calculations', (PM === 3 ? 'Quarterly' : 'Semi-annual') + ' periods across. ' + deal.meta.currency + ' thousands unless stated. Every cell is a formula; inputs come from the Inputs sheet by name. Shaded columns = construction.', FIRST + N - 1);
-    wsC.set('A4', 'Period', st.head); wsC.set('B4', '', st.head); wsC.set('C4', 'Total / value', st.headR);
-    wsC.set('A5', 'Period start', st.muted); wsC.set('A6', 'Period end', st.bold);
-    const boldTop = wb.style({ bold: true, border: 'top' });
     const hdr = wb.style({ bold: true, fill: C_HEAD_BG, border: 'bottom', align: 'right', numFmt: F_INT });
-    const dStart = wb.style({ numFmt: F_MONTH, color: C_MUTED, align: 'right' });
-    const dEnd = wb.style({ numFmt: F_MONTH, bold: true, align: 'right' });
     const hdrCon = wb.style({ bold: true, fill: C_CONSTR_BG, border: 'bottom', align: 'right', numFmt: F_INT });
     const phase = wb.style({ color: C_MUTED, align: 'right', italic: true });
-    wsC.set('A3', 'Phase', st.muted);
-    for (let t = 1; t <= N; t++) {
-      const con = t <= res.meta.nC;
-      wsC.set(col(t) + '3', con ? 'Constr.' : t <= res.meta.nM ? 'Debt' : 'Tail', phase);
-      wsC.set(col(t) + '4', t, con ? hdrCon : hdr);
-    }
+    const dStart = wb.style({ numFmt: F_MONTH, color: C_MUTED, align: 'right' });
+    const dEnd = wb.style({ numFmt: F_MONTH, bold: true, align: 'right' });
+    const boldTop = wb.style({ bold: true, border: 'top' });
 
-    const rangeOf = (key) => '$' + col(1) + '$' + ROW[key] + ':$' + LAST + '$' + ROW[key];
-    for (const row of ROWS) {
-      if (row.group) {
-        wsC.set('A' + row.r, row.group, st.group);
-        for (let c = 2; c <= FIRST + N - 1; c++) wsC.set(X.colName(c) + row.r, '', st.group);
-        continue;
-      }
-      const lab = row.bold ? boldTop : 0;
-      wsC.set('A' + row.r, row.label, lab);
-      wsC.set('B' + row.r, row.unit, st.muted);
-      if (row.scalar) {
-        wsC.set('C' + row.r, { f: row.f((key) => 'Calc!' + rangeOf(key)), v: row.cache }, calc(row.fmt, true));
-        wb.defineName(row.key, 'Calc!$C$' + row.r);
-        continue;
-      }
-      const style = row.key === 'start' ? dStart : row.key === 'end' ? dEnd : (row.bold ? wb.style({ numFmt: row.fmt, bold: true, border: 'top' }) : calc(row.fmt));
+    for (const sh of SHEETS) {
+      const ws = wb.addSheet(sh.name);
+      ws.tab = sh.tab;
+      ws.width(1, 50).width(2, 7).width(3, 14);
+      for (let t = 1; t <= N; t++) ws.width(FIRST + t - 1, 11);
+      ws.freezeAt('D7');
+      banner(ws, sh.name, sh.note + ' ' + (PM === 3 ? 'Quarterly' : 'Semi-annual') + ' periods across, ' + deal.meta.currency + ' thousands unless stated. Shaded columns = construction.', FIRST + N - 1);
+      ws.set('A3', 'Phase', st.muted);
+      ws.set('A4', 'Period', st.head); ws.set('B4', '', st.head); ws.set('C4', 'Total / value', st.headR);
+      ws.set('A5', 'Period start', st.muted); ws.set('A6', 'Period end', st.bold);
       for (let t = 1; t <= N; t++) {
-        const cl = col(t), i = t - 1;
-        const ref = (key) => cl + ROW[key];
-        ref.t = cl + '$4';
-        ref.first = t === 1;
-        ref.p = (key) => (t === 1 ? '0' : col(t - 1) + ROW[key]);
-        ref.n = (key) => col(t + 1) + ROW[key]; // the column after the last period is empty, i.e. 0
-        ref.back = (key, k) => (k === 0 ? cl + ROW[key] : t - k < 1 ? '0' : col(t - k) + ROW[key]);
-        ref.ahead = (key, k) => col(t + k) + ROW[key]; // columns after the last period are empty, i.e. 0
-        let v;
-        if (typeof row.cache === 'string') v = S[row.cache][i];
-        else if (typeof row.cache === 'function') v = row.cache(i);
-        if (v === null) v = '';
-        if (typeof v === 'boolean') v = v ? 1 : 0;
-        wsC.set(cl + row.r, { f: row.f(ref), v }, style);
+        const con = t <= nC, cl = col(t);
+        ws.set(cl + '3', con ? 'Constr.' : t <= nM ? 'Debt' : 'Tail', phase);
+        ws.set(cl + '4', t, con ? hdrCon : hdr);
+        const pre = sh.name === 'Timing' ? '' : 'Timing!';
+        ws.set(cl + '5', { f: pre + cl + ROW.start.r, v: X.excelDate(periodStart(P[t - 1], PM)) }, dStart);
+        ws.set(cl + '6', { f: pre + cl + ROW.end.r, v: X.excelDate(periodEnd(P[t - 1])) }, dEnd);
       }
-      if (row.total) {
-        const tv = typeof row.cache === 'string' ? S[row.cache].reduce((a, b) => a + (b || 0), 0) : undefined;
-        wsC.set('C' + row.r, { f: 'SUM(' + col(1) + row.r + ':' + LAST + row.r + ')', v: tv }, calc(row.fmt, true));
+      for (const row of sh.rows) {
+        if (row.group) {
+          ws.set('A' + row.r, row.group, st.group);
+          for (let c = 2; c <= FIRST + N - 1; c++) ws.set(X.colName(c) + row.r, '', st.group);
+          continue;
+        }
+        ws.set('A' + row.r, row.label, row.bold ? boldTop : 0);
+        ws.set('B' + row.r, row.unit, st.muted);
+        if (row.scalar) {
+          ws.set('C' + row.r, { f: row.f(rangeOf), v: row.cache }, calc(row.fmt, true));
+          wb.defineName(row.key, sh.name + '!$C$' + row.r);
+          continue;
+        }
+        const style = row.key === 'start' ? dStart : row.key === 'end' ? dEnd : (row.bold ? wb.style({ numFmt: row.fmt, bold: true, border: 'top' }) : calc(row.fmt));
+        for (let t = 1; t <= N; t++) {
+          const cl = col(t), i = t - 1;
+          // A reference to another row in the same period column, prefixed by its sheet if needed.
+          const at = (key, c) => (ROW[key].sheet === sh.name ? '' : ROW[key].sheet + '!') + c + ROW[key].r;
+          const ref = (key) => at(key, cl);
+          ref.t = cl + '$4';
+          ref.first = t === 1;
+          ref.p = (key) => (t === 1 ? '0' : at(key, col(t - 1)));
+          ref.n = (key) => at(key, col(t + 1)); // the column after the last period is empty, i.e. 0
+          ref.back = (key, k) => (k === 0 ? ref(key) : t - k < 1 ? '0' : at(key, col(t - k)));
+          ref.ahead = (key, k) => at(key, col(t + k)); // columns after the last period are empty, i.e. 0
+          let v;
+          if (typeof row.cache === 'string') v = S[row.cache][i];
+          else if (typeof row.cache === 'function') v = row.cache(i);
+          if (v === null) v = '';
+          if (typeof v === 'boolean') v = v ? 1 : 0;
+          ws.set(cl + row.r, { f: row.f(ref), v }, style);
+        }
+        if (row.total) {
+          const tv = typeof row.cache === 'string' ? sumOf(S[row.cache]) : typeof row.cache === 'function' ? sumOf(Array.from({ length: N }, (_, i) => row.cache(i))) : undefined;
+          ws.set('C' + row.r, { f: 'SUM(' + col(1) + row.r + ':' + LAST + row.r + ')', v: tv }, calc(row.fmt, true));
+        }
       }
     }
-    const R = (key) => 'Calc!' + rangeOf(key);
 
-    // ---------------- Outputs ----------------
-    const wsO = wb.addSheet('Outputs');
-    wsO.width(1, 44).width(2, 16).width(3, 4).width(4, 34).width(5, 16);
-    wsO.tab = C_GOOD;
-    banner(wsO, 'Outputs', 'Key results, all linked to the Calc sheet.', 5);
-    const out = (ws, row, label, f, v, fmt, colL, colV) => { ws.set((colL || 'A') + row, label); ws.set((colV || 'B') + row, { f, v }, calc(fmt, false)); };
-    wsO.set('A4', 'Uses', st.head); wsO.set('B4', deal.meta.currency + ' k', st.headR);
-    wsO.set('D4', 'Sources', st.head); wsO.set('E4', deal.meta.currency + ' k', st.headR);
-    out(wsO, 5, 'Construction capex', 'capex_total', Cn.capex_total, F_K);
-    out(wsO, 6, 'Interest during construction', 'SUM(' + R('idc') + ')', sum.idc, F_K);
-    out(wsO, 7, 'Upfront fee', 'SUM(' + R('upfront') + ')', sum.upfrontFee, F_K);
-    out(wsO, 8, 'Commitment fee', 'SUM(' + R('commit') + ')', sum.commitmentFees, F_K);
-    wsO.set('A9', 'Total uses', st.bold); wsO.set('B9', { f: 'SUM(B5:B8)', v: sum.projectCost }, calc(F_K, true));
-    out(wsO, 5, 'Senior debt', 'debt_amount', sum.amount, F_K, 'D', 'E');
-    out(wsO, 6, 'Sponsor equity at financial close', 'SUM(' + R('equityIn') + ')', sum.equityAtFc, F_K, 'D', 'E');
-    wsO.set('D9', 'Total sources', st.bold); wsO.set('E9', { f: 'E5+E6', v: sum.amount + sum.equityAtFc }, calc(F_K, true));
-    wsO.set('A10', 'The DSRA is funded by a further equity contribution at COD:', st.muted);
-    wsO.set('B10', { f: 'SUM(' + R('dsraFund') + ')', v: sum.dsraAtCod }, calc(F_K));
+    // ---------------- Annual summary ----------------
+    const years = [];
+    for (let y = P[0].fy; y <= P[N - 1].fy; y++) years.push(y);
+    const wsA = wb.addSheet('Annual');
+    wsA.tab = C_GOOD;
+    wsA.width(1, 40).width(2, 7);
+    years.forEach((_, k) => wsA.width(3 + k, 11));
+    wsA.freezeAt('C5');
+    banner(wsA, 'Annual summary', 'Financial years ending 30 June. Each figure adds up the periods of its year (SUMIF on the Timing sheet). Active scenario.', 2 + years.length);
+    wsA.set('A4', 'Financial year', st.head); wsA.set('B4', '', st.head);
+    years.forEach((y, k) => wsA.set(X.colName(3 + k) + '4', y, hdr));
+    const fyOf = P.map((p) => p.fy);
+    const byYear = (arr) => years.map((y) => sumOf(arr.filter((_, i) => fyOf[i] === y)));
+    const seriesFor = { debtCloseFy: S.debtClose.map((v, i) => (P[i].month === 6 ? v : 0)) };
+    const annual = [
+      ['g', 'Operations'],
+      ['Net energy', 'MWh', 'energy'], ['Revenue', 'k', 'revenue'], ['Operating costs', 'k', 'opex'], ['EBITDA', 'k', 'ebitda', 1],
+      ['Agency fees', 'k', 'agency'], ['Cash tax', 'k', 'tax'], ['CFADS post-tax', 'k', 'cfadsPost', 1],
+      ['g', 'Senior debt'],
+      ['Interest', 'k', 'interest'], ['Principal', 'k', 'principal'], ['Debt service', 'k', 'debtService', 1], ['Closing balance (30 June)', 'k', 'debtCloseFy'],
+      ['DSCR post-tax (annual)', 'x', 'dscrA', 1],
+      ['g', 'Reserves and equity'],
+      ['MRA funding', 'k', 'mraFund'], ['Inverter replacement', 'k', 'mraSpend'], ['Distributions to equity', 'k', 'distributions', 1], ['Equity cash flow', 'k', 'equityFlows', 1],
+    ];
+    const rowA = {};
+    let ra = 6;
+    for (const [label, unit, key, bold] of annual) {
+      if (label === 'g') { wsA.set('A' + ra, unit, st.group); years.forEach((_, k) => wsA.set(X.colName(3 + k) + ra, '', st.group)); ra++; continue; }
+      rowA[key] = ra;
+      wsA.set('A' + ra, label, bold ? boldTop : 0); wsA.set('B' + ra, unit, st.muted);
+      const vals = key === 'dscrA' ? null : byYear(seriesFor[key] || S[key]);
+      years.forEach((y, k) => {
+        const cl = X.colName(3 + k);
+        if (key === 'dscrA') {
+          const cf = byYear(S.cfadsPost)[k], ds = byYear(S.debtService)[k];
+          wsA.set(cl + ra, { f: 'IF(' + cl + rowA.debtService + '>0,' + cl + rowA.cfadsPost + '/' + cl + rowA.debtService + ',"")', v: ds > 0 ? cf / ds : '' }, wb.style({ numFmt: F_X, bold: true, border: 'top' }));
+        } else {
+          wsA.set(cl + ra, { f: 'SUMIF(' + R('fy') + ',' + cl + '$4,' + R(key) + ')', v: vals[k] }, bold ? wb.style({ numFmt: F_K, bold: true, border: 'top' }) : calc(F_K));
+        }
+      });
+      ra++;
+    }
 
-    wsO.set('A12', 'Debt and cover ratios', st.head); wsO.set('B12', '', st.headR);
+    // ---------------- Dashboard ----------------
+    const wsO = wb.addSheet('Dashboard');
+    wsO.tab = C_NAVY;
+    wsO.width(1, 44).width(2, 16).width(3, 4).width(4, 40).width(5, 14).width(6, 14).width(7, 14).width(8, 14);
+    banner(wsO, 'Dashboard', 'Key results, all linked to the calculation sheets. Active scenario shown in B4.', 8);
+    const out = (row, label, f, v, fmt, colL, colV) => { wsO.set((colL || 'A') + row, label); wsO.set((colV || 'B') + row, { f, v }, calc(fmt, false)); };
+    wsO.set('A4', 'Active scenario', st.bold); wsO.set('B4', { f: 'scenario', v: SCENARIO_NAMES[scIndex] }, wb.style({ bold: true, color: C_ACCENT }));
+    wsO.set('A6', 'Uses', st.head); wsO.set('B6', deal.meta.currency + ' k', st.headR);
+    wsO.set('D6', 'Sources', st.head); wsO.set('E6', deal.meta.currency + ' k', st.headR);
+    out(7, 'Construction capex', 'capex_total', Cn.capex_total, F_K);
+    out(8, 'Interest during construction', 'SUM(' + R('idc') + ')', sum.idc, F_K);
+    out(9, 'Upfront fee', 'SUM(' + R('upfront') + ')', sum.upfrontFee, F_K);
+    out(10, 'Commitment fee', 'SUM(' + R('commit') + ')', sum.commitmentFees, F_K);
+    wsO.set('A11', 'Total uses', st.bold); wsO.set('B11', { f: 'SUM(B7:B10)', v: sum.projectCost }, calc(F_K, true));
+    out(7, 'Senior debt', 'debt_amount', sum.amount, F_K, 'D', 'E');
+    out(8, 'Sponsor equity at financial close', 'SUM(' + R('equityIn') + ')', sum.equityAtFc, F_K, 'D', 'E');
+    wsO.set('D11', 'Total sources', st.bold); wsO.set('E11', { f: 'E7+E8', v: sum.amount + sum.equityAtFc }, calc(F_K, true));
+    wsO.set('A12', 'DSRA funded by a further equity contribution at COD:', st.muted);
+    wsO.set('B12', { f: 'SUM(' + R('dsraFund') + ')', v: sum.dsraAtCod }, calc(F_K));
+
+    wsO.set('A14', 'Debt sizing: lowest of', st.head); wsO.set('B14', deal.meta.currency + ' k', st.headR);
+    out(15, '(i) Maximum gearing × capex', 'gearing_cap', Cn.capex_total * D.gearing, F_K);
+    out(16, '(ii) Sculpted at target DSCR on P50', 'capacity_at_target', sum.capacityAtTarget, F_K);
+    out(17, '(iii) Sculpted at 1.00x on one-year P99', 'capacity_p99', O.p99_factor ? sum.capacityP99 : pvBaseS[nC], F_K);
+    wsO.set('A18', 'Senior debt (' + (D.sizing === 'lower_of' ? 'lowest of the three' : 'fixed facility') + ')', st.bold); wsO.set('B18', { f: 'debt_amount', v: sum.amount }, calc(F_K, true));
+    out(19, 'Headroom vs DSCR capacity', 'capacity_at_target/debt_amount-1', sum.headroom, F_PCT1);
+
+    wsO.set('A21', 'Cover ratios (active scenario)', st.head); wsO.set('B21', '', st.headR);
     const ratio = [
-      ['Senior debt', 'debt_amount', sum.amount, F_K],
       ['Effective gearing (of capex)', 'eff_gearing', sum.effGearing, F_PCT1],
-      ['Sculpted DSCR (pre-tax)', 'IF(repayment="sculpted",sculpt_dscr,"n/a")', D.repayment === 'sculpted' ? sum.sculptDscr : 'n/a', F_X],
-      ['Minimum DSCR pre-tax', 'MIN(' + R('dscrPre') + ')', sum.minDscrPre, F_X],
-      ['Average DSCR pre-tax', 'AVERAGE(' + R('dscrPre') + ')', sum.avgDscrPre, F_X],
-      ['Minimum DSCR post-tax', 'MIN(' + R('dscrPost') + ')', sum.minDscrPost, F_X],
-      ['Average DSCR post-tax', 'AVERAGE(' + R('dscrPost') + ')', sum.avgDscrPost, F_X],
-      ['LLCR at COD, pre-tax', 'llcr_cod_pre', sum.llcrCodPre, F_X],
+      ['Sculpted DSCR (pre-tax, base case)', 'IF(repayment="sculpted",sculpt_dscr,"n/a")', D.repayment === 'sculpted' ? pvBaseS[nC] / sum.amount : 'n/a', F_X],
+      ['Minimum DSCR post-tax', 'min_dscr_post', sum.minDscrPost, F_X],
+      ['Average DSCR post-tax', 'avg_dscr_post', sum.avgDscrPost, F_X],
       ['LLCR at COD, post-tax', 'llcr_cod_post', sum.llcrCodPost, F_X],
       ['PLCR at COD, pre-tax', 'plcr_cod', sum.plcrCod, F_X],
-      ['Debt capacity at target DSCR', 'capacity_at_target', sum.capacityAtTarget, F_K],
-      ['Headroom vs senior debt', 'capacity_at_target/debt_amount-1', sum.headroom, F_PCT1],
       ['Lock-up tests failed', 'SUM(' + R('lockup') + ')', sum.lockupPeriods, F_INT],
       ['Default tests failed', 'SUM(' + R('defaultF') + ')', sum.defaultPeriods, F_INT],
     ];
-    ratio.forEach(([l, f, v, fmt], i) => out(wsO, 13 + i, l, f, v, fmt));
-    let ro = 13 + ratio.length + 1;
+    ratio.forEach(([l, f, v, fmt], i) => out(22 + i, l, f, v, fmt));
+    let ro = 22 + ratio.length + 1;
     wsO.set('A' + ro, 'First operating year', st.head); wsO.set('B' + ro, '', st.headR); ro++;
     const fy = sum.firstOpYear;
     const firstYear = (key) => 'SUMIF(' + R('opyear') + ',1,' + R(key) + ')';
-    out(wsO, ro++, 'Net energy (MWh)', firstYear('energy'), fy.energy, F_K);
-    out(wsO, ro++, 'Revenue', firstYear('revenue'), fy.revenue, F_K);
-    out(wsO, ro++, 'Operating costs', firstYear('opex'), fy.opex, F_K);
-    out(wsO, ro++, 'EBITDA', firstYear('ebitda'), fy.ebitda, F_K);
+    out(ro++, 'Net energy (MWh)', firstYear('energy'), fy.energy, F_K);
+    out(ro++, 'Revenue', firstYear('revenue'), fy.revenue, F_K);
+    out(ro++, 'EBITDA', firstYear('ebitda'), fy.ebitda, F_K);
     ro++;
     wsO.set('A' + ro, 'Equity', st.head); wsO.set('B' + ro, '', st.headR); ro++;
-    out(wsO, ro++, 'Equity IRR (post-tax, nominal)', 'equity_irr', sum.equityIrr, F_PCT);
-    out(wsO, ro++, 'Total distributions', 'SUM(' + R('distributions') + ')', sum.totalDistributions, F_K);
+    out(ro++, 'Equity IRR (post-tax, nominal)', 'equity_irr', sum.equityIrr, F_PCT);
+    out(ro++, 'Cash multiple', 'cash_multiple', sum.totalDistributions / invested, '0.00"x"');
+    out(ro++, 'Total distributions', 'SUM(' + R('distributions') + ')', sum.totalDistributions, F_K);
+
+    // Lender cases side by side: values from the web app at export (the live model shows one case at a time).
+    wsO.set('D21', 'Lender cases (values at export)', st.head);
+    ['Min DSCR', 'Avg DSCR', 'LLCR', 'Equity IRR'].forEach((h, k) => wsO.set(X.colName(5 + k) + '21', h, st.headR));
+    SCENARIO_KEYS.forEach((key, k) => {
+      const x = E.run(Object.assign({}, deal, { scenario: key }));
+      const row = 22 + k;
+      wsO.set('D' + row, SCENARIO_NAMES[k], k === scIndex ? st.bold : 0);
+      if (!x.ok) return;
+      const s = x.summary;
+      wsO.set('E' + row, s.minDscrPost, calc(F_X)); wsO.set('F' + row, s.avgDscrPost, calc(F_X));
+      wsO.set('G' + row, s.llcrCodPost, calc(F_X)); wsO.set('H' + row, s.equityIrr == null ? '' : s.equityIrr, calc(F_PCT));
+    });
+    wsO.set('D26', 'Pick a case on the Inputs sheet to see it live everywhere.', st.muted);
 
     // ---------------- Checks ----------------
     const wsK = wb.addSheet('Checks');
-    wsK.width(1, 52).width(2, 16).width(3, 16).width(4, 14).width(5, 10);
     wsK.tab = C_GOOD;
+    wsK.width(1, 56).width(2, 16).width(3, 16).width(4, 14).width(5, 10);
     banner(wsK, 'Checks', 'TRUE means the check passes. Part 2 compares this workbook with the web app at the time of export.', 5);
-    const okStyle = st.ok;
-    wsK.set('A4', 'Model integrity', st.head); wsK.set('B4', 'Result', wb.style({ bold: true, fill: C_HEAD_BG, border: 'bottom', align: 'center' }));
-    const lastCol = (key) => 'Calc!$' + LAST + '$' + ROW[key];
+    wsK.set('A4', 'Model integrity', st.head); wsK.set('B4', 'Result', st.headC);
+    const lastCol = (key) => ROW[key].sheet + '!$' + LAST + '$' + ROW[key].r;
     const integrity = [
       ['Debt fully drawn at COD', 'ABS(SUM(' + R('draw') + ')-debt_amount)<0.01'],
       ['Debt repaid at maturity', 'ABS(' + lastCol('debtClose') + ')<0.01'],
@@ -2087,17 +2410,22 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       ['One capex share per construction semester', 'COUNT(capex_profile)*6=n_constr*months_per_period'],
       ['Timeline ends at PPA expiry (columns fixed at export)', lastCol('end') + '=ppa_end_date'],
       ['DSRA of 0, ' + (PM === 3 ? '3, 6, 9' : '6') + ' or 12 months (as built)', 'AND(dsra_months>=0,dsra_months<=12,INT(dsra_months/months_per_period)*months_per_period=dsra_months)'],
+      ['Hedge ratio between 0% and 100%', 'AND(hedge_ratio>=0,hedge_ratio<=1)'],
+      ['P99 ≤ P90 ≤ P50 energy', 'AND(p99_factor<=p90_factor,p90_factor<=1)'],
+      ['MRA balance never negative', 'MIN(' + R('mraBal') + ')>=-0.000001'],
+      ['Waterfall adds up (CFADS − debt service ± reserves = cash available)', 'ABS(SUM(' + R('cfadsPost') + ')-SUM(' + R('debtService') + ')+SUM(' + R('wfDsra') + ')+SUM(' + R('wfMra') + ')+SUM(' + R('shortfall') + ')+SUM(' + R('dsraDraw') + ')-SUM(' + R('cashAvail') + '))<0.01'],
     ];
-    integrity.forEach(([l, f], i) => { wsK.set('A' + (5 + i), l); wsK.set('B' + (5 + i), { f, v: true }, okStyle); });
+    integrity.forEach(([l, f], i) => { wsK.set('A' + (5 + i), l); wsK.set('B' + (5 + i), { f, v: true }, st.ok); });
     let rk = 5 + integrity.length;
     wsK.set('A' + rk, 'All integrity checks pass', st.bold);
-    wsK.set('B' + rk, { f: 'AND(B5:B' + (rk - 1) + ')', v: true }, wb.style({ bold: true, align: 'center', color: C_GOOD }));
+    wsK.set('B' + rk, { f: 'AND(B5:B' + (rk - 1) + ')', v: true }, st.ok);
+    const integrityAll = 'Checks!$B$' + rk;
     rk += 2;
     wsK.set('A' + rk, 'Reconciliation with the web app', st.head);
     wsK.set('B' + rk, 'Web app', st.headR); wsK.set('C' + rk, 'This workbook', st.headR); wsK.set('D' + rk, 'Difference', st.headR);
-    wsK.set('E' + rk, 'Match', wb.style({ bold: true, fill: C_HEAD_BG, border: 'bottom', align: 'center' }));
+    wsK.set('E' + rk, 'Match', st.headC);
     rk++;
-    wsK.set('A' + rk, 'App values are frozen at export. If you change an input, differences here are expected.', st.note); rk++;
+    wsK.set('A' + rk, 'App values are frozen at export. If you change an input or the scenario, differences here are expected.', st.note); rk++;
     const recon = [
       ['Senior debt', sum.amount, 'debt_amount', F_K],
       ['Total project cost', sum.projectCost, 'project_cost', F_K],
@@ -2105,13 +2433,16 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       ['Equity at financial close', sum.equityAtFc, 'SUM(' + R('equityIn') + ')', F_K],
       ['First-year EBITDA', fy.ebitda, firstYear('ebitda'), F_K],
       ['Debt capacity at target DSCR', sum.capacityAtTarget, 'capacity_at_target', F_K],
-      ['Minimum DSCR post-tax', sum.minDscrPost, 'MIN(' + R('dscrPost') + ')', F_X],
-      ['Average DSCR post-tax', sum.avgDscrPost, 'AVERAGE(' + R('dscrPost') + ')', F_X],
+      ['Debt capacity at 1.00x on P99', O.p99_factor ? sum.capacityP99 : pvBaseS[nC], 'capacity_p99', F_K],
+      ['Total agency fees', sum.agencyFees, 'SUM(' + R('agency') + ')', F_K],
+      ['Total inverter replacement', sum.maintenance, 'SUM(' + R('mraSpend') + ')', F_K],
+      ['Minimum DSCR post-tax', sum.minDscrPost, 'min_dscr_post', F_X],
+      ['Average DSCR post-tax', sum.avgDscrPost, 'avg_dscr_post', F_X],
       ['LLCR at COD, pre-tax', sum.llcrCodPre, 'llcr_cod_pre', F_X],
       ['LLCR at COD, post-tax', sum.llcrCodPost, 'llcr_cod_post', F_X],
       ['PLCR at COD', sum.plcrCod, 'plcr_cod', F_X],
       ['DSRA at COD', sum.dsraAtCod, 'SUM(' + R('dsraFund') + ')', F_K],
-      ['Total cash tax', S.tax.reduce((a, b) => a + b, 0), 'SUM(' + R('tax') + ')', F_K],
+      ['Total cash tax', sumOf(S.tax), 'SUM(' + R('tax') + ')', F_K],
       ['Total distributions', sum.totalDistributions, 'SUM(' + R('distributions') + ')', F_K],
       ['Equity IRR', sum.equityIrr, 'equity_irr', F_PCT],
     ];
@@ -2121,18 +2452,17 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       wsK.set('B' + rk, app, calc(fmt));
       wsK.set('C' + rk, { f, v: app }, calc(fmt));
       wsK.set('D' + rk, { f: 'C' + rk + '-B' + rk, v: 0 }, calc(fmt === F_K ? '#,##0.000;(#,##0.000);"–"' : '0.000000'));
-      wsK.set('E' + rk, { f: 'ABS(D' + rk + ')<=MAX(0.001,ABS(B' + rk + ')*0.000001)', v: true }, okStyle);
+      wsK.set('E' + rk, { f: 'ABS(D' + rk + ')<=MAX(0.001,ABS(B' + rk + ')*0.000001)', v: true }, st.ok);
       rk++;
     });
     wsK.set('A' + rk, 'Workbook matches the web app', st.bold);
-    wsK.set('E' + rk, { f: 'AND(E' + reconStart + ':E' + (rk - 1) + ')', v: true }, wb.style({ bold: true, align: 'center', color: C_GOOD }));
+    wsK.set('E' + rk, { f: 'AND(E' + reconStart + ':E' + (rk - 1) + ')', v: true }, st.ok);
     const reconAll = 'Checks!$E$' + rk;
-    const integrityAll = 'Checks!$B$' + (5 + integrity.length);
 
     // ---------------- Cover (first tab) ----------------
-    const wsV = wb.addSheet('Cover'); // built last (it links to the other sheets), then moved to the front
-    wsV.width(1, 34).width(2, 70);
+    const wsV = wb.addSheet('Cover');
     wsV.tab = C_NAVY;
+    wsV.width(1, 34).width(2, 90);
     banner(wsV, deal.meta.name, 'Project finance model generated from the term sheet by the Model Builder web app · Jean Grollet', 2);
     const cover = [
       ['Deal', deal.meta.name + (deal.meta.seed ? ' (random deal #' + deal.meta.seed + ', fictional)' : '')],
@@ -2143,26 +2473,38 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     cover.forEach(([k, v], i) => { wsV.set('A' + (4 + i), k, st.bold); wsV.set('B' + (4 + i), v); });
     wsV.set('A9', 'Key outputs (live)', st.h);
     const live = [
+      ['Active scenario', 'scenario', SCENARIO_NAMES[scIndex], ''],
       ['Senior debt', 'debt_amount', sum.amount, F_K],
-      ['Minimum DSCR post-tax', 'MIN(' + R('dscrPost') + ')', sum.minDscrPost, F_X],
+      ['Minimum DSCR post-tax', 'min_dscr_post', sum.minDscrPost, F_X],
       ['LLCR at COD, post-tax', 'llcr_cod_post', sum.llcrCodPost, F_X],
       ['Equity IRR', 'equity_irr', sum.equityIrr, F_PCT],
       ['Integrity checks pass', integrityAll, true, ''],
       ['Matches the web app', reconAll, true, ''],
     ];
-    live.forEach(([k, f, v, fmt], i) => { wsV.set('A' + (10 + i), k); wsV.set('B' + (10 + i), { f, v }, wb.style({ numFmt: fmt || undefined, bold: true, size: 12, color: fmt ? C_ACCENT : C_GOOD, align: 'left' })); });
-    wsV.set('A17', 'How the workbook is built', st.h);
+    live.forEach(([k, f, v, fmt], i) => { wsV.set('A' + (10 + i), k); wsV.set('B' + (10 + i), { f, v }, wb.style({ numFmt: fmt || undefined, bold: true, size: 12, color: fmt || i === 0 ? C_ACCENT : C_GOOD, align: 'left' })); });
+    wsV.set('A18', 'How the workbook is built', st.h);
     const guide = [
-      ['Inputs', 'Every assumption, in blue, with the term sheet clause it comes from. Named cells (e.g. margin, target_dscr) are used in all formulas.'],
-      ['Calc', 'The full ' + PERIOD_WORD + ' model: timeline flags, operations, debt sizing and sculpting, construction funding, debt schedule, tax with losses carried forward, ratios, DSRA and the distribution waterfall.'],
-      ['Outputs', 'Sources and uses, DSCR / LLCR / PLCR, debt capacity, first-year figures, equity IRR.'],
-      ['Checks', 'Integrity checks (debt drawn and repaid, sources = uses, no shortfall) and a reconciliation against the web app.'],
-      ['Colour code', 'Blue on light blue = input. Black = formula. Nothing is hard-coded in Calc.'],
-      ['Simplifications (v1)', 'Interest = balance × annual rate / periods per year (no day count). No hedging, agency fees, MRA, cash sweep or terminal value. See the Methodology tab of the web app.'],
+      ['Dashboard', 'Sources and uses, the three sizing constraints, cover ratios, returns, and the four lender cases side by side.'],
+      ['Inputs', 'Every assumption in blue, with the term sheet clause it comes from, and the active scenario. Named cells (e.g. margin, target_dscr) are used in all formulas.'],
+      ['Scenarios', 'Base case (P50), P90, P99 and Downside. The debt is sized and sculpted on the base case; the other cases run against that fixed repayment schedule, as lenders do.'],
+      ['Timing', 'Period dates, construction / operations / debt flags, financial years, CPI and degradation factors, hedged share.'],
+      ['Operations', 'Energy, revenue, operating costs, agency fees and CFADS, for the active scenario and for the base case and P99 used in sizing.'],
+      ['Construction', 'Capex, pro rata debt drawdowns, interest during construction, fees and equity.'],
+      ['Debt', 'Hedged interest rates, sizing (gearing, DSCR on P50, 1.00x on P99), sculpting and the debt schedule.'],
+      ['Tax', 'Straight-line tax depreciation, losses carried forward, cash tax.'],
+      ['Reserves', 'DSRA (funded at COD, topped up and released) and MRA (funded ahead of the inverter replacement).'],
+      ['Waterfall', 'Cash in the order of the term sheet: CFADS, debt service, DSRA, MRA, lock-up test, distributions.'],
+      ['Ratios / Returns', 'DSCR, 12-month historic DSCR, LLCR, PLCR; equity cash flows, IRR and cash multiple.'],
+      ['Annual', 'The same model summed by financial year (July–June).'],
+      ['Checks', 'Integrity checks and a reconciliation against the web app.'],
+      ['Colour code', 'Blue on light blue = input. Black = formula. Nothing is hard-coded on the calculation sheets.'],
+      ['Simplifications', 'Interest = balance × annual rate ÷ periods per year (no day count). Swaps replace BBSW on the hedged share (no mark-to-market). No cash sweep or terminal value.'],
     ];
-    guide.forEach(([k, v], i) => { wsV.set('A' + (18 + i), k, st.bold); wsV.set('B' + (18 + i), v, st.noteWrap); });
-    wb.sheets.unshift(wb.sheets.pop());
+    guide.forEach(([k, v], i) => { wsV.set('A' + (19 + i), k, st.bold); wsV.set('B' + (19 + i), v, st.noteWrap); });
 
+    // Tab order: Cover, Dashboard, Inputs, Scenarios, the period sheets, Annual, Checks.
+    const order = ['Cover', 'Dashboard', 'Inputs', 'Scenarios', ...SHEETS.map((s) => s.name), 'Annual', 'Checks'];
+    wb.sheets.sort((a, b) => order.indexOf(a.name) - order.indexOf(b.name));
     return wb;
   }
 
@@ -2179,7 +2521,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
   // Returns the .xlsx file as bytes.
   function exportXlsx(deal, res) { return buildWorkbook(deal, res).toBytes(); }
 
-  const api = { buildWorkbook, exportXlsx };
+  const api = { buildWorkbook, exportXlsx, SCENARIO_NAMES };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.PFExcel = api;
 })(typeof window !== 'undefined' ? window : globalThis);
@@ -2189,7 +2531,11 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
 (function () {
   'use strict';
   const COOLABAH = {
-  "meta": { "name": "Project Coolabah", "currency": "AUD", "units": "k" },
+  "meta": {
+    "name": "Project Coolabah",
+    "currency": "AUD",
+    "units": "k"
+  },
   "timeline": {
     "financial_close": "2027-07-01",
     "cod": "2029-07-01",
@@ -2198,35 +2544,57 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
   },
   "construction": {
     "capex_total": 140000,
-    "capex_profile": [0.15, 0.35, 0.35, 0.15]
+    "capex_profile": [
+      0.15,
+      0.35,
+      0.35,
+      0.15
+    ]
   },
   "operations": {
     "capacity_mw": 100,
     "capacity_factor_p50": 0.27,
     "availability": 0.99,
     "degradation": 0.005,
-    "ppa_price_fc": 60.0,
-    "ppa_indexation": 1.0,
+    "ppa_price_fc": 60,
+    "ppa_indexation": 1,
     "opex_real_fc": 3200,
-    "cpi": 0.025
+    "cpi": 0.025,
+    "p90_factor": 0.92,
+    "p99_factor": 0.87
   },
   "tax": {
-    "rate": 0.30,
+    "rate": 0.3,
     "depreciation_years": 20
   },
   "senior_debt": {
     "sizing": "fixed",
     "amount": 98000,
-    "gearing": 0.70,
+    "gearing": 0.7,
     "base_rate": 0.04,
     "margin": 0.0175,
     "upfront_fee": 0.015,
-    "commitment_fee_pct_margin": 0.40,
+    "commitment_fee_pct_margin": 0.4,
     "repayment": "sculpted",
-    "target_dscr": 1.30
+    "target_dscr": 1.3,
+    "agency_fee": 75,
+    "hedge_ratio": 0.75,
+    "hedge_years": 10,
+    "swap_rate": 0.041
   },
-  "dsra": { "months_of_ds": 6 },
-  "covenants": { "lockup_dscr": 1.10, "default_dscr": 1.05 },
+  "dsra": {
+    "months_of_ds": 6
+  },
+  "covenants": {
+    "lockup_dscr": 1.1,
+    "default_dscr": 1.05
+  },
+  "maintenance": {
+    "cost_real": 5000,
+    "from_year": 10,
+    "to_year": 12,
+    "funding_years": 3
+  },
   "sources": {
     "timeline.financial_close": "Summary: financial close targeted 1 July 2027",
     "timeline.cod": "Summary: COD 1 July 2029",
@@ -2254,11 +2622,21 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     "senior_debt.target_dscr": "Section 4 · Target DSCR 1.30x on P50 CFADS",
     "dsra.months_of_ds": "Section 4 · DSRA: next 6 months of scheduled debt service",
     "covenants.lockup_dscr": "Section 4 · Lock-up < 1.10x",
-    "covenants.default_dscr": "Section 4 · Event of Default < 1.05x"
+    "covenants.default_dscr": "Section 4 · Event of Default < 1.05x",
+    "operations.p90_factor": "Section 6 · Energy yield (one-year): P90 92.0%",
+    "operations.p99_factor": "Section 6 · Energy yield (one-year): P99 87.0%",
+    "senior_debt.agency_fee": "Section 3 · Agency Fee: AUD 75k p.a.",
+    "senior_debt.hedge_ratio": "Section 3 · Interest Rate Hedging: hedge 75% of",
+    "senior_debt.hedge_years": "Section 3 · Interest Rate Hedging: for 10 years",
+    "senior_debt.swap_rate": "Section 3 · Interest Rate Hedging: swap rate of 4.10%",
+    "maintenance.cost_real": "Section 4 · Maintenance Reserve Account: AUD 5.00m real",
+    "maintenance.from_year": "Section 4 · Maintenance Reserve Account: years 10 to 12",
+    "maintenance.to_year": "Section 4 · Maintenance Reserve Account: years 10 to 12",
+    "maintenance.funding_years": "Section 4 · Maintenance Reserve Account: over the 3 years before"
   }
 };
-  const COOLABAH_TS = "# Project Coolabah — Indicative Term Sheet\n\nOct 26, 2026 · @Jean\n\nSenior secured, limited-recourse financing of AUD 98.0m for a 100 MWac single-axis tracker solar farm in NSW, Australia, backed by a 20-year CPI-indexed PPA. Financial close targeted 1 July 2027; COD 1 July 2029.\n\n*Strictly private and confidential. Indicative terms for discussion only; not an offer or commitment to lend. Any commitment is subject to credit approval, satisfactory due diligence and agreed documentation. All amounts in AUD unless stated. Fictional transaction built for modelling practice; all parties are illustrative.*\n\n## 1. Transaction overview\n\n| Term | Description |\n| --- | --- |\n| Project | Coolabah Solar Farm: 100 MWac / c.130 MWdc single-axis tracker PV plant, Central-West Orana Renewable Energy Zone, NSW. Connection to the NEM via a 132 kV TransGrid line. |\n| Borrower | Coolabah Solar Project Co Pty Ltd, a newly incorporated single-purpose company with no other business or assets. |\n| Holdco | Coolabah Solar Holdings Pty Ltd, 100% owner of the Borrower. |\n| Sponsor | Wattlebank Renewable Partners Fund II (100% equity). |\n| Offtaker | Investment-grade NSW energy retailer (rated BBB+ / Baa1), under a 20-year fixed-price PPA. |\n| PPA | Pay-as-produced, bundled energy and LGCs. AUD 60.00/MWh at financial close, indexed at 100% of CPI annually. Tenor 20 years from COD, ending 30 June 2049. |\n| EPC Contractor | Tier-1 EPC contractor under a fixed-price, date-certain, lump-sum turnkey contract with parent company guarantee. |\n| O&M Contractor | Affiliate of the EPC Contractor, 5-year initial term with availability guarantee of 99.0%. |\n| Mandated Lead Arrangers | Bank A, Bank B and Bank C (club deal, equal hold of AUD 32.7m each). |\n| Facility Agent / Security Trustee | Bank A. |\n| Purpose | Fund construction capex, interest during construction, financing fees and commitment fees until COD. |\n| Recourse | Limited recourse to the Sponsor until financial completion; non-recourse thereafter. |\n\n## 2. Facilities\n\n| Term | Description |\n| --- | --- |\n| Senior Facility | AUD 98,000,000 Construction Facility, converting at COD into a Term Loan Facility of the same amount (mini-perm not used). |\n| DSRA LC Facility | AUD 5,000,000 letter of credit facility, available from COD to back the Debt Service Reserve Account in lieu of cash (optional; not reflected in model v1, where the DSRA is cash-funded at COD). |\n| Availability Period | From financial close (1 July 2027) to the earlier of COD and the Sunset Date (31 December 2029). Undrawn commitments are cancelled at the end of the Availability Period. |\n| Drawdowns | Semi-annual, pro rata with equity at a fixed gearing of 70% of each capex amount. Equity funds all financing costs (upfront fee, IDC, commitment fee). Minimum drawdown AUD 2.0m. |\n| Final Maturity | 30 June 2047: 18 years after scheduled COD, leaving a 2-year PPA tail. |\n| Total Tenor | 20 years from financial close (2-year construction + 18-year amortisation). |\n| Currency | AUD. |\n\n**Sources and uses at financial close (AUD k)**\n\n| Uses | AUD k | % | Sources | AUD k | % |\n| --- | --- | --- | --- | --- | --- |\n| Construction capex (EPC + owner's costs) | 140,000 | 95.5% | Senior Facility | 98,000 | 66.9% |\n| Interest during construction | 4,226 | 2.9% | Sponsor equity | 48,554 | 33.1% |\n| Upfront fee | 1,470 | 1.0% |  |  |  |\n| Commitment fee | 858 | 0.6% |  |  |  |\n| **Total uses** | **146,554** | **100.0%** | **Total sources** | **146,554** | **100.0%** |\n\nCapex is drawn 15% / 35% / 35% / 15% over the four construction semesters. Gearing is 70% of capex and 66.9% of total project cost.\n\n## 3. Pricing and fees\n\nAll-in cost of debt is 5.75% p.a. in the base case (BBSW 4.00% + 1.75% margin), flat over the life of the loan.\n\n| Term | Description |\n| --- | --- |\n| Interest Rate | 6-month BBSW (floored at 0%) plus the Margin, payable semi-annually in arrears on 30 June and 31 December. Day count actual/365. |\n| Margin | 1.75% p.a. during construction and operations. The Lenders reserve the right to propose margin step-ups from year 10 at credit approval. |\n| Base case BBSW | 4.00% p.a. (lenders' planning assumption). |\n| Upfront Fee | 1.50% of the Senior Facility (AUD 1,470k), payable on financial close. |\n| Commitment Fee | 40% of the Margin (0.70% p.a.) on undrawn and uncancelled commitments, payable semi-annually in arrears during the Availability Period. |\n| Agency Fee | AUD 50k p.a. (Facility Agent) and AUD 25k p.a. (Security Trustee), payable annually in advance. Not in model v1. |\n| Interest Rate Hedging | The Borrower must hedge at least 75% of projected debt outstanding for at least 10 years from financial close, through interest rate swaps with the Lenders on a pari passu basis. Model v1 assumes unhedged BBSW. |\n| Default Interest | 2.00% p.a. above the applicable rate. |\n| Break Costs | Payable on prepayment other than on an interest payment date. |\n| Taxes and Increased Costs | Standard gross-up and increased cost provisions (LMA / APLMA form). |\n\n## 4. Repayment, accounts and financial covenants\n\nDebt is sculpted to a 1.30x DSCR on P50 CFADS, with lock-up at 1.10x and default at 1.05x.\n\n| Term | Description |\n| --- | --- |\n| Repayment | 36 semi-annual instalments from 31 December 2029 to 30 June 2047, sculpted so that the projected DSCR equals the Target DSCR in each period of the Agreed Base Case. |\n| Target DSCR (sculpting) | 1.30x on P50 CFADS. |\n| Sizing constraints | Senior debt is the lowest of: (i) 70% of construction capex; (ii) the amount sculpted at 1.30x on P50 CFADS; (iii) the amount sculpted at 1.00x on one-year P99 CFADS. Model v1 holds debt as a fixed input of AUD 98.0m. |\n| Voluntary Prepayment | Permitted on any interest payment date with 10 business days' notice, minimum AUD 5.0m, applied in inverse order of maturity. Break costs apply. |\n| Mandatory Prepayment | Insurance and compensation proceeds not reinvested, EPC liquidated damages for performance, PPA termination payments, and disposal proceeds. |\n| Debt Service Reserve Account | Balance equal to the next 6 months of scheduled senior debt service, funded at COD by cash or by the DSRA LC Facility. |\n| Maintenance Reserve Account | Funded from cash flow to cover inverter replacement in years 10 to 12, per the Independent Engineer's schedule. Not in model v1. |\n\n**Financial covenants (tested semi-annually from the second calculation date after COD)**\n\n| Ratio | Calculation | Level |\n| --- | --- | --- |\n| Historic DSCR | CFADS over the last 12 months ÷ senior debt service over the same period | Lock-up < 1.10x; Event of Default < 1.05x |\n| Projected DSCR | Next 12 months, per the updated Base Case | Lock-up < 1.10x |\n| Maximum gearing | Senior debt ÷ construction capex at financial close | 70% |\n\n**Cash flow waterfall (operations)**\n\n1. Operating costs, taxes and statutory payments\n2. Agency and Security Trustee fees, senior hedging periodic payments\n3. Senior interest and commitment fees\n4. Senior principal and hedge termination payments (pari passu)\n5. Top-up of the Debt Service Reserve Account\n6. Top-up of the Maintenance Reserve Account\n7. Distribution Account, subject to the Distribution Conditions\n\n**Distribution Conditions:** no Default outstanding; historic and projected DSCR at or above 1.10x; DSRA and MRA fully funded; first repayment instalment paid. Cash trapped for 4 consecutive periods is applied to prepay the Senior Facility (cash sweep).\n\n## 5. Security, conditions and undertakings\n\n| Term | Description |\n| --- | --- |\n| Security | First-ranking security over all present and after-acquired property of the Borrower (General Security Deed); specific security over Holdco's shares in the Borrower; real property mortgage over the site lease; tripartite deeds with the Offtaker, EPC Contractor, O&M Contractor and grid connection provider; assignment of insurances and of all Project accounts. |\n| Sponsor Support | Equity commitment letter for AUD 48.6m, backed by an LC from an A- rated bank until fully contributed. Cost overrun facility of 10% of capex (AUD 14.0m) until financial completion. |\n| Conditions Precedent to financial close | Executed finance documents and Project documents; legal, technical (Independent Engineer), insurance, model audit and tax due diligence reports satisfactory to the Lenders; Agreed Base Case showing minimum DSCR of 1.30x; development approval and grid connection agreement (GPS registration under NER clause 5.3.4A); hedging executed; KYC; legal opinions; equity commitment in place. |\n| Conditions Precedent to each drawdown | IE drawdown certificate; pro rata equity contributed; no Default; representations true; cost-to-complete test satisfied. |\n| Financial Completion | COD reached, IE completion certificate, 6-month reliability run at 97% availability, DSRA funded, and first historic DSCR at or above 1.20x. Sponsor support falls away on Financial Completion. |\n| Representations | Customary for a limited-recourse financing: status, power, authorisations, no default, ranking of security, accuracy of information and Base Case, environmental compliance, sanctions and anti-corruption. |\n| Undertakings | Single-purpose activity; no additional financial indebtedness (permitted basket AUD 2.0m); no disposal; maintain Project documents and insurances; semi-annual compliance certificate; annual audited accounts within 120 days; quarterly construction and semi-annual operating reports; updated Base Case each calculation date. |\n| Events of Default | Non-payment (3 business days grace); historic DSCR below 1.05x; breach of other obligations (30 days); misrepresentation; cross-default of the Borrower; insolvency; termination or material breach of the PPA, EPC or grid connection agreement without replacement within 90 days; loss of authorisations; abandonment; COD not reached by the Sunset Date; change of control before Financial Completion. |\n| Insurance | Construction all risks, delay in start-up (12 months), operating all risks with business interruption (18 months), third-party liability. Lenders named as co-insured and loss payees. |\n\n## 6. Agreed Base Case and general terms\n\nThe base case generates EBITDA of AUD 11.4m in the first year of operations, a 77% margin. Debt capacity sculpted at 1.30x on pre-tax P50 CFADS is c.AUD 111m, leaving c.12% headroom over the AUD 98.0m facility before tax.\n\n| Assumption | Base case | First operating year (FY30) |\n| --- | --- | --- |\n| Capacity | 100 MWac |  |\n| P50 capacity factor | 27.0% (single-axis tracker) |  |\n| Availability | 99.0% |  |\n| Degradation | 0.5% p.a. from operating year 2 |  |\n| Net energy |  | 234,155 MWh |\n| PPA price | AUD 60.00/MWh at FC, 100% CPI | AUD 63.04/MWh |\n| Revenue |  | AUD 14.76m |\n| Operating costs (O&M AUD 18k/MW, land lease, insurance, asset management) | AUD 3.20m p.a. real | AUD 3.36m |\n| EBITDA |  | AUD 11.40m |\n| CPI | 2.5% p.a., applied annually |  |\n| Corporate tax | 30%, straight-line tax depreciation over 20 years, losses carried forward |  |\n\n| Term | Description |\n| --- | --- |\n| Lenders' advisers | Independent Engineer, Legal Counsel, Insurance Adviser and Model Auditor, appointed by the Lenders at the Borrower's cost. |\n| Transfers | Lenders may assign or transfer to banks and financial institutions with Borrower consent (not unreasonably withheld; deemed after 10 business days). No consent needed after an Event of Default. |\n| Majority Lenders | 66⅔% of commitments or outstanding loans. |\n| Expenses | All reasonable costs of the Lenders and their advisers borne by the Borrower, whether or not financial close occurs. |\n| Governing law | New South Wales, Australia. Documentation based on APLMA templates. |\n| Validity | These indicative terms expire on 31 January 2027. |\n\n**Open points before credit approval**\n\n- [ ] Extend model v1 to operations, debt sculpting and tax to confirm after-tax DSCR and LLCR.\n- [ ] Obtain P90 and P99 energy yield from the Independent Engineer for the sizing constraints.\n- [ ] Add hedging, agency fees, DSRA funding and the Maintenance Reserve Account to the model.\n- [ ] Confirm the Offtaker's credit rating and PPA termination payment regime.\n";
-  const TEMPLATE_TS = "# Project [Name] — Indicative Term Sheet\n\n*How to use this template: replace each value in square brackets with your own figure and keep the tables as they are, because the model reads each value from its row. Save the file and drop it on the Model Builder start page. All amounts in AUD.*\n\nSenior secured, limited-recourse financing for a [capacity] MWac solar farm in [State], Australia. Financial close targeted [DD Month YYYY]; COD [DD Month YYYY].\n\n## 1. Transaction overview\n\n| Term | Description |\n| --- | --- |\n| Project | [Name] Solar Farm: [capacity] MWac solar PV plant in [State], Australia. |\n| Borrower | [Name] Project Co Pty Ltd, a single-purpose company. |\n| Sponsor | [Sponsor name] (100% equity). |\n| PPA | Pay-as-produced, [years]-year PPA. AUD [price]/MWh at financial close, indexed at [share]% of CPI annually (100% = fully indexed), ending [DD Month YYYY]. |\n\n## 2. Facilities\n\n| Term | Description |\n| --- | --- |\n| Senior Facility | AUD [amount, in full] Construction Facility, converting at COD into a Term Loan Facility of the same amount. |\n| Final Maturity | [DD Month YYYY] |\n| Construction capex | [amount] AUD k (EPC and owner's costs) |\n\nCapex is drawn [x]% / [x]% / [x]% / [x]% over the construction semesters (one share per semester from financial close to COD, adding up to 100%).\n\n## 3. Pricing and fees\n\n| Term | Description |\n| --- | --- |\n| Base case BBSW | [x.xx]% p.a. |\n| Margin | [x.xx]% p.a. |\n| Upfront Fee | [x.xx]% of the Senior Facility, payable on financial close. |\n| Commitment Fee | [xx]% of the Margin on undrawn commitments during construction. |\n\n## 4. Repayment, reserves and covenants\n\n| Term | Description |\n| --- | --- |\n| Repayment | Semi-annual instalments from COD to Final Maturity, [sculpted / annuity / linear]. |\n| Target DSCR (sculpting) | [x.xx]x on P50 CFADS. |\n| Debt Service Reserve Account | Balance equal to the next [6 or 12] months of scheduled debt service, funded at COD. |\n| Historic DSCR | Lock-up < [x.xx]x; Event of Default < [x.xx]x |\n| Maximum gearing | [xx]% |\n\n## 5. Operations and tax\n\n| Assumption | Base case |\n| --- | --- |\n| Capacity | [capacity] MWac |\n| P50 capacity factor | [xx.x]% |\n| Availability | [xx.x]% |\n| Degradation | [x.x]% p.a. |\n| Operating costs | AUD [x.xx]m p.a. real, at financial close |\n| CPI | [x.x]% p.a. |\n| Corporate tax | [xx]%, straight-line tax depreciation over [years] years, losses carried forward |\n";
+  const COOLABAH_TS = "# Project Coolabah — Indicative Term Sheet\n\nSenior secured, limited-recourse financing of AUD 98.0m for a 100 MWac single-axis tracker solar farm in NSW, Australia, backed by a 20-year CPI-indexed PPA. Financial close targeted 1 July 2027; COD 1 July 2029.\n\n*Strictly private and confidential. Indicative terms for discussion only; not an offer or commitment to lend. Any commitment is subject to credit approval, satisfactory due diligence and agreed documentation. All amounts in AUD unless stated. Fictional transaction built for modelling practice; all parties are illustrative.*\n\n## 1. Transaction overview\n\n| Term | Description |\n| --- | --- |\n| Project | Coolabah Solar Farm: 100 MWac / c.130 MWdc single-axis tracker PV plant, Central-West Orana Renewable Energy Zone, NSW. Connection to the NEM via a 132 kV TransGrid line. |\n| Borrower | Coolabah Solar Project Co Pty Ltd, a newly incorporated single-purpose company with no other business or assets. |\n| Holdco | Coolabah Solar Holdings Pty Ltd, 100% owner of the Borrower. |\n| Sponsor | Wattlebank Renewable Partners Fund II (100% equity). |\n| Offtaker | Investment-grade NSW energy retailer (rated BBB+ / Baa1), under a 20-year fixed-price PPA. |\n| PPA | Pay-as-produced, bundled energy and LGCs. AUD 60.00/MWh at financial close, indexed at 100% of CPI annually. Tenor 20 years from COD, ending 30 June 2049. |\n| EPC Contractor | Tier-1 EPC contractor under a fixed-price, date-certain, lump-sum turnkey contract with parent company guarantee. |\n| O&M Contractor | Affiliate of the EPC Contractor, 5-year initial term with availability guarantee of 99.0%. |\n| Mandated Lead Arrangers | Bank A, Bank B and Bank C (club deal, equal hold of AUD 32.7m each). |\n| Facility Agent / Security Trustee | Bank A. |\n| Purpose | Fund construction capex, interest during construction, financing fees and commitment fees until COD. |\n| Recourse | Limited recourse to the Sponsor until financial completion; non-recourse thereafter. |\n\n## 2. Facilities\n\n| Term | Description |\n| --- | --- |\n| Senior Facility | AUD 98,000,000 Construction Facility, converting at COD into a Term Loan Facility of the same amount (mini-perm not used). |\n| DSRA LC Facility | AUD 5,000,000 letter of credit facility, available from COD to back the Debt Service Reserve Account in lieu of cash (optional; the base case funds the DSRA in cash at COD). |\n| Availability Period | From financial close (1 July 2027) to the earlier of COD and the Sunset Date (31 December 2029). Undrawn commitments are cancelled at the end of the Availability Period. |\n| Drawdowns | Semi-annual, pro rata with equity at a fixed gearing of 70% of each capex amount. Equity funds all financing costs (upfront fee, IDC, commitment fee). Minimum drawdown AUD 2.0m. |\n| Final Maturity | 30 June 2047: 18 years after scheduled COD, leaving a 2-year PPA tail. |\n| Total Tenor | 20 years from financial close (2-year construction + 18-year amortisation). |\n| Currency | AUD. |\n\n**Sources and uses at financial close (AUD k)**\n\n| Uses | AUD k | % | Sources | AUD k | % |\n| --- | --- | --- | --- | --- | --- |\n| Construction capex (EPC + owner's costs) | 140,000 | 95.5% | Senior Facility | 98,000 | 66.8% |\n| Interest during construction | 4,281 | 2.9% | Sponsor equity | 48,609 | 33.2% |\n| Upfront fee | 1,470 | 1.0% |  |  |  |\n| Commitment fee | 858 | 0.6% |  |  |  |\n| **Total uses** | **146,609** | **100.0%** | **Total sources** | **146,609** | **100.0%** |\n\nCapex is drawn 15% / 35% / 35% / 15% over the four construction semesters. Gearing is 70% of capex and 66.8% of total project cost.\n\n## 3. Pricing and fees\n\nAll-in cost of debt is 5.75% p.a. in the base case (BBSW 4.00% + 1.75% margin), flat over the life of the loan.\n\n| Term | Description |\n| --- | --- |\n| Interest Rate | 6-month BBSW (floored at 0%) plus the Margin, payable semi-annually in arrears on 30 June and 31 December. Day count actual/365. |\n| Margin | 1.75% p.a. during construction and operations. The Lenders reserve the right to propose margin step-ups from year 10 at credit approval. |\n| Base case BBSW | 4.00% p.a. (lenders' planning assumption). |\n| Upfront Fee | 1.50% of the Senior Facility (AUD 1,470k), payable on financial close. |\n| Commitment Fee | 40% of the Margin (0.70% p.a.) on undrawn and uncancelled commitments, payable semi-annually in arrears during the Availability Period. |\n| Agency Fee | AUD 75k p.a. in total: AUD 50k (Facility Agent) and AUD 25k (Security Trustee), payable while the Senior Facility is outstanding. |\n| Interest Rate Hedging | The Borrower must hedge 75% of projected debt outstanding for 10 years from financial close, through interest rate swaps with the Lenders on a pari passu basis. Base case swap rate of 4.10% p.a. |\n| Default Interest | 2.00% p.a. above the applicable rate. |\n| Break Costs | Payable on prepayment other than on an interest payment date. |\n| Taxes and Increased Costs | Standard gross-up and increased cost provisions (LMA / APLMA form). |\n\n## 4. Repayment, accounts and financial covenants\n\nDebt is sculpted to a 1.30x DSCR on P50 CFADS, with lock-up at 1.10x and default at 1.05x.\n\n| Term | Description |\n| --- | --- |\n| Repayment | 36 semi-annual instalments from 31 December 2029 to 30 June 2047, sculpted so that the projected DSCR equals the Target DSCR in each period of the Agreed Base Case. |\n| Target DSCR (sculpting) | 1.30x on P50 CFADS. |\n| Sizing constraints | Senior debt is the lowest of: (i) 70% of construction capex; (ii) the amount sculpted at 1.30x on P50 CFADS; (iii) the amount sculpted at 1.00x on one-year P99 CFADS. The facility is set at AUD 98.0m, within all three constraints. |\n| Voluntary Prepayment | Permitted on any interest payment date with 10 business days' notice, minimum AUD 5.0m, applied in inverse order of maturity. Break costs apply. |\n| Mandatory Prepayment | Insurance and compensation proceeds not reinvested, EPC liquidated damages for performance, PPA termination payments, and disposal proceeds. |\n| Debt Service Reserve Account | Balance equal to the next 6 months of scheduled senior debt service, funded at COD by cash or by the DSRA LC Facility. |\n| Maintenance Reserve Account | Funded from cash flow over the 3 years before the inverter replacement (AUD 5.00m real, spent in operating years 10 to 12, per the Independent Engineer's schedule). |\n\n**Financial covenants (tested semi-annually from the second calculation date after COD)**\n\n| Ratio | Calculation | Level |\n| --- | --- | --- |\n| Historic DSCR | CFADS over the last 12 months ÷ senior debt service over the same period | Lock-up < 1.10x; Event of Default < 1.05x |\n| Projected DSCR | Next 12 months, per the updated Base Case | Lock-up < 1.10x |\n| Maximum gearing | Senior debt ÷ construction capex at financial close | 70% |\n\n**Cash flow waterfall (operations)**\n\n1. Operating costs, taxes and statutory payments\n2. Agency and Security Trustee fees, senior hedging periodic payments\n3. Senior interest and commitment fees\n4. Senior principal and hedge termination payments (pari passu)\n5. Top-up of the Debt Service Reserve Account\n6. Top-up of the Maintenance Reserve Account\n7. Distribution Account, subject to the Distribution Conditions\n\n**Distribution Conditions:** no Default outstanding; historic and projected DSCR at or above 1.10x; DSRA and MRA fully funded; first repayment instalment paid. Cash trapped for 4 consecutive periods is applied to prepay the Senior Facility (cash sweep).\n\n## 5. Security, conditions and undertakings\n\n| Term | Description |\n| --- | --- |\n| Security | First-ranking security over all present and after-acquired property of the Borrower (General Security Deed); specific security over Holdco's shares in the Borrower; real property mortgage over the site lease; tripartite deeds with the Offtaker, EPC Contractor, O&M Contractor and grid connection provider; assignment of insurances and of all Project accounts. |\n| Sponsor Support | Equity commitment letter for AUD 48.6m, backed by an LC from an A- rated bank until fully contributed. Cost overrun facility of 10% of capex (AUD 14.0m) until financial completion. |\n| Conditions Precedent to financial close | Executed finance documents and Project documents; legal, technical (Independent Engineer), insurance, model audit and tax due diligence reports satisfactory to the Lenders; Agreed Base Case showing minimum DSCR of 1.30x; development approval and grid connection agreement (GPS registration under NER clause 5.3.4A); hedging executed; KYC; legal opinions; equity commitment in place. |\n| Conditions Precedent to each drawdown | IE drawdown certificate; pro rata equity contributed; no Default; representations true; cost-to-complete test satisfied. |\n| Financial Completion | COD reached, IE completion certificate, 6-month reliability run at 97% availability, DSRA funded, and first historic DSCR at or above 1.20x. Sponsor support falls away on Financial Completion. |\n| Representations | Customary for a limited-recourse financing: status, power, authorisations, no default, ranking of security, accuracy of information and Base Case, environmental compliance, sanctions and anti-corruption. |\n| Undertakings | Single-purpose activity; no additional financial indebtedness (permitted basket AUD 2.0m); no disposal; maintain Project documents and insurances; semi-annual compliance certificate; annual audited accounts within 120 days; quarterly construction and semi-annual operating reports; updated Base Case each calculation date. |\n| Events of Default | Non-payment (3 business days grace); historic DSCR below 1.05x; breach of other obligations (30 days); misrepresentation; cross-default of the Borrower; insolvency; termination or material breach of the PPA, EPC or grid connection agreement without replacement within 90 days; loss of authorisations; abandonment; COD not reached by the Sunset Date; change of control before Financial Completion. |\n| Insurance | Construction all risks, delay in start-up (12 months), operating all risks with business interruption (18 months), third-party liability. Lenders named as co-insured and loss payees. |\n\n## 6. Agreed Base Case and general terms\n\nThe base case generates EBITDA of AUD 11.4m in the first year of operations, a 77% margin. Debt capacity sculpted at 1.30x on pre-tax P50 CFADS (after agency fees) is c.AUD 110m, leaving c.12% headroom over the AUD 98.0m facility before tax.\n\n| Assumption | Base case | First operating year (FY30) |\n| --- | --- | --- |\n| Capacity | 100 MWac |  |\n| P50 capacity factor | 27.0% (single-axis tracker) |  |\n| Availability | 99.0% |  |\n| Energy yield (one-year) | P90 92.0% / P99 87.0% of P50 energy |  |\n| Degradation | 0.5% p.a. from operating year 2 |  |\n| Net energy |  | 234,155 MWh |\n| PPA price | AUD 60.00/MWh at FC, 100% CPI | AUD 63.04/MWh |\n| Revenue |  | AUD 14.76m |\n| Operating costs (O&M AUD 18k/MW, land lease, insurance, asset management) | AUD 3.20m p.a. real | AUD 3.36m |\n| EBITDA |  | AUD 11.40m |\n| CPI | 2.5% p.a., applied annually |  |\n| Corporate tax | 30%, straight-line tax depreciation over 20 years, losses carried forward |  |\n\n| Term | Description |\n| --- | --- |\n| Lenders' advisers | Independent Engineer, Legal Counsel, Insurance Adviser and Model Auditor, appointed by the Lenders at the Borrower's cost. |\n| Transfers | Lenders may assign or transfer to banks and financial institutions with Borrower consent (not unreasonably withheld; deemed after 10 business days). No consent needed after an Event of Default. |\n| Majority Lenders | 66⅔% of commitments or outstanding loans. |\n| Expenses | All reasonable costs of the Lenders and their advisers borne by the Borrower, whether or not financial close occurs. |\n| Governing law | New South Wales, Australia. Documentation based on APLMA templates. |\n| Validity | These indicative terms expire on 31 January 2027. |\n";
+  const TEMPLATE_TS = "# Project [Name] — Indicative Term Sheet\n\n*How to use this template: replace each value in square brackets with your own figure and keep the tables as they are, because the model reads each value from its row. Save the file and drop it on the Model Builder start page. All amounts in AUD.*\n\nSenior secured, limited-recourse financing for a [capacity] MWac solar farm in [State], Australia. Financial close targeted [DD Month YYYY]; COD [DD Month YYYY].\n\n## 1. Transaction overview\n\n| Term | Description |\n| --- | --- |\n| Project | [Name] Solar Farm: [capacity] MWac solar PV plant in [State], Australia. |\n| Borrower | [Name] Project Co Pty Ltd, a single-purpose company. |\n| Sponsor | [Sponsor name] (100% equity). |\n| PPA | Pay-as-produced, [years]-year PPA. AUD [price]/MWh at financial close, indexed at [share]% of CPI annually (100% = fully indexed), ending [DD Month YYYY]. |\n\n## 2. Facilities\n\n| Term | Description |\n| --- | --- |\n| Senior Facility | AUD [amount, in full] Construction Facility, converting at COD into a Term Loan Facility of the same amount. |\n| Final Maturity | [DD Month YYYY] |\n| Construction capex | [amount] AUD k (EPC and owner's costs) |\n\nCapex is drawn [x]% / [x]% / [x]% / [x]% over the construction semesters (one share per semester from financial close to COD, adding up to 100%).\n\n## 3. Pricing and fees\n\n| Term | Description |\n| --- | --- |\n| Base case BBSW | [x.xx]% p.a. |\n| Margin | [x.xx]% p.a. |\n| Upfront Fee | [x.xx]% of the Senior Facility, payable on financial close. |\n| Commitment Fee | [xx]% of the Margin on undrawn commitments during construction. |\n| Agency Fee | AUD [xx]k p.a. in total, payable while the Senior Facility is outstanding. |\n| Interest Rate Hedging | The Borrower must hedge [xx]% of projected debt outstanding for [years] years from financial close. Base case swap rate of [x.xx]% p.a. |\n\n## 4. Repayment, reserves and covenants\n\n| Term | Description |\n| --- | --- |\n| Repayment | Semi-annual instalments from COD to Final Maturity, [sculpted / annuity / linear]. |\n| Target DSCR (sculpting) | [x.xx]x on P50 CFADS. |\n| Debt Service Reserve Account | Balance equal to the next [6 or 12] months of scheduled debt service, funded at COD. |\n| Maintenance Reserve Account | Funded from cash flow over the [n] years before the inverter replacement (AUD [x.xx]m real, spent in operating years [from] to [to]). |\n| Historic DSCR | Lock-up < [x.xx]x; Event of Default < [x.xx]x |\n| Maximum gearing | [xx]% |\n\n## 5. Operations and tax\n\n| Assumption | Base case |\n| --- | --- |\n| Capacity | [capacity] MWac |\n| P50 capacity factor | [xx.x]% |\n| Availability | [xx.x]% |\n| Energy yield (one-year) | P90 [xx.x]% / P99 [xx.x]% of P50 energy |\n| Degradation | [x.x]% p.a. |\n| Operating costs | AUD [x.xx]m p.a. real, at financial close |\n| CPI | [x.x]% p.a. |\n| Corporate tax | [xx]%, straight-line tax depreciation over [years] years, losses carried forward |\n";
   const $ = (id) => document.getElementById(id);
   const clone = (o) => JSON.parse(JSON.stringify(o));
   const get = (o, path) => path.split('.').reduce((a, k) => (a == null ? a : a[k]), o);
@@ -2297,6 +2675,8 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       ['operations.capacity_mw', 'Capacity', 'num', 'MWac'],
       ['operations.capacity_factor_p50', 'P50 capacity factor', 'pct'],
       ['operations.availability', 'Availability', 'pct'],
+      ['operations.p90_factor', 'One-year P90 energy', 'pct', '% of P50'],
+      ['operations.p99_factor', 'One-year P99 energy', 'pct', '% of P50'],
       ['operations.degradation', 'Degradation', 'pct', '% p.a.'],
       ['operations.ppa_price_fc', 'PPA price at FC', 'num', '/MWh'],
       ['operations.ppa_indexation', 'PPA indexation', 'pct', '% CPI'],
@@ -2304,7 +2684,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       ['operations.cpi', 'CPI', 'pct', '% p.a.'],
     ] },
     { name: 'Senior debt', fields: [
-      ['senior_debt.sizing', 'Debt sizing', 'select', '', [['fixed', 'Fixed amount'], ['lower_of', 'Lower of gearing / DSCR']]],
+      ['senior_debt.sizing', 'Debt sizing', 'select', '', [['fixed', 'Fixed amount'], ['lower_of', 'Lowest of gearing / DSCR / P99']]],
       ['senior_debt.amount', 'Facility amount', 'k'],
       ['senior_debt.gearing', 'Max gearing (of capex)', 'pct'],
       ['senior_debt.base_rate', 'Base rate (BBSW)', 'pct'],
@@ -2313,6 +2693,12 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       ['senior_debt.commitment_fee_pct_margin', 'Commitment fee', 'pct', '% margin'],
       ['senior_debt.repayment', 'Repayment profile', 'select', '', [['sculpted', 'Sculpted'], ['annuity', 'Annuity'], ['linear', 'Linear']]],
       ['senior_debt.target_dscr', 'Target DSCR', 'num', 'x'],
+      ['senior_debt.agency_fee', 'Agency fees', 'k', 'k p.a.'],
+    ] },
+    { name: 'Interest rate hedging', fields: [
+      ['senior_debt.hedge_ratio', 'Share of debt swapped', 'pct'],
+      ['senior_debt.hedge_years', 'Hedging tenor', 'num', 'years'],
+      ['senior_debt.swap_rate', 'Swap rate', 'pct'],
     ] },
     { name: 'Tax', fields: [
       ['tax.rate', 'Corporate tax rate', 'pct'],
@@ -2322,6 +2708,10 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       ['dsra.months_of_ds', 'DSRA size', 'num', 'months'],
       ['covenants.lockup_dscr', 'Lock-up DSCR', 'num', 'x'],
       ['covenants.default_dscr', 'Default DSCR', 'num', 'x'],
+      ['maintenance.cost_real', 'Inverter replacement (MRA)', 'k', 'k real'],
+      ['maintenance.from_year', 'Replacement from year', 'num', 'op. year'],
+      ['maintenance.to_year', 'Replacement to year', 'num', 'op. year'],
+      ['maintenance.funding_years', 'MRA funded over', 'num', 'years'],
     ] },
   ];
 
@@ -2479,7 +2869,8 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       (counts.Assumed ? '<span class="pill warn">' + counts.Assumed + ' assumed</span>' : '') +
       (counts.Edited ? '<span class="pill neutral">' + counts.Edited + ' edited</span>' : '') +
       (res && res.ok ? '<span class="pill ' + (res.checks.every((c) => c.ok) ? 'good">✓ All checks pass' : 'crit">✕ Checks failing') + '</span>' : '<span class="pill crit">✕ Model can\'t run</span>');
-    document.querySelectorAll('.seg button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.per === deal.timeline.periodicity ? 'true' : 'false'));
+    document.querySelectorAll('.seg button[data-per]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.per === deal.timeline.periodicity ? 'true' : 'false'));
+    document.querySelectorAll('.seg button[data-sc]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.sc === (deal.scenario || 'base') ? 'true' : 'false'));
   }
   function setPeriodicity(per) {
     deal.timeline.periodicity = per;
@@ -2496,13 +2887,42 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
   function renderHeader() {
     const s = res.summary, o = deal.operations;
     $('dealName').textContent = deal.meta.name + (deal.meta.seed ? ' · Deal #' + deal.meta.seed : '');
-    $('dealSub').textContent = o.capacity_mw + ' MWac solar' + (deal.meta.state ? ', ' + deal.meta.state : '') + ' · ' + cur() + ' ' + mn(s.amount) + ' senior debt · maturity ' + res.meta.maturityLabel;
+    $('dealSub').textContent = o.capacity_mw + ' MWac solar' + (deal.meta.state ? ', ' + deal.meta.state : '') + ' · ' + cur() + ' ' + mn(s.amount) + ' senior debt · maturity ' + res.meta.maturityLabel + ((deal.scenario || 'base') !== 'base' ? ' · case: ' + res.meta.scenarioLabel : '');
     const fails = res.checks.filter((c) => !c.ok).length;
     const p = $('checkPill');
     p.className = 'pill ' + (fails ? 'crit' : 'good');
     p.textContent = (fails ? '✕ ' + fails + ' check' + (fails > 1 ? 's' : '') + ' failing' : '✓ All checks pass');
     document.querySelectorAll('.cur').forEach((e) => (e.textContent = cur()));
     document.querySelectorAll('.perw').forEach((e) => (e.textContent = perWord()));
+  }
+
+  // The base case (P50) of the deal being modelled, whatever case is active.
+  const baseRun = () => (deal.scenario && deal.scenario !== 'base' ? PFEngine.run(Object.assign({}, deal, { scenario: 'base' })) : res);
+  const CASES = [['base', 'Base case (P50)'], ['p90', 'P90 (one-year)'], ['p99', 'P99 (one-year)'], ['downside', 'Downside']];
+  function renderSizingAndCases() {
+    const s = res.summary, D = deal.senior_debt;
+    const sc = deal.scenario || 'base';
+    $('scNote').hidden = sc === 'base';
+    $('scNote').innerHTML = '<p><b>Lender case: ' + esc(res.meta.scenarioLabel) + '.</b> Every figure on this page is for this case, with the debt and repayment schedule of the base case. <a href="#" id="backToBase">Back to the base case</a></p>';
+    const bb = $('backToBase'); if (bb) bb.onclick = (ev) => { ev.preventDefault(); deal.scenario = 'base'; renderControl(); recalc(); };
+    const lowest = Math.min(s.gearingCap, s.capacityAtTarget, s.capacityP99 == null ? Infinity : s.capacityP99);
+    const row = (label, v, note) => '<tr><td>' + label + (note ? '<br><span class="muted" style="font-size:12px">' + note + '</span>' : '') + '</td><td class="n">' + (v == null ? '–' : cur() + ' ' + mn(v)) + '</td><td class="n">' + (v != null && Math.abs(v - lowest) < 0.5 ? '<span class="pill good">lowest</span>' : '') + '</td></tr>';
+    $('sizing').innerHTML = '<thead><tr><th>Constraint</th><th class="n">Debt</th><th class="n"></th></tr></thead><tbody>' +
+      row('(i) Maximum gearing', s.gearingCap, pc(D.gearing, 0) + ' of construction capex') +
+      row('(ii) Sculpted at ' + x2(D.target_dscr) + ' on P50', s.capacityAtTarget, 'Pre-tax CFADS after agency fees') +
+      row('(iii) Sculpted at 1.00x on one-year P99', s.capacityP99, pc(deal.operations.p99_factor, 0) + ' of P50 energy, every year') +
+      '<tr class="tot"><td>Senior debt' + (D.sizing === 'lower_of' ? ' (lowest of the three)' : ' (fixed facility)') + '</td><td class="n">' + cur() + ' ' + mn(s.amount) + '</td><td class="n">' + (s.amount <= lowest + 0.5 ? '<span class="pill good">✓ within</span>' : '<span class="pill crit">✕ above ' + cur() + ' ' + mn(lowest) + '</span>') + '</td></tr></tbody>';
+    let h = '<thead><tr><th>Case</th><th class="n">Min DSCR</th><th class="n">Avg DSCR</th><th class="n">LLCR</th><th class="n">Equity IRR</th><th class="n">Covenant</th></tr></thead><tbody>';
+    for (const [key, label] of CASES) {
+      const r = key === sc ? res : PFEngine.run(Object.assign({}, deal, { scenario: key }));
+      if (!r.ok) { h += '<tr><td>' + label + '</td><td colspan="5">Inputs out of range</td></tr>'; continue; }
+      // The base case is judged against the sculpting target; stress cases against the covenants.
+      const C = deal.covenants, x = r.summary;
+      const st = key === 'base' ? statusFor(x.minDscrPost) : x.minDscrPost < C.default_dscr ? ['crit', '✕', 'Default'] : x.minDscrPost < C.lockup_dscr ? ['crit', '✕', 'Lock-up'] : ['good', '✓', 'Clears lock-up'];
+      h += '<tr class="case' + (key === sc ? ' on' : '') + '" data-sc="' + key + '"><td>' + label + '</td><td class="n">' + x2(x.minDscrPost) + '</td><td class="n">' + x2(x.avgDscrPost) + '</td><td class="n">' + x2(x.llcrCodPost) + '</td><td class="n">' + pc(x.equityIrr, 1) + '</td><td class="n"><span class="pill ' + st[0] + '">' + st[1] + ' ' + st[2] + (x.lockupPeriods ? ' · ' + x.lockupPeriods : '') + '</span></td></tr>';
+    }
+    $('cases').innerHTML = h + '</tbody>';
+    $('cases').querySelectorAll('tr.case').forEach((tr) => tr.addEventListener('click', () => { deal.scenario = tr.dataset.sc; renderControl(); recalc(); }));
   }
 
   function kpi(k, v, d, tone) { return '<div class="kpi' + (tone ? ' ' + tone : '') + '"><div class="k">' + k + '</div><div class="v">' + v + '</div><div class="d">' + d + '</div></div>'; }
@@ -2518,6 +2938,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       kpi('Capacity at ' + x2(D.target_dscr), cur() + ' ' + mn(s.capacityAtTarget), (s.headroom >= 0 ? '+' : '') + pc(s.headroom) + ' vs facility') +
       kpi('Equity IRR', pc(s.equityIrr, 2), 'Post-tax, nominal, no terminal value');
 
+    renderSizingAndCases();
     const flags = [];
     const tgt = D.target_dscr;
     if (D.repayment === 'sculpted') {
@@ -2590,13 +3011,15 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     ['g', 'Construction'],
     ['capex', 'Capex', 'k'], ['draw', 'Debt drawdown', 'k'], ['idc', 'Interest during construction', 'k'], ['commit', 'Commitment fee', 'k'], ['upfront', 'Upfront fee', 'k'], ['equityIn', 'Equity contribution', 'k', 1],
     ['g', 'Operations'],
-    ['energy', 'Net energy (MWh)', 'k'], ['revenue', 'Revenue', 'k'], ['opex', 'Operating costs', 'k'], ['ebitda', 'EBITDA', 'k', 1], ['tax', 'Cash tax', 'k'], ['cfadsPost', 'CFADS (post-tax)', 'k', 1],
+    ['energy', 'Net energy (MWh)', 'k'], ['revenue', 'Revenue', 'k'], ['opex', 'Operating costs', 'k'], ['ebitda', 'EBITDA', 'k', 1], ['agency', 'Agency fees', 'k'], ['tax', 'Cash tax', 'k'], ['cfadsPost', 'CFADS (post-tax)', 'k', 1],
     ['g', 'Senior debt'],
-    ['debtOpen', 'Opening balance', 'b'], ['interest', 'Interest', 'k'], ['principal', 'Principal', 'k'], ['debtService', 'Debt service', 'k', 1], ['debtClose', 'Closing balance', 'b'],
+    ['debtOpen', 'Opening balance', 'b'], ['ratePa', 'Interest rate (p.a., after swaps)', 'r'], ['interest', 'Interest', 'k'], ['principal', 'Principal', 'k'], ['debtService', 'Debt service', 'k', 1], ['debtClose', 'Closing balance', 'b'],
     ['g', 'Ratios'],
     ['dscrPre', 'DSCR pre-tax', 'x'], ['dscrPost', 'DSCR post-tax', 'x'], ['hDscr', '12m historic DSCR', 'x', 1], ['llcrPost', 'LLCR post-tax', 'x'],
     ['g', 'Debt service reserve'],
     ['dsraTarget', 'Target balance', 'b'], ['dsraFund', 'Initial funding (equity)', 'k'], ['dsraTopUp', 'Top-up', 'k'], ['dsraRelease', 'Release', 'k'], ['dsraBal', 'Balance', 'b'],
+    ['g', 'Maintenance reserve'],
+    ['mraFund', 'Funding from cash flow', 'k'], ['mraSpend', 'Inverter replacement', 'k'], ['mraFromCash', 'Paid from cash (MRA short)', 'k'], ['mraBal', 'Balance', 'b'],
     ['g', 'Equity'],
     ['cashAfterDs', 'Cash after debt service', 'k'], ['trapped', 'Cash trapped (lock-up)', 'k'], ['distributions', 'Distributions', 'k', 1], ['equityFlows', 'Equity cash flow', 'k', 1],
     ['g', 'Tax workings'],
@@ -2608,9 +3031,9 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     h += '<tr><th class="row">' + cur() + 'k</th>' + P.map((p) => '<th class="' + (p.phase === 'construction' ? 'constr' : '') + '">' + p.label + '</th>').join('') + '<th></th></tr></thead><tbody>';
     for (const [key, label, kind, strong] of CF_ROWS) {
       if (key === 'g') { h += '<tr class="grp"><td class="row">' + label + '</td><td colspan="' + (P.length + 1) + '"></td></tr>'; continue; }
-      const arr = S[key];
+      const arr = key === 'ratePa' ? S.rate.map((x, i) => (S.debtOpen[i] ? x * res.meta.ppy : null)) : S[key];
       const tot = kind === 'k' ? arr.reduce((a, b) => a + b, 0) : null;
-      h += '<tr class="' + (strong ? 'key' : '') + '"><td class="row">' + label + '</td>' + arr.map((v, i) => '<td class="' + (i < nC ? 'constr' : '') + (kind === 'x' && key === 'hDscr' && S.lockup[i] ? ' lk' : '') + (kind !== 'x' && Math.abs(v || 0) < 0.5 ? ' zero' : '') + '">' + (kind === 'x' ? (v == null ? '' : x3(v)) : k0(v)) + '</td>').join('') + '<td class="tot">' + (tot == null ? '' : k0(tot)) + '</td></tr>';
+      h += '<tr class="' + (strong ? 'key' : '') + '"><td class="row">' + label + '</td>' + arr.map((v, i) => '<td class="' + (i < nC ? 'constr' : '') + (kind === 'x' && key === 'hDscr' && S.lockup[i] ? ' lk' : '') + (kind !== 'x' && kind !== 'r' && Math.abs(v || 0) < 0.5 ? ' zero' : '') + '">' + (kind === 'x' ? (v == null ? '' : x3(v)) : kind === 'r' ? (v == null ? '' : pc(v, 2)) : k0(v)) + '</td>').join('') + '<td class="tot">' + (tot == null ? '' : k0(tot)) + '</td></tr>';
     }
     $('cfTable').innerHTML = h + '</tbody>';
   }
@@ -2618,7 +3041,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
   // ---------- Sensitivities ----------
   const SENS = [
     { id: 'price', label: 'PPA price', unit: '%', shock: -10, apply: (d, s) => (d.operations.ppa_price_fc *= 1 + s / 100) },
-    { id: 'yield', label: 'Energy yield (P90 proxy)', unit: '%', shock: -8, apply: (d, s) => (d.operations.capacity_factor_p50 *= 1 + s / 100) },
+    { id: 'yield', label: 'Energy yield', unit: '%', shock: -8, apply: (d, s) => (d.operations.capacity_factor_p50 *= 1 + s / 100) },
     { id: 'avail', label: 'Availability', unit: 'pt', shock: -2, apply: (d, s) => (d.operations.availability += s / 100) },
     { id: 'opex', label: 'Operating costs', unit: '%', shock: 15, apply: (d, s) => (d.operations.opex_real_fc *= 1 + s / 100) },
     { id: 'rate', label: 'Base rate', unit: 'bp', shock: 100, apply: (d, s) => (d.senior_debt.base_rate += s / 10000) },
@@ -2642,13 +3065,15 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
   }
   function renderSens() {
     let h = '<thead><tr><th>Case</th><th>Shock</th><th>Debt</th><th>Min DSCR post-tax</th><th>Avg DSCR post-tax</th><th>LLCR at COD</th><th>Equity IRR</th><th>Covenant</th></tr></thead><tbody>';
-    h += sensRow('Base case', res, '', 'base');
+    // Shocks run against the debt and repayment schedule fixed at financial close (base case).
+    const fixed = { schedule: PFEngine.scheduleOf(baseRun()) };
+    h += sensRow((deal.scenario || 'base') === 'base' ? 'Base case' : res.meta.scenarioLabel, res, '', 'base');
     const combined = clone(deal);
     for (const x of SENS) {
       const d = clone(deal); x.apply(d, x.shock); x.apply(combined, x.shock);
-      h += sensRow(x.label, PFEngine.run(d), '<input id="sh-' + x.id + '" data-id="' + x.id + '" value="' + x.shock + '" inputmode="decimal" aria-label="' + x.label + ' shock"> ' + x.unit);
+      h += sensRow(x.label, PFEngine.run(d, fixed), '<input id="sh-' + x.id + '" data-id="' + x.id + '" value="' + x.shock + '" inputmode="decimal" aria-label="' + x.label + ' shock"> ' + x.unit);
     }
-    h += sensRow('All shocks together', PFEngine.run(combined), '', 'base');
+    h += sensRow('All shocks together', PFEngine.run(combined, fixed), '', 'base');
     $('sensTable').innerHTML = h + '</tbody>';
     $('sensTable').querySelectorAll('input').forEach((el) => el.addEventListener('change', () => {
       const v = parseFloat(el.value); if (isNaN(v)) return;
@@ -2677,8 +3102,8 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
     { label: 'Degradation', get: (d) => d.operations.degradation, apply: (d, t) => (d.operations.degradation += 0.05 * t),
       show: (v) => pc(v, 2) + ' p.a.', move: (v, v0) => '+' + ((v - v0) * 100).toFixed(2) + ' pt', thin: (v, v0) => v - v0 < 0.005 },
   ];
-  function breakeven(input, metric, thr) {
-    const at = (t) => { const d = clone(deal); input.apply(d, t); const r = PFEngine.run(d); return r.ok ? metric(r.summary) : -Infinity; };
+  function breakeven(input, metric, thr, fixed) {
+    const at = (t) => { const d = clone(deal); input.apply(d, t); const r = PFEngine.run(d, fixed); return r.ok ? metric(r.summary) : -Infinity; };
     if (!(at(0) >= thr)) return { below: true };
     if (at(1) >= thr) return { beyond: true };
     let lo = 0, hi = 1;
@@ -2688,6 +3113,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
   }
   function renderBreakevens() {
     const C = deal.covenants;
+    const fixed = { schedule: PFEngine.scheduleOf(baseRun()) };
     const dscr = (s) => s.minDscrPost, irr = (s) => (s.equityIrr == null ? -1 : s.equityIrr);
     const levels = [
       ['Min DSCR = ' + x2(C.lockup_dscr), 'lock-up', dscr, C.lockup_dscr],
@@ -2700,7 +3126,7 @@ pre.prompt { white-space: pre-wrap; font-family: ui-monospace, "SFMono-Regular",
       const v0 = inp.get(deal);
       h += '<tr><td>' + inp.label + '</td><td>' + inp.show(v0, v0) + '</td>';
       for (const [, , metric, thr] of levels) {
-        const b = breakeven(inp, metric, thr);
+        const b = breakeven(inp, metric, thr, fixed);
         if (b.below) h += '<td><span class="pill crit">Already below</span></td>';
         else if (b.beyond) h += '<td class="muted">Not reached</td>';
         else {
@@ -2774,11 +3200,29 @@ TERM SHEET:
   const slug = () => deal.meta.name.replace(/^Project\s+/i, '').replace(/[^A-Za-z0-9]+/g, '_') + (deal.meta.seed ? '_deal' + deal.meta.seed : '');
 
   // ---------- Opening a deal ----------
+  // Terms added in v2. A deal without them (an older JSON) gets neutral values, marked ASSUMED.
+  const V2_DEFAULTS = [
+    ['operations.p90_factor', 0.92, 'one-year P90 at 92% of P50 energy'], ['operations.p99_factor', 0.87, 'one-year P99 at 87% of P50 energy'],
+    ['senior_debt.agency_fee', 0, 'no agency fee'], ['senior_debt.hedge_ratio', 0, 'no interest rate hedging'], ['senior_debt.hedge_years', 0, 'no hedging'],
+    ['senior_debt.swap_rate', null, 'swap rate equal to BBSW'], ['maintenance.cost_real', 0, 'no maintenance reserve'], ['maintenance.from_year', 10, 'year 10'],
+    ['maintenance.to_year', 12, 'year 12'], ['maintenance.funding_years', 3, '3 years'],
+  ];
+  function withDefaults(d) {
+    d.maintenance = d.maintenance || {};
+    d.sources = d.sources || {};
+    for (const [path, v, why] of V2_DEFAULTS) {
+      if (get(d, path) != null) continue;
+      set(d, path, v == null ? d.senior_debt.base_rate : v);
+      d.sources[path] = 'ASSUMED: ' + why;
+    }
+  }
   function openDeal(d, tab, file) {
     uploaded = file || null;
     d = clone(d);
     d.timeline.periodicity = d.timeline.periodicity || 'semi-annual';
-    if (d.sources) d.sources['timeline.periodicity'] = 'Model choice (Assumptions tab)';
+    d.scenario = d.scenario || 'base';
+    withDefaults(d);
+    d.sources['timeline.periodicity'] = 'Model choice (Assumptions tab)';
     base = clone(d);
     deal = clone(d);
     $('landing').hidden = true;
@@ -2892,7 +3336,8 @@ TERM SHEET:
   $('homeBtn').addEventListener('click', showLanding);
   $('tsToModel').addEventListener('click', () => { showTab('assumptions'); window.scrollTo(0, 0); });
   $('ccReset').addEventListener('click', () => { deal = clone(base); renderControl(); recalc(); });
-  document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => setPeriodicity(b.dataset.per)));
+  document.querySelectorAll('.seg button[data-per]').forEach((b) => b.addEventListener('click', () => setPeriodicity(b.dataset.per)));
+  document.querySelectorAll('.seg button[data-sc]').forEach((b) => b.addEventListener('click', () => { deal.scenario = b.dataset.sc; renderControl(); recalc(); }));
   $('tsDownload').addEventListener('click', () => download(slug() + '_term_sheet.docx', PFDocx.markdownToDocx(termSheetMd()), DOCX));
   // Every "Generate Excel model" button: loading screen, then the .xlsx download.
   const xlsx = () => {

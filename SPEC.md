@@ -197,7 +197,7 @@ These were recomputed independently from the term sheet inputs. The engine must 
 
 ## 9. Tech stack
 
-**Status (28 Oct 2026):** v1 is built in plain JavaScript, no build tool and no dependencies. `src/engine.js` holds the engine, `index.html` the app (built by `node build.js`). Steps 1–9 of the build order below are done, plus the random deal generator (section 11). `node --test` runs 35 tests, all green (29 Oct 2026: quarterly periods, Word term sheets, blank template and the Assumptions tab added). Step 10 (GitHub Pages) is waiting for the repository to be made public. Moving to the stack below is optional; it is not planned, because the plain version is simpler to maintain.
+**Status (28 Oct 2026):** v1 is built in plain JavaScript, no build tool and no dependencies. `src/engine.js` holds the engine, `index.html` the app (built by `node build.js`). Steps 1–9 of the build order below are done, plus the random deal generator (section 11). `node --test` runs 37 tests, all green (29 Oct 2026: quarterly periods, Word term sheets, blank template, Assumptions tab; v2 model with lender cases, fixed repayment schedule, P99 sizing, swaps, agency fees, MRA and a 15-sheet Excel). Step 10 (GitHub Pages) is waiting for the repository to be made public. Moving to the stack below is optional; it is not planned, because the plain version is simpler to maintain.
 
 Target stack:
 - Vite + TypeScript, plain React

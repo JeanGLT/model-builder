@@ -31,6 +31,8 @@ Capex is drawn [x]% / [x]% / [x]% / [x]% over the construction semesters (one sh
 | Margin | [x.xx]% p.a. |
 | Upfront Fee | [x.xx]% of the Senior Facility, payable on financial close. |
 | Commitment Fee | [xx]% of the Margin on undrawn commitments during construction. |
+| Agency Fee | AUD [xx]k p.a. in total, payable while the Senior Facility is outstanding. |
+| Interest Rate Hedging | The Borrower must hedge [xx]% of projected debt outstanding for [years] years from financial close. Base case swap rate of [x.xx]% p.a. |
 
 ## 4. Repayment, reserves and covenants
 
@@ -39,6 +41,7 @@ Capex is drawn [x]% / [x]% / [x]% / [x]% over the construction semesters (one sh
 | Repayment | Semi-annual instalments from COD to Final Maturity, [sculpted / annuity / linear]. |
 | Target DSCR (sculpting) | [x.xx]x on P50 CFADS. |
 | Debt Service Reserve Account | Balance equal to the next [6 or 12] months of scheduled debt service, funded at COD. |
+| Maintenance Reserve Account | Funded from cash flow over the [n] years before the inverter replacement (AUD [x.xx]m real, spent in operating years [from] to [to]). |
 | Historic DSCR | Lock-up < [x.xx]x; Event of Default < [x.xx]x |
 | Maximum gearing | [xx]% |
 
@@ -49,6 +52,7 @@ Capex is drawn [x]% / [x]% / [x]% / [x]% over the construction semesters (one sh
 | Capacity | [capacity] MWac |
 | P50 capacity factor | [xx.x]% |
 | Availability | [xx.x]% |
+| Energy yield (one-year) | P90 [xx.x]% / P99 [xx.x]% of P50 energy |
 | Degradation | [x.x]% p.a. |
 | Operating costs | AUD [x.xx]m p.a. real, at financial close |
 | CPI | [x.x]% p.a. |

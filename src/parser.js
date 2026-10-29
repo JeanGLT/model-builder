@@ -42,7 +42,7 @@
     const deal = {
       meta: { name: 'Uploaded deal', currency: 'AUD', units: 'k', uploaded: true },
       timeline: {}, construction: {}, operations: {}, tax: {}, senior_debt: { sizing: 'fixed', repayment: 'sculpted' },
-      dsra: {}, covenants: {}, sources: {},
+      dsra: {}, covenants: {}, maintenance: {}, sources: {},
     };
     const missing = [], assumed = [];
     const short = (s) => (s.length > 90 ? s.slice(0, 88) + '…' : s);
@@ -107,6 +107,8 @@
     }
     need('operations.opex_real_fc', take('operations.opex_real_fc', /^operating costs/i, /AUD\s*([\d.]+)m p\.a\. real/, (v) => num(v) * 1000), 'operating costs ("AUD …m p.a. real")');
     if (!take('operations.cpi', /^CPI$/i, /([\d.]+)%/, pct)) assume('operations.cpi', 0.025, 'CPI 2.5% p.a.');
+    if (!take('operations.p90_factor', /energy yield/i, /P90\s*([\d.]+)%/i, pct)) assume('operations.p90_factor', 0.92, 'one-year P90 at 92% of P50 energy');
+    if (!take('operations.p99_factor', /energy yield/i, /P99\s*([\d.]+)%/i, pct)) assume('operations.p99_factor', 0.87, 'one-year P99 at 87% of P50 energy');
 
     // Tax
     if (!take('tax.rate', /corporate tax/i, /^([\d.]+)%/, pct)) assume('tax.rate', 0.30, 'Australian corporate tax rate 30%');
@@ -119,6 +121,10 @@
     need('senior_debt.margin', take('senior_debt.margin', /^margin$/i, /([\d.]+)%/, pct), 'margin');
     if (!take('senior_debt.upfront_fee', /upfront fee/i, /([\d.]+)% of the (?:Senior )?Facility/i, pct)) assume('senior_debt.upfront_fee', 0.015, 'upfront fee 1.50%');
     if (!take('senior_debt.commitment_fee_pct_margin', /commitment fee/i, /(\d+(?:\.\d+)?)% of the Margin/i, pct)) assume('senior_debt.commitment_fee_pct_margin', 0.40, 'commitment fee 40% of the margin');
+    if (!take('senior_debt.agency_fee', /agency fee/i, /AUD\s*([\d,.]+)k p\.a\./i, num)) assume('senior_debt.agency_fee', 0, 'no agency fee stated');
+    if (!take('senior_debt.hedge_ratio', /hedging/i, /hedge (?:at least )?([\d.]+)% of/i, pct)) assume('senior_debt.hedge_ratio', 0, 'no interest rate hedging stated');
+    if (!take('senior_debt.hedge_years', /hedging/i, /for (?:at least )?(\d+) years/i, num)) assume('senior_debt.hedge_years', 0, 'no hedging tenor stated');
+    if (!take('senior_debt.swap_rate', /hedging/i, /swap rate of ([\d.]+)%/i, pct)) assume('senior_debt.swap_rate', deal.senior_debt.base_rate || 0, 'swap rate equal to base case BBSW');
     if (take('senior_debt.repayment', /^repayment$/i, /(sculpted|annuity|linear|straight-line|equal)/i, (v) => ({ 'straight-line': 'linear', equal: 'annuity' }[v.toLowerCase()] || v.toLowerCase())) === false) {
       deal.sources['senior_debt.repayment'] = 'ASSUMED: sculpted repayment';
     }
@@ -127,6 +133,10 @@
     // Reserves and covenants
     if (!take('dsra.months_of_ds', /debt service reserve/i, /next (\d+) months/, num)) assume('dsra.months_of_ds', 6, 'DSRA of 6 months of debt service');
     if (!take('covenants.lockup_dscr', /historic dscr/i, /Lock-up\s*<\s*([\d.]+)x/i, num)) assume('covenants.lockup_dscr', 1.10, 'lock-up at 1.10x');
+    if (!take('maintenance.cost_real', /maintenance reserve/i, /AUD\s*([\d.]+)m real/i, (v) => num(v) * 1000)) assume('maintenance.cost_real', 0, 'no maintenance reserve stated');
+    if (!take('maintenance.from_year', /maintenance reserve/i, /years (\d+) to \d+/i, num)) assume('maintenance.from_year', 10, 'replacement from operating year 10');
+    if (!take('maintenance.to_year', /maintenance reserve/i, /years \d+ to (\d+)/i, num)) assume('maintenance.to_year', 12, 'replacement to operating year 12');
+    if (!take('maintenance.funding_years', /maintenance reserve/i, /over the (\d+) years before/i, num)) assume('maintenance.funding_years', 3, 'funded over 3 years');
     if (!take('covenants.default_dscr', /historic dscr/i, /Default\s*<\s*([\d.]+)x/i, num)) assume('covenants.default_dscr', 1.05, 'event of default at 1.05x');
 
     return { ok: missing.length === 0, deal, missing, assumed };

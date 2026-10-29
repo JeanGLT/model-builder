@@ -22,8 +22,17 @@ Web app: project finance term sheet → semi-annual or quarterly model → Excel
 - Term sheet template = `docs/term_sheet_template.md`, blank with [placeholders], downloaded as Word. Dropped unfilled, the app says how many blanks remain. A test fills it with the Coolabah figures and checks it gives back deal.json.
 - Excel design: dark title band, coloured tabs, shaded construction columns, light-blue section rows, green check cells.
 
+## Decisions (29 Oct 2026, v2 model)
+- Lender cases: base (P50), one-year P90, one-year P99, Downside (P90, opex +10%, BBSW +100 bp). `deal.scenario`, chosen in Assumptions or by clicking a case on Overview.
+- The repayment schedule is fixed at financial close: sized and sculpted on the base case; every other case, sensitivity and breakeven runs with `PFEngine.run(deal, { schedule })`.
+- Sizing ("lower_of") = lowest of gearing, P50 at target DSCR, one-year P99 at 1.00x.
+- New terms: swaps (`hedge_ratio`, `hedge_years`, `swap_rate`), `agency_fee` (k p.a., deducted before CFADS), `maintenance` {cost_real, from_year, to_year, funding_years}. Missing in a term sheet or JSON: ASSUMED neutral values.
+- Golden tests stay on the v1 scope (`v1()` strips the new terms in test/engine.test.js); new terms have their own tests.
+- Excel v2 = 15 sheets, same period columns on every calculation sheet, cross-sheet references, live scenario switch.
+- Link preview: `og.png` (made from `og.svg` with qlmanage + sips) and Open Graph tags written into <head> by build.js.
+
 ## Workflow
-- `node --test` must stay green (35 tests). `node build.js` after any change in `src/` or `deal.json`, then commit `index.html` too.
+- `node --test` must stay green (37 tests). `node build.js` after any change in `src/` or `deal.json`, then commit `index.html` too.
 - Excel formulas: check with `test/verify-excel.html` served over http (see README).
 - Add a golden test before each new feature.
 
@@ -32,10 +41,12 @@ Web app: project finance term sheet → semi-annual or quarterly model → Excel
 - HyperFormula (used only for the check page) has no IRR, OFFSET with named arguments failed, and `SUMPRODUCT((range=1)*range)` failed: replaced by SUMIF and plain references. Keep formulas to common functions.
 - Opening the export in Excel by AppleScript hung (Excel sandbox file-access prompt). Jean has other workbooks open: never script `active workbook` or close anything but our own file by name.
 - `index.html` is generated: edit `src/app.html`, never `index.html`.
+- The verify page caches scripts: bump `?v=` on its <script> tags after changing src/.
+- `sips -c` crops around the centre (cropOffset is ignored): draw og.svg on a square canvas with the content in the middle band.
 - Reading a .docx: Word compresses the files in the zip; `docx.js` uses the browser's DecompressionStream (also in Node 18+). macOS `textutil` flattens tables when it converts, so it is not a fair test of Word.
 
 ## Still to do
-- Jean to open one exported .xlsx in Excel to confirm it opens without a repair prompt.
-- Jean to open a downloaded .docx in Word, edit a number, save and drop it back (tested with generated and re-zipped files, not with real Word).
+- Done 29 Oct: the v2 .xlsx opens in real Excel without a repair prompt; Excel's own recalculation passes all 14 checks, matches the app on all 18 reconciled lines (IRR included) and the scenario switch gives the app's figures. A .docx edited and saved by real Word reads back (margin change picked up).
+- How it was tested: `open -a` then AppleScript on the workbook / document by name, wrapped in `perl -e 'alarm 40; exec @ARGV' osascript ...` so it cannot hang.
 
 - Next features: see README "Next steps".

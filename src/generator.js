@@ -2,8 +2,8 @@
  * Random deal generator — v1
  * Draws a fictional Australian solar project finance deal from realistic ranges.
  * Same seed -> same deal, so a deal can be shared by its number ("Deal #4821").
- * The debt is sized like a real bank would: lowest of max gearing and the amount
- * sculpted at the target DSCR, rounded down to AUD 0.5m.
+ * The debt is sized like a real bank would: lowest of max gearing, the amount sculpted at the
+ * target DSCR on P50 and at 1.00x on one-year P99, rounded down to AUD 0.5m.
  * All names and parties are made up.
  */
 (function (root) {
@@ -124,6 +124,17 @@
     // The PPA price is what makes a deal work for the sponsor: pick the lowest price on a
     // AUD 0.50 grid that gives an equity IRR at or above a drawn target.
     const targetIrr = between(0.055, 0.085, 0.0025);
+    // Lender terms added in v2 (drawn after the v1 terms, so a deal number keeps its project).
+    const p90 = between(0.90, 0.94, 0.005);
+    Object.assign(deal.operations, { p90_factor: p90, p99_factor: +(p90 - between(0.04, 0.06, 0.005)).toFixed(3) });
+    Object.assign(deal.senior_debt, {
+      agency_fee: between(50, 100, 5),
+      hedge_ratio: pick([0.70, 0.75, 0.80]),
+      hedge_years: pick([7, 10]),
+      swap_rate: +(deal.senior_debt.base_rate + between(0, 0.003, 0.0005)).toFixed(6),
+    });
+    const mraFrom = pick([10, 11]);
+    deal.maintenance = { cost_real: mw * between(40, 60, 1), from_year: mraFrom, to_year: mraFrom + 2, funding_years: 3 };
     const irrAt = (price) => {
       deal.operations.ppa_price_fc = price;
       if (!size(deal)) return -1;
@@ -143,7 +154,8 @@
   }
 
   // Sizes the debt like a lender: lowest of (i) max gearing, (ii) sculpted at the target DSCR on
-  // pre-tax P50 CFADS, (iii) the amount keeping the minimum post-tax DSCR at least 0.05x above lock-up.
+  // pre-tax P50 CFADS, (iii) sculpted at 1.00x on one-year P99 CFADS (both inside engine 'lower_of'),
+  // (iv) the amount keeping the minimum post-tax DSCR at least 0.05x above lock-up.
   // The result is rounded down to AUD 0.5m and stored as a fixed facility amount.
   function size(deal) {
     const D = deal.senior_debt;
@@ -198,6 +210,16 @@
       'dsra.months_of_ds': 'Section 4 · DSRA: next 6 months of scheduled debt service',
       'covenants.lockup_dscr': 'Section 4 · Lock-up < ' + d.covenants.lockup_dscr.toFixed(2) + 'x',
       'covenants.default_dscr': 'Section 4 · Event of Default < ' + d.covenants.default_dscr.toFixed(2) + 'x',
+      'operations.p90_factor': 'Section 6 · Energy yield (one-year): P90 ' + pct(O.p90_factor, 1),
+      'operations.p99_factor': 'Section 6 · Energy yield (one-year): P99 ' + pct(O.p99_factor, 1),
+      'senior_debt.agency_fee': 'Section 3 · Agency Fee: AUD ' + D.agency_fee + 'k p.a.',
+      'senior_debt.hedge_ratio': 'Section 3 · Interest Rate Hedging: hedge ' + pct(D.hedge_ratio, 0) + ' of debt',
+      'senior_debt.hedge_years': 'Section 3 · Interest Rate Hedging: for ' + D.hedge_years + ' years',
+      'senior_debt.swap_rate': 'Section 3 · Interest Rate Hedging: swap rate of ' + pct(D.swap_rate),
+      'maintenance.cost_real': 'Section 4 · Maintenance Reserve Account: AUD ' + (d.maintenance.cost_real / 1000).toFixed(2) + 'm real',
+      'maintenance.from_year': 'Section 4 · Maintenance Reserve Account: years ' + d.maintenance.from_year + ' to ' + d.maintenance.to_year,
+      'maintenance.to_year': 'Section 4 · Maintenance Reserve Account: years ' + d.maintenance.from_year + ' to ' + d.maintenance.to_year,
+      'maintenance.funding_years': 'Section 4 · Maintenance Reserve Account: over the ' + d.maintenance.funding_years + ' years before',
     };
   }
 

@@ -1,5 +1,9 @@
 {
-  "meta": { "name": "Project Coolabah", "currency": "AUD", "units": "k" },
+  "meta": {
+    "name": "Project Coolabah",
+    "currency": "AUD",
+    "units": "k"
+  },
   "timeline": {
     "financial_close": "2027-07-01",
     "cod": "2029-07-01",
@@ -8,35 +12,57 @@
   },
   "construction": {
     "capex_total": 140000,
-    "capex_profile": [0.15, 0.35, 0.35, 0.15]
+    "capex_profile": [
+      0.15,
+      0.35,
+      0.35,
+      0.15
+    ]
   },
   "operations": {
     "capacity_mw": 100,
     "capacity_factor_p50": 0.27,
     "availability": 0.99,
     "degradation": 0.005,
-    "ppa_price_fc": 60.0,
-    "ppa_indexation": 1.0,
+    "ppa_price_fc": 60,
+    "ppa_indexation": 1,
     "opex_real_fc": 3200,
-    "cpi": 0.025
+    "cpi": 0.025,
+    "p90_factor": 0.92,
+    "p99_factor": 0.87
   },
   "tax": {
-    "rate": 0.30,
+    "rate": 0.3,
     "depreciation_years": 20
   },
   "senior_debt": {
     "sizing": "fixed",
     "amount": 98000,
-    "gearing": 0.70,
+    "gearing": 0.7,
     "base_rate": 0.04,
     "margin": 0.0175,
     "upfront_fee": 0.015,
-    "commitment_fee_pct_margin": 0.40,
+    "commitment_fee_pct_margin": 0.4,
     "repayment": "sculpted",
-    "target_dscr": 1.30
+    "target_dscr": 1.3,
+    "agency_fee": 75,
+    "hedge_ratio": 0.75,
+    "hedge_years": 10,
+    "swap_rate": 0.041
   },
-  "dsra": { "months_of_ds": 6 },
-  "covenants": { "lockup_dscr": 1.10, "default_dscr": 1.05 },
+  "dsra": {
+    "months_of_ds": 6
+  },
+  "covenants": {
+    "lockup_dscr": 1.1,
+    "default_dscr": 1.05
+  },
+  "maintenance": {
+    "cost_real": 5000,
+    "from_year": 10,
+    "to_year": 12,
+    "funding_years": 3
+  },
   "sources": {
     "timeline.financial_close": "Summary: financial close targeted 1 July 2027",
     "timeline.cod": "Summary: COD 1 July 2029",
@@ -64,6 +90,16 @@
     "senior_debt.target_dscr": "Section 4 · Target DSCR 1.30x on P50 CFADS",
     "dsra.months_of_ds": "Section 4 · DSRA: next 6 months of scheduled debt service",
     "covenants.lockup_dscr": "Section 4 · Lock-up < 1.10x",
-    "covenants.default_dscr": "Section 4 · Event of Default < 1.05x"
+    "covenants.default_dscr": "Section 4 · Event of Default < 1.05x",
+    "operations.p90_factor": "Section 6 · Energy yield (one-year): P90 92.0%",
+    "operations.p99_factor": "Section 6 · Energy yield (one-year): P99 87.0%",
+    "senior_debt.agency_fee": "Section 3 · Agency Fee: AUD 75k p.a.",
+    "senior_debt.hedge_ratio": "Section 3 · Interest Rate Hedging: hedge 75% of",
+    "senior_debt.hedge_years": "Section 3 · Interest Rate Hedging: for 10 years",
+    "senior_debt.swap_rate": "Section 3 · Interest Rate Hedging: swap rate of 4.10%",
+    "maintenance.cost_real": "Section 4 · Maintenance Reserve Account: AUD 5.00m real",
+    "maintenance.from_year": "Section 4 · Maintenance Reserve Account: years 10 to 12",
+    "maintenance.to_year": "Section 4 · Maintenance Reserve Account: years 10 to 12",
+    "maintenance.funding_years": "Section 4 · Maintenance Reserve Account: over the 3 years before"
   }
 }

@@ -10,7 +10,7 @@ const { generateDeal } = require('../src/generator.js');
 const { termSheet } = require('../src/termsheet.js');
 const coolabah = require('../deal.json');
 
-const SECTIONS = ['timeline', 'construction', 'operations', 'tax', 'senior_debt', 'dsra', 'covenants'];
+const SECTIONS = ['timeline', 'construction', 'operations', 'tax', 'senior_debt', 'dsra', 'covenants', 'maintenance'];
 const md = fs.readFileSync(path.join(__dirname, '../docs/coolabah_term_sheet.md'), 'utf8');
 
 function sameInputs(a, b, label) {
@@ -29,7 +29,7 @@ test('the Coolabah term sheet gives back deal.json', () => {
   assert.deepStrictEqual(r.assumed, []);
   sameInputs(coolabah, r.deal, 'Coolabah');
   assert.strictEqual(r.deal.meta.name, 'Project Coolabah');
-  near(engine.run(r.deal).summary.sculptDscr, 1.475, 0.002);
+  near(engine.run(r.deal).summary.sculptDscr, engine.run(coolabah).summary.sculptDscr, 1e-9);
 });
 
 test('every input read from the term sheet cites its clause', () => {
@@ -88,8 +88,8 @@ test('the blank template, once filled in, reads back to the Coolabah deal', () =
   // Each placeholder, in the order it appears, with the Coolabah figure.
   const values = ['Coolabah', '100', 'NSW', '1 July 2027', '1 July 2029', 'Coolabah', '100', 'NSW', 'Coolabah', 'Wattlebank', '20', '60.00', '100', '30 June 2049',
     '98,000,000', '30 June 2047', '140,000', '15', '35', '35', '15',
-    '4.00', '1.75', '1.50', '40', 'sculpted', '1.30', '6', '1.10', '1.05', '70',
-    '100', '27.0', '99.0', '0.5', '3.20', '2.5', '30', '20'];
+    '4.00', '1.75', '1.50', '40', '75', '75', '10', '4.10', 'sculpted', '1.30', '6', '3', '5.00', '10', '12', '1.10', '1.05', '70',
+    '100', '27.0', '99.0', '92.0', '87.0', '0.5', '3.20', '2.5', '30', '20'];
   let i = 0;
   const filled = tpl.replace(/\[[^\]]+\]/g, () => values[i++]);
   assert.strictEqual(i, values.length, 'one value per placeholder');

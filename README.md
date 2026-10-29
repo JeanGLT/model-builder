@@ -6,7 +6,9 @@ A web app that turns a project finance term sheet into a full semi-annual or qua
 - **Random deals:** one click draws a fictional Australian solar deal from realistic ranges, writes its indicative term sheet and builds the model. Each deal has a number (`?deal=4821`), so the same link always opens the same deal.
 - **Drop a term sheet:** the start page reads a Word (.docx) or Markdown term sheet in the Model Builder layout (like the blank downloadable template, once filled in, or any generated deal) directly in the browser, and a deal JSON. For a PDF or a free-form document, it guides the user through one Claude extraction step.
 - **Assumptions tab:** after a drop or a random deal, the term sheet opens first, then the Assumptions tab lists every input with its term sheet clause and a status (from the term sheet, assumed, edited). It is the only place inputs are edited. The user picks semi-annual or quarterly periods, then clicks Generate Excel model.
-- **Excel export:** Cover, Inputs (named cells, with the term sheet clause for each), Calc (every cell a formula), Outputs and Checks (integrity checks plus a reconciliation against the web app).
+- **Lender cases:** base case (P50), one-year P90, one-year P99 and a Downside (P90, opex +10%, BBSW +100 bp). The debt is sized on the lowest of gearing, DSCR on P50 and 1.00x on P99, sculpted on the base case, and every other case, sensitivity and breakeven runs against that fixed repayment schedule.
+- **Lender terms:** interest rate swaps on part of the debt, agency fees, a maintenance reserve (MRA) for the inverter replacement.
+- **Excel export (15 sheets):** Cover, Dashboard, Inputs (named cells, with the term sheet clause for each), Scenarios (live switch), Timing, Operations, Construction, Debt, Tax, Reserves, Waterfall, Ratios, Returns, Annual summary and Checks (integrity checks plus a reconciliation against the web app).
 
 Everything runs in the browser. No backend, no install, no dependencies.
 
@@ -26,7 +28,7 @@ Everything runs in the browser. No backend, no install, no dependencies.
 | `src/markdown.js` | Small Markdown to HTML converter for the term sheets. |
 | `src/xlsx.js` | Minimal .xlsx writer (an .xlsx is a zip of XML files). |
 | `src/docx.js` | Writes the term sheet as a Word file and reads a Word term sheet back (no library). |
-| `src/excel.js` | Rebuilds the model as Excel formulas. |
+| `src/excel.js` | Rebuilds the model as a 15-sheet Excel workbook of live formulas. |
 | `src/app.html` | The interface template. |
 | `build.js` | Inlines everything into `index.html` (standalone) and `dist/artifact.html`. |
 | `test/*.test.js` | Golden tests, 300 random deals, quarterly periods, term sheet reader, Word round trip, Excel export structure. |
@@ -57,9 +59,8 @@ then open `http://localhost:8765/test/verify-excel.html`. Every row of the recon
 
 ## Next steps
 
-1. P90 / P99 sizing constraint (§4 of the term sheet) and a P90 case in the dashboard.
-2. Interest rate hedging (75% for 10 years), agency fees, MRA, cash sweep after 4 trapped periods.
-3. Wind farms in the random generator.
-4. Automatic reading of PDF / Word term sheets through a small serverless backend holding a Claude API key (the drop zone already routes these files to a guided step).
+1. Cash sweep after 4 trapped periods.
+2. Wind farms in the random generator.
+3. Automatic reading of PDF / Word term sheets through a small serverless backend holding a Claude API key (the drop zone already routes these files to a guided step).
 
 Add a golden test for every new feature before building it.

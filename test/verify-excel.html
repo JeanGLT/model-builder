@@ -7,13 +7,12 @@
      (python3 -m http.server) and open /test/verify-excel.html. See README. -->
 <pre id="out">running…</pre>
 <script src="https://cdn.jsdelivr.net/npm/hyperformula@2.7.1/dist/hyperformula.full.min.js"></script>
-<script src="../src/engine.js"></script>
-<script src="../src/generator.js"></script>
-<script src="../src/xlsx.js"></script>
-<script src="../src/excel.js"></script>
+<script src="../src/engine.js?v=2"></script>
+<script src="../src/generator.js?v=2"></script>
+<script src="../src/xlsx.js?v=2"></script>
+<script src="../src/excel.js?v=2"></script>
 <script>
 // Recalculates the exported workbook with an independent spreadsheet engine and reports the Checks sheet.
-const DEAL = { "meta": { "name": "Project Coolabah", "currency": "AUD", "units": "k" }, "timeline": { "financial_close": "2027-07-01", "cod": "2029-07-01", "ppa_end": "2049-06-30", "debt_maturity": "2047-06-30" }, "construction": { "capex_total": 140000, "capex_profile": [0.15, 0.35, 0.35, 0.15] }, "operations": { "capacity_mw": 100, "capacity_factor_p50": 0.27, "availability": 0.99, "degradation": 0.005, "ppa_price_fc": 60.0, "ppa_indexation": 1.0, "opex_real_fc": 3200, "cpi": 0.025 }, "tax": { "rate": 0.30, "depreciation_years": 20 }, "senior_debt": { "sizing": "fixed", "amount": 98000, "gearing": 0.70, "base_rate": 0.04, "margin": 0.0175, "upfront_fee": 0.015, "commitment_fee_pct_margin": 0.40, "repayment": "sculpted", "target_dscr": 1.30 }, "dsra": { "months_of_ds": 6 }, "covenants": { "lockup_dscr": 1.10, "default_dscr": 1.05 } };
 
 function evaluate(deal) {
   const res = PFEngine.run(deal);
@@ -35,10 +34,13 @@ function evaluate(deal) {
   for (const [name, ref] of wb.names) hf.addNamedExpression(name, '=' + ref);
   const id = hf.getSheetId('Checks');
   const lines = [];
-  for (let r = 4; r < 36; r++) {
+  let passed = 0;
+  for (let r = 4; r < 50; r++) {
     const row = [0, 1, 2, 3, 4].map((c) => hf.getCellValue({ sheet: id, row: r, col: c }));
     if (row.every((x) => x === null || x === '')) continue;
-    lines.push((r + 1) + ' | ' + row.map((x) => (x && x.type ? '#' + x.type : x)).join(' | '));
+    // Only rows that fail (FALSE) are printed; IRR-linked rows show #NAME (HyperFormula has no IRR).
+    if (row.includes(true)) passed++;
+    if (row.includes(false) || row.some((x) => x && x.type && !/IRR|matches/i.test(String(row[0])))) lines.push('FAIL ' + (r + 1) + ' | ' + row.map((x) => (x && x.type ? '#' + x.type : x)).join(' | '));
   }
   // Any formula errors anywhere?
   let errors = 0, firstErr = '';
@@ -48,23 +50,31 @@ function evaluate(deal) {
     vals.forEach((row, r) => row.forEach((x, c) => { if (x && x.type) { errors++; if (!firstErr) firstErr = s.name + '!' + PFXlsx.colName(c + 1) + (r + 1) + ' ' + x.type + ' ' + (x.message || ''); } }));
   }
   // HyperFormula has no IRR function: recompute it in JS from the equity flows it calculated.
-  const calc = hf.getSheetId('Calc'), calcSheet = wb.sheets.find((s) => s.name === 'Calc');
+  const calc = hf.getSheetId('Returns'), calcSheet = wb.sheets.find((s) => s.name === 'Returns');
   const irrRow = [...calcSheet.rows.entries()].find(([r, cells]) => cells.get(1) && cells.get(1).value === 'Equity cash flow')[0];
   const flows = []; for (let c = 3; c < 3 + res.meta.N; c++) flows.push(hf.getCellValue({ sheet: calc, row: irrRow - 1, col: c }));
   const irr = Math.pow(1 + PFEngine.irr(flows), res.meta.ppy) - 1;
   lines.push('IRR from recalculated equity flows: ' + irr + ' vs app ' + res.summary.equityIrr + ' -> ' + (Math.abs(irr - res.summary.equityIrr) < 1e-9 ? 'match' : 'MISMATCH'));
+  lines.unshift('checks passed: ' + passed);
   return lines.join('\n') + '\nformula errors: ' + errors + (firstErr ? ' (first: ' + firstErr + ')' : '');
 }
 
 let text = '';
-try {
-  text += '=== Coolabah ===\n' + evaluate(DEAL) + '\n\n';
-  for (const seed of [4821, 7, 1234]) text += '=== Deal #' + seed + ' ===\n' + evaluate(PFGenerator.generateDeal(seed)) + '\n\n';
-  const quarterly = (d) => Object.assign({}, d, { timeline: Object.assign({}, d.timeline, { periodicity: 'quarterly' }) });
-  text += '=== Coolabah, quarterly ===\n' + evaluate(quarterly(DEAL)) + '\n\n';
-  for (const seed of [4821, 1234]) text += '=== Deal #' + seed + ', quarterly ===\n' + evaluate(quarterly(PFGenerator.generateDeal(seed))) + '\n\n';
-} catch (e) { text += 'ERROR ' + e.message + '\n' + e.stack; }
-document.getElementById('out').textContent = text;
+(async () => {
+  try {
+    const DEAL = await (await fetch('../deal.json')).json();
+    const as = (d, extra) => Object.assign({}, d, extra, { timeline: Object.assign({}, d.timeline, (extra && extra.timeline) || {}) });
+    const cases = [
+      ['Coolabah', DEAL], ['Coolabah, P90', as(DEAL, { scenario: 'p90' })], ['Coolabah, P99', as(DEAL, { scenario: 'p99' })],
+      ['Coolabah, downside', as(DEAL, { scenario: 'downside' })], ['Coolabah, quarterly downside', as(DEAL, { scenario: 'downside', timeline: { periodicity: 'quarterly' } })],
+      ['Deal #4821', PFGenerator.generateDeal(4821)], ['Deal #7, P99', as(PFGenerator.generateDeal(7), { scenario: 'p99' })],
+      ['Deal #1234, quarterly', as(PFGenerator.generateDeal(1234), { timeline: { periodicity: 'quarterly' } })],
+    ];
+    for (const [name, d] of cases) text += '=== ' + name + ' ===\n' + evaluate(d) + '\n\n';
+  } catch (e) { text += 'ERROR ' + e.message + '\n' + e.stack; }
+  document.getElementById('out').textContent = text;
+})();
+
 </script>
 </body>
 </html>

@@ -59,19 +59,51 @@
     return errors;
   }
 
-  function run(deal) {
+  // Lender cases. Each one changes the operating cash flows (energy, opex) and/or the base rate.
+  // The debt and its repayment schedule always come from the base case: they are fixed at
+  // financial close, and every other case is tested against them.
+  const SCENARIOS = {
+    base: { label: 'Base case (P50)' },
+    p90: { label: 'P90 (one-year)' },
+    p99: { label: 'P99 (one-year)' },
+    downside: { label: 'Downside (P90, opex +10%, BBSW +100 bp)' },
+  };
+  function scenarioParams(deal) {
+    const O = deal.operations, dn = deal.downside || {};
+    const p90 = O.p90_factor || 1, p99 = O.p99_factor || 1;
+    switch (deal.scenario || 'base') {
+      case 'p90': return { energy: p90, opex: 1, rate: 0 };
+      case 'p99': return { energy: p99, opex: 1, rate: 0 };
+      case 'downside': return { energy: p90, opex: 1 + (dn.opex_uplift == null ? 0.10 : dn.opex_uplift), rate: dn.rate_shock == null ? 0.01 : dn.rate_shock };
+      default: return { energy: 1, opex: 1, rate: 0 };
+    }
+  }
+  // The part of a result that is fixed at financial close: debt amount and principal per period.
+  function scheduleOf(res) { return { amount: res.summary.amount, principal: res.series.principal.slice() }; }
+
+  // opts.schedule: { amount, principal[] } runs the deal against a given debt schedule
+  // (used for stress cases and sensitivities) instead of sizing and sculpting it.
+  function run(deal, opts) {
+    opts = opts || {};
     const errors = validate(deal);
+    if (deal.scenario && !SCENARIOS[deal.scenario]) errors.push('Unknown scenario "' + deal.scenario + '".');
     if (errors.length) return { ok: false, errors };
+    if ((deal.scenario || 'base') !== 'base' && !opts.schedule) {
+      const b = run(Object.assign({}, deal, { scenario: 'base' }));
+      if (!b.ok) return b;
+      return run(deal, { schedule: scheduleOf(b) });
+    }
 
     const C = deal.construction, O = deal.operations, T = deal.tax, D = deal.senior_debt;
+    const M = deal.maintenance || {};
+    const sc = scenarioParams(deal);
     const fc = parseDate(deal.timeline.financial_close);
     const pm = monthsPerPeriod(deal);                           // months per period
     const ppy = 12 / pm;                                        // periods per year
     const nC = monthsFrom(fc, deal.timeline.cod) / pm;          // construction periods
     const nM = monthsFrom(fc, deal.timeline.debt_maturity) / pm; // last debt period
     const N = monthsFrom(fc, deal.timeline.ppa_end) / pm;        // last period
-    const r = D.base_rate + D.margin;
-    const rs = r / ppy;                                         // interest rate per period
+    const r = D.base_rate + D.margin;                           // unhedged all-in rate p.a.
 
     // ---- Timeline -------------------------------------------------------
     const periods = [];
@@ -89,34 +121,64 @@
     const fy1 = periods[0].fy;
     const z = () => new Array(N).fill(0);
 
-    // ---- B. Operations (computed first: sizing depends on CFADS) ---------
-    const energy = z(), revenue = z(), opex = z(), ebitda = z(), index = z();
-    for (let i = nC; i < N; i++) {
-      const p = periods[i];
-      const idx = Math.pow(1 + O.cpi, p.fy - fy1);
-      const deg = Math.pow(1 - O.degradation, p.opYear - 1);
-      const annualE = O.capacity_mw * 8760 * O.capacity_factor_p50 * O.availability * deg;
-      const priceIdx = 1 + (idx - 1) * O.ppa_indexation;
-      index[i] = idx;
-      energy[i] = annualE / ppy;
-      revenue[i] = (annualE * O.ppa_price_fc * priceIdx / 1000) / ppy;
-      opex[i] = (O.opex_real_fc * idx) / ppy;
-      ebitda[i] = revenue[i] - opex[i];
+    // ---- Interest rates per period ----------------------------------------
+    // A share of the debt is swapped to a fixed rate for the first years from financial close.
+    // baseRate: base case (used to size and sculpt); rate: this case (BBSW shock on the unhedged part).
+    const hedgeRatio = D.hedge_ratio || 0, hedgeMonths = (D.hedge_years || 0) * 12;
+    const swap = D.swap_rate == null ? D.base_rate : D.swap_rate;
+    const hedgeShare = z(), baseRate = z(), rate = z();
+    for (let i = 0; i < N; i++) {
+      hedgeShare[i] = pm * (i + 1) <= hedgeMonths ? hedgeRatio : 0;
+      const h = hedgeShare[i];
+      baseRate[i] = (D.margin + h * swap + (1 - h) * D.base_rate) / ppy;
+      rate[i] = (D.margin + h * swap + (1 - h) * (D.base_rate + sc.rate)) / ppy;
     }
-    const cfadsPre = ebitda.slice();
+
+    // ---- B. Operations (computed first: sizing depends on CFADS) ---------
+    // ops(energy factor, opex factor) -> energy, revenue, opex, EBITDA for every period.
+    const index = z(), agency = z();
+    for (let i = nC; i < N; i++) {
+      index[i] = Math.pow(1 + O.cpi, periods[i].fy - fy1);
+      if (i < nM) agency[i] = (D.agency_fee || 0) / ppy; // facility agent and security trustee, while the debt is outstanding
+    }
+    function ops(eF, oF) {
+      const energy = z(), revenue = z(), opex = z(), ebitda = z();
+      for (let i = nC; i < N; i++) {
+        const p = periods[i];
+        const deg = Math.pow(1 - O.degradation, p.opYear - 1);
+        const annualE = O.capacity_mw * 8760 * O.capacity_factor_p50 * O.availability * deg * eF;
+        const priceIdx = 1 + (index[i] - 1) * O.ppa_indexation;
+        energy[i] = annualE / ppy;
+        revenue[i] = (annualE * O.ppa_price_fc * priceIdx / 1000) / ppy;
+        opex[i] = (O.opex_real_fc * index[i] * oF) / ppy;
+        ebitda[i] = revenue[i] - opex[i];
+      }
+      return { energy, revenue, opex, ebitda };
+    }
+    const { energy, revenue, opex, ebitda } = ops(sc.energy, sc.opex);
+    const cfadsPre = ebitda.map((e, i) => e - agency[i]);
+    const baseOps = ops(1, 1); // base case P50, always: the debt is sized and sculpted on it
+    const sculptCfads = baseOps.ebitda.map((e, i) => e - agency[i]);
+    const cfadsP99 = O.p99_factor ? ops(O.p99_factor, 1).ebitda.map((e, i) => e - agency[i]) : null;
 
     // ---- Debt sizing ----------------------------------------------------
     const nRep = nM - nC;
-    const df = []; // discount factor for each repayment period, from COD
-    for (let k = 1; k <= nRep; k++) df.push(Math.pow(1 + rs, -k));
-    const pvCfads = sum(df.map((f, k) => f * cfadsPre[nC + k]));
+    // PV at COD of a cash flow over the debt tenor, discounted period by period.
+    const pvAtCod = (cf, rt) => { let pv = 0; for (let i = nM - 1; i >= nC; i--) pv = (cf[i] + pv) / (1 + rt[i]); return pv; };
+    const pvCfads = pvAtCod(sculptCfads, baseRate);
     const capacityAtTarget = pvCfads / D.target_dscr;
+    const capacityP99 = cfadsP99 ? pvAtCod(cfadsP99, baseRate) / 1.0 : null;
     const gearingCap = C.capex_total * D.gearing;
     let amount = D.amount;
     let sizingBinding = 'fixed input';
-    if (D.sizing === 'lower_of') {
-      amount = Math.min(gearingCap, capacityAtTarget);
-      sizingBinding = gearingCap <= capacityAtTarget ? 'gearing' : 'DSCR';
+    if (opts.schedule) {
+      amount = opts.schedule.amount;
+      sizingBinding = 'fixed at base case';
+    } else if (D.sizing === 'lower_of') {
+      const caps = [['gearing', gearingCap], ['DSCR', capacityAtTarget]];
+      if (capacityP99 != null) caps.push(['P99', capacityP99]);
+      caps.sort((a, b) => a[1] - b[1]);
+      [sizingBinding, amount] = caps[0];
     }
     const effGearing = amount / C.capex_total;
 
@@ -129,7 +191,7 @@
       capex[i] = C.capex_total * C.capex_profile[Math.floor(i * pm / 6)] * pm / 6;
       draw[i] = capex[i] * effGearing;
       debtOpen[i] = bal;
-      idc[i] = bal * rs;
+      idc[i] = bal * rate[i];
       commit[i] = undrawn * D.margin * D.commitment_fee_pct_margin / ppy;
       if (i === 0) upfront[i] = amount * D.upfront_fee;
       equityIn[i] = capex[i] - draw[i] + idc[i] + commit[i] + upfront[i];
@@ -141,27 +203,40 @@
     const projectCost = C.capex_total + totalIdc + totalCommit + totalUpfront;
 
     // ---- C. Repayment profile -------------------------------------------
-    let sculptDscr = null;
-    if (D.repayment === 'sculpted') {
-      sculptDscr = pvCfads / amount;
-      for (let k = 0; k < nRep; k++) debtService[nC + k] = cfadsPre[nC + k] / sculptDscr;
-    } else if (D.repayment === 'annuity') {
-      const pmt = amount * rs / (1 - Math.pow(1 + rs, -nRep));
-      for (let k = 0; k < nRep; k++) debtService[nC + k] = pmt;
-    }
+    // Principal comes from the base case: sculpted (base CFADS / constant DSCR, less base-case
+    // interest), annuity (at the unhedged rate) or linear. Interest is then this case's rate.
+    const sculptDscr = D.repayment === 'sculpted' ? pvCfads / amount : null;
+    const rsU = r / ppy;
+    const pmt = amount * rsU / (1 - Math.pow(1 + rsU, -nRep));
     for (let i = nC; i < nM; i++) {
       debtOpen[i] = bal;
-      interest[i] = bal * rs;
-      if (D.repayment === 'linear') {
-        principal[i] = amount / nRep;
-        debtService[i] = principal[i] + interest[i];
-      } else {
-        principal[i] = debtService[i] - interest[i];
-      }
+      interest[i] = bal * rate[i];
+      if (opts.schedule) principal[i] = opts.schedule.principal[i];
+      else if (D.repayment === 'linear') principal[i] = amount / nRep;
+      else if (D.repayment === 'annuity') principal[i] = pmt - bal * rsU;
+      else principal[i] = sculptCfads[i] / sculptDscr - bal * baseRate[i];
+      debtService[i] = interest[i] + principal[i];
       bal -= principal[i];
       debtClose[i] = bal;
     }
     const balanceAtMaturity = bal;
+
+    // ---- Maintenance reserve (planned amounts) ---------------------------
+    // Inverter replacement spent equally over operating years from..to, in nominal terms;
+    // the MRA is funded equally over the funding years just before, up to the total spend.
+    const mraSpend = z(), mraPlan = z();
+    if (M.cost_real > 0) {
+      const spendYears = M.to_year - M.from_year + 1;
+      for (let i = nC; i < N; i++) {
+        const y = periods[i].opYear;
+        if (y >= M.from_year && y <= M.to_year) mraSpend[i] = M.cost_real * index[i] / (spendYears * ppy);
+      }
+      const target = sum(mraSpend);
+      for (let i = nC; i < N; i++) {
+        const y = periods[i].opYear;
+        if (y >= M.from_year - M.funding_years && y < M.from_year) mraPlan[i] = target / (M.funding_years * ppy);
+      }
+    }
 
     // ---- D. Tax ---------------------------------------------------------
     const depreciation = z(), taxable = z(), lossUsed = z(), lossBal = z(), tax = z();
@@ -169,7 +244,8 @@
     let losses = 0;
     for (let i = nC; i < N; i++) {
       if (i - nC < T.depreciation_years * ppy) depreciation[i] = depPerPeriod;
-      taxable[i] = ebitda[i] - depreciation[i] - interest[i];
+      // Agency fees and the inverter replacement are deducted when paid.
+      taxable[i] = ebitda[i] - agency[i] - mraSpend[i] - depreciation[i] - interest[i];
       if (taxable[i] < 0) {
         losses += -taxable[i];
       } else {
@@ -180,23 +256,23 @@
       }
       lossBal[i] = losses;
     }
-    const cfadsPost = ebitda.map((e, i) => e - tax[i]);
+    const cfadsPost = cfadsPre.map((c, i) => c - tax[i]);
 
     // ---- G. Ratios ------------------------------------------------------
     const dscrPre = z().map(() => null), dscrPost = z().map(() => null);
     const llcrPre = z().map(() => null), llcrPost = z().map(() => null);
     const hDscr = z().map(() => null);
+    // Backward PV recursion: PV at the start of period i of CFADS from i to maturity.
+    let pvPre = 0, pvPost = 0;
+    for (let i = nM - 1; i >= nC; i--) {
+      pvPre = (cfadsPre[i] + pvPre) / (1 + rate[i]);
+      pvPost = (cfadsPost[i] + pvPost) / (1 + rate[i]);
+      llcrPre[i] = pvPre / debtOpen[i];
+      llcrPost[i] = pvPost / debtOpen[i];
+    }
     for (let i = nC; i < nM; i++) {
       dscrPre[i] = cfadsPre[i] / debtService[i];
       dscrPost[i] = cfadsPost[i] / debtService[i];
-      let pvPre = 0, pvPost = 0;
-      for (let j = i; j < nM; j++) {
-        const f = Math.pow(1 + rs, -(j - i + 1));
-        pvPre += cfadsPre[j] * f;
-        pvPost += cfadsPost[j] * f;
-      }
-      llcrPre[i] = pvPre / debtOpen[i];
-      llcrPost[i] = pvPost / debtOpen[i];
       // Historic DSCR over the last 12 months (2 semesters or 4 quarters), once 12 months have passed.
       if (i >= nC + ppy - 1) {
         let cf = 0, ds = 0;
@@ -205,10 +281,10 @@
       }
     }
     let pvPpa = 0;
-    for (let j = nC; j < N; j++) pvPpa += cfadsPre[j] * Math.pow(1 + rs, -(j - nC + 1));
+    for (let j = N - 1; j >= nC; j--) pvPpa = (cfadsPre[j] + pvPpa) / (1 + rate[j]);
     const plcrCod = pvPpa / amount;
 
-    // ---- E/F. DSRA and waterfall ----------------------------------------
+    // ---- E/F. DSRA, MRA and waterfall -----------------------------------
     const kDs = deal.dsra.months_of_ds / pm;
     const dsraTarget = z();
     for (let i = nC - 1; i < N; i++) {
@@ -217,11 +293,12 @@
       dsraTarget[i] = s;
     }
     const dsraFund = z(), dsraTopUp = z(), dsraRelease = z(), dsraDraw = z(), dsraBal = z();
+    const mraFund = z(), mraFromCash = z(), mraBal = z();
     const cashAfterDs = z(), trapped = z(), trapBal = z(), distributions = z();
     const lockup = z().map(() => false), defaultFlag = z().map(() => false), shortfall = z();
     dsraFund[nC - 1] = dsraTarget[nC - 1];
     dsraBal[nC - 1] = dsraFund[nC - 1];
-    let dsra = dsraBal[nC - 1], trap = 0;
+    let dsra = dsraBal[nC - 1], trap = 0, mra = 0;
     const cov = deal.covenants;
     for (let i = nC; i < N; i++) {
       let cash = cfadsPost[i] - debtService[i];
@@ -236,24 +313,38 @@
       else if (gap < 0) { dsraRelease[i] = -gap; dsra += gap; cash -= gap; }
       dsraBal[i] = dsra;
 
+      // MRA: funded from the cash left, then pays the inverter replacement; any gap is paid from cash.
+      mraFund[i] = Math.min(mraPlan[i], Math.max(0, cash));
+      mra += mraFund[i]; cash -= mraFund[i];
+      const fromMra = Math.min(mra, mraSpend[i]);
+      mra -= fromMra;
+      mraFromCash[i] = mraSpend[i] - fromMra;
+      cash -= mraFromCash[i];
+      mraBal[i] = mra;
+
       if (hDscr[i] !== null) {
         lockup[i] = hDscr[i] < cov.lockup_dscr;
         defaultFlag[i] = hDscr[i] < cov.default_dscr;
       }
       const dsraFull = dsra >= dsraTarget[i] - 1e-6;
-      if (lockup[i] || !dsraFull) {
+      if (cash < 0) {
+        distributions[i] = cash; // the sponsor covers a maintenance gap the cash flow cannot
+      } else if (lockup[i] || !dsraFull) {
         trapped[i] = cash; trap += cash;
       } else {
         distributions[i] = cash + trap; trap = 0;
       }
-      if (i === N - 1) { distributions[i] += trap + dsra; trap = 0; dsraRelease[i] += dsra; dsra = 0; dsraBal[i] = 0; }
+      if (i === N - 1) {
+        distributions[i] += trap + dsra + mra; trap = 0;
+        dsraRelease[i] += dsra; dsra = 0; dsraBal[i] = 0; mra = 0; mraBal[i] = 0;
+      }
       trapBal[i] = trap;
     }
 
     // ---- H. Equity returns ----------------------------------------------
     const equityFlows = z().map((_, i) => -equityIn[i] - dsraFund[i] + distributions[i]);
-    const irrSemi = irr(equityFlows); // per period
-    const equityIrr = irrSemi === null ? null : Math.pow(1 + irrSemi, ppy) - 1;
+    const irrPer = irr(equityFlows); // per period
+    const equityIrr = irrPer === null ? null : Math.pow(1 + irrPer, ppy) - 1;
 
     // ---- Summary & checks ------------------------------------------------
     const debtIdx = [];
@@ -277,18 +368,20 @@
     return {
       ok: true,
       errors: [],
-      meta: { nC, nM, N, nRep, rate: r, pm, ppy, firstOpLabel: periods[nC].label, maturityLabel: periods[nM - 1].label },
+      meta: { nC, nM, N, nRep, rate: r, pm, ppy, scenario: deal.scenario || 'base', scenarioLabel: SCENARIOS[deal.scenario || 'base'].label,
+        firstOpLabel: periods[nC].label, maturityLabel: periods[nM - 1].label },
       periods,
       series: {
-        capex, draw, idc, commit, upfront, equityIn, index,
-        energy, revenue, opex, ebitda, cfadsPre, depreciation, taxable, lossUsed, lossBal, tax, cfadsPost,
+        capex, draw, idc, commit, upfront, equityIn, index, hedgeShare, rate, baseRate,
+        energy, revenue, opex, ebitda, agency, cfadsPre, sculptCfads, energyP50: baseOps.energy, opexBase: baseOps.opex, cfadsP99: cfadsP99 || z(), depreciation, taxable, lossUsed, lossBal, tax, cfadsPost,
         debtOpen, interest, principal, debtService, debtClose,
         dscrPre, dscrPost, hDscr, llcrPre, llcrPost,
         dsraTarget, dsraFund, dsraTopUp, dsraRelease, dsraDraw, dsraBal,
+        mraPlan, mraSpend, mraFund, mraFromCash, mraBal,
         cashAfterDs, trapped, trapBal, distributions, equityFlows, lockup, defaultFlag, shortfall,
       },
       summary: {
-        amount, effGearing, sizingBinding,
+        amount, effGearing, sizingBinding, gearingCap, capacityP99,
         capex: C.capex_total, idc: totalIdc, commitmentFees: totalCommit, upfrontFee: totalUpfront,
         projectCost, equityAtFc: totalEquity, dsraAtCod: dsraFund[nC - 1],
         sculptDscr, capacityAtTarget, headroom: capacityAtTarget / amount - 1,
@@ -298,6 +391,7 @@
         firstTaxLabel: firstTax >= 0 ? periods[firstTax].label : null,
         lockupPeriods: lockup.filter(Boolean).length, defaultPeriods: defaultFlag.filter(Boolean).length,
         equityIrr, totalDistributions: sum(distributions),
+        maintenance: sum(mraSpend), maintenanceFromCash: sum(mraFromCash), agencyFees: sum(agency),
         firstOpYear: {
           energy: year1(energy), revenue: year1(revenue), opex: year1(opex), ebitda: year1(ebitda),
           margin: year1(ebitda) / year1(revenue),
@@ -308,7 +402,7 @@
     };
   }
 
-  const api = { run, validate, irr, version: '1.0.0' };
+  const api = { run, validate, irr, scheduleOf, SCENARIOS, version: '2.0.0' };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.PFEngine = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -20,8 +20,9 @@ const cell = (ws, ref) => {
 };
 const rowOf = (ws, label) => [...ws.rows.entries()].find(([, cells]) => cells.get(1) && cells.get(1).value === label)[0];
 
-test('workbook has the five sheets in order', () => {
-  assert.deepStrictEqual(wb.sheets.map((s) => s.name), ['Cover', 'Inputs', 'Calc', 'Outputs', 'Checks']);
+test('workbook has the fifteen sheets of a project finance model, in order', () => {
+  assert.deepStrictEqual(wb.sheets.map((s) => s.name), ['Cover', 'Dashboard', 'Inputs', 'Scenarios', 'Timing', 'Operations', 'Construction', 'Debt', 'Tax',
+    'Reserves', 'Waterfall', 'Ratios', 'Returns', 'Annual', 'Checks']);
 });
 
 test('every input is a named cell holding the deal value', () => {
@@ -37,10 +38,10 @@ test('every input is a named cell holding the deal value', () => {
   assert.strictEqual(Number(b) - Number(a) + 1, 4, 'one row per construction semester');
 });
 
-test('Calc is all formulas, with the engine values cached', () => {
-  const calc = sheet('Calc');
+test('calculation sheets are all formulas, with the engine values cached', () => {
   const N = res.meta.N;
-  const check = (label, key) => {
+  const check = (label, key, name) => {
+    const calc = sheet(name);
     const r = rowOf(calc, label);
     for (let t = 1; t <= N; t++) {
       const c = calc.rows.get(r).get(3 + t);
@@ -49,13 +50,16 @@ test('Calc is all formulas, with the engine values cached', () => {
       if (typeof v === 'number') assert.ok(Math.abs(c.value.v - v) < 1e-9, label + ' period ' + t);
     }
   };
-  check('Revenue', 'revenue');
-  check('Debt service', 'debtService');
-  check('Cash tax', 'tax');
-  check('DSCR post-tax', 'dscrPost');
-  check('Closing balance', 'debtClose');
-  check('DSRA closing balance', 'dsraBal');
-  check('Distributions to equity', 'distributions');
+  check('Revenue', 'revenue', 'Operations');
+  check('Agency fees', 'agency', 'Operations');
+  check('Debt service', 'debtService', 'Debt');
+  check('Cash tax', 'tax', 'Tax');
+  check('DSCR post-tax', 'dscrPost', 'Ratios');
+  check('Closing balance', 'debtClose', 'Debt');
+  check('DSRA closing balance', 'dsraBal', 'Reserves');
+  check('MRA closing balance', 'mraBal', 'Reserves');
+  check('5. Distributions to equity', 'distributions', 'Waterfall');
+  check('Equity cash flow', 'equityFlows', 'Returns');
 });
 
 test('formulas only use functions every spreadsheet app supports', () => {
@@ -74,7 +78,7 @@ test('the .xlsx file is a valid zip with the expected parts', () => {
   const bytes = exportXlsx(deal, res);
   assert.strictEqual(String.fromCharCode(bytes[0], bytes[1]), 'PK');
   const text = Buffer.from(bytes).toString('latin1');
-  for (const part of ['[Content_Types].xml', 'xl/workbook.xml', 'xl/styles.xml', 'xl/worksheets/sheet3.xml']) assert.ok(text.includes(part), part);
+  for (const part of ['[Content_Types].xml', 'xl/workbook.xml', 'xl/styles.xml', 'xl/worksheets/sheet15.xml']) assert.ok(text.includes(part), part);
   assert.ok(text.includes('fullCalcOnLoad="1"'), 'Excel must recalculate on open');
   assert.strictEqual(crc32(new TextEncoder().encode('123456789')), 0xcbf43926); // standard CRC-32 check value
 });
@@ -94,9 +98,33 @@ test('a quarterly export has one column per quarter and quarterly formulas', () 
   const names = new Map(qwb.names);
   const inputs = qwb.sheets.find((s) => s.name === 'Inputs');
   assert.strictEqual(cell(inputs, names.get('months_per_period').split('!')[1].replace(/\$/g, '')).value, 3);
-  const calc = qwb.sheets.find((s) => s.name === 'Calc');
-  const r = rowOf(calc, 'Revenue');
-  assert.strictEqual(calc.rows.get(r).size, 3 + qr.meta.N, 'label, unit, total and one cell per quarter');
-  const h = calc.rows.get(rowOf(calc, '12-month historic DSCR (tested)')).get(3 + 20).value.f;
+  const ops = qwb.sheets.find((s) => s.name === 'Operations');
+  const r = rowOf(ops, 'Revenue');
+  assert.strictEqual(ops.rows.get(r).size, 3 + qr.meta.N, 'label, unit, total and one cell per quarter');
+  const ratios = qwb.sheets.find((s) => s.name === 'Ratios');
+  const h = ratios.rows.get(rowOf(ratios, '12-month historic DSCR (tested)')).get(3 + 20).value.f;
   assert.strictEqual((h.match(/\+/g) || []).length, 6, '4 quarters of CFADS and of debt service');
+});
+
+test('the scenario switch and the sizing constraints are live formulas', () => {
+  const names = new Map(wb.names);
+  for (const n of ['scenario', 'sc_no', 'sc_energy', 'capacity_p99', 'gearing_cap', 'capacity_at_target', 'mra_target', 'swap_rate', 'cash_multiple'])
+    assert.ok(names.has(n), 'missing name ' + n);
+  const debt = sheet('Debt');
+  const f = debt.rows.get(rowOf(debt, 'Senior debt amount')).get(3).value.f;
+  assert.ok(/MIN\(gearing_cap,capacity_at_target,capacity_p99\)/.test(f), f);
+  // A downside export carries the downside results and still reconciles.
+  const dn = Object.assign({}, deal, { scenario: 'downside' });
+  const dr = engine.run(dn);
+  const dwb = buildWorkbook(dn, dr);
+  const inputs = dwb.sheets.find((s) => s.name === 'Inputs');
+  assert.strictEqual(cell(inputs, new Map(dwb.names).get('scenario').split('!')[1].replace(/\$/g, '')).value, 'Downside');
+  assert.ok(dr.summary.minDscrPost < res.summary.minDscrPost, 'the downside is worse than the base case');
+  assert.strictEqual(dr.summary.amount, res.summary.amount, 'same debt in every case');
+});
+
+test('the annual sheet has one column per financial year', () => {
+  const a = sheet('Annual');
+  const years = new Set(res.periods.map((p) => p.fy));
+  assert.strictEqual(a.rows.get(4).size, 2 + years.size);
 });

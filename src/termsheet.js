@@ -73,20 +73,24 @@
     L.push('| Margin | ' + pct(D.margin) + ' p.a. during construction and operations. |');
     L.push('| Base case BBSW | ' + pct(D.base_rate) + ' p.a. (lenders\' planning assumption). |');
     L.push('| Upfront Fee | ' + pct(D.upfront_fee) + ' of the Senior Facility (AUD ' + nf(s.upfrontFee) + 'k), payable on financial close. |');
-    L.push('| Commitment Fee | ' + pct(D.commitment_fee_pct_margin, 0) + ' of the Margin (' + pct(D.margin * D.commitment_fee_pct_margin) + ' p.a.) on undrawn commitments, payable semi-annually in arrears during the Availability Period. |', '');
+    L.push('| Commitment Fee | ' + pct(D.commitment_fee_pct_margin, 0) + ' of the Margin (' + pct(D.margin * D.commitment_fee_pct_margin) + ' p.a.) on undrawn commitments, payable semi-annually in arrears during the Availability Period. |');
+    L.push('| Agency Fee | AUD ' + D.agency_fee + 'k p.a. in total (Facility Agent and Security Trustee), payable while the Senior Facility is outstanding. |');
+    L.push('| Interest Rate Hedging | The Borrower must hedge ' + pct(D.hedge_ratio, 0) + ' of projected debt outstanding for ' + D.hedge_years + ' years from financial close, through interest rate swaps with the Lenders. Base case swap rate of ' + pct(D.swap_rate) + ' p.a. |', '');
 
     L.push('## 4. Repayment, accounts and financial covenants', '');
     L.push('| Term | Description |', '| --- | --- |');
     L.push('| Repayment | ' + (res.meta.nRep) + ' semi-annual instalments from ' + firstRepay + ' to ' + longDate(T.debt_maturity) + ', sculpted to the P50 CFADS profile of the Agreed Base Case. |');
     L.push('| Target DSCR (sculpting) | ' + D.target_dscr.toFixed(2) + 'x on P50 CFADS. |');
-    L.push('| Sizing | Senior debt is the lowest of: (i) a maximum of ' + pct(D.gearing, 0) + ' of construction capex; (ii) the amount sculpted at ' + D.target_dscr.toFixed(2) + 'x on pre-tax P50 CFADS; (iii) the amount for which the minimum post-tax DSCR of the Agreed Base Case is at least ' + (cov.lockup_dscr + 0.05).toFixed(2) + 'x. Binding constraint: ' + M.sizing_binding + '. |');
-    L.push('| Debt Service Reserve Account | Balance equal to the next 6 months of scheduled senior debt service, funded in cash by the Sponsor at COD. |', '');
+    L.push('| Sizing | Senior debt is the lowest of: (i) a maximum of ' + pct(D.gearing, 0) + ' of construction capex; (ii) the amount sculpted at ' + D.target_dscr.toFixed(2) + 'x on pre-tax P50 CFADS; (iii) the amount sculpted at 1.00x on one-year P99 CFADS; (iv) the amount for which the minimum post-tax DSCR of the Agreed Base Case is at least ' + (cov.lockup_dscr + 0.05).toFixed(2) + 'x. Binding constraint: ' + M.sizing_binding + '. |');
+    L.push('| Debt Service Reserve Account | Balance equal to the next 6 months of scheduled senior debt service, funded in cash by the Sponsor at COD. |');
+    const MR = deal.maintenance;
+    L.push('| Maintenance Reserve Account | Funded from cash flow over the ' + MR.funding_years + ' years before the inverter replacement (AUD ' + (MR.cost_real / 1000).toFixed(2) + 'm real, spent in operating years ' + MR.from_year + ' to ' + MR.to_year + '). |', '');
     L.push('**Financial covenants (tested semi-annually from the second calculation date after COD)**', '');
     L.push('| Ratio | Calculation | Level |', '| --- | --- | --- |');
     L.push('| Historic DSCR | CFADS over the last 12 months ÷ senior debt service over the same period | Lock-up < ' + cov.lockup_dscr.toFixed(2) + 'x; Event of Default < ' + cov.default_dscr.toFixed(2) + 'x |');
     L.push('| Maximum gearing | Senior debt ÷ construction capex at financial close | ' + pct(D.gearing, 0) + ' |', '');
     L.push('**Cash flow waterfall (operations)**', '');
-    L.push('1. Operating costs and taxes', '2. Senior interest', '3. Senior principal', '4. Top-up of the Debt Service Reserve Account', '5. Distribution Account, subject to the Distribution Conditions', '');
+    L.push('1. Operating costs and taxes', '2. Agency fees', '3. Senior interest (net of swap payments)', '4. Senior principal', '5. Top-up of the Debt Service Reserve Account', '6. Funding of the Maintenance Reserve Account', '7. Distribution Account, subject to the Distribution Conditions', '');
     L.push('**Distribution Conditions:** no Default outstanding; historic DSCR at or above ' + cov.lockup_dscr.toFixed(2) + 'x; DSRA fully funded.', '');
 
     L.push('## 5. Security and conditions', '');
@@ -101,6 +105,7 @@
     L.push('| Capacity | ' + O.capacity_mw + ' MWac |  |');
     L.push('| P50 capacity factor | ' + pct(O.capacity_factor_p50, 1) + ' (' + M.technology + ') |  |');
     L.push('| Availability | ' + pct(O.availability, 1) + ' |  |');
+    L.push('| Energy yield (one-year) | P90 ' + pct(O.p90_factor, 1) + ' / P99 ' + pct(O.p99_factor, 1) + ' of P50 energy |  |');
     L.push('| Degradation | ' + pct(O.degradation) + ' p.a. from operating year 2 |  |');
     L.push('| Net energy |  | ' + nf(fy.energy) + ' MWh |');
     L.push('| PPA price | AUD ' + O.ppa_price_fc.toFixed(2) + '/MWh at FC' + (indexed ? ', 100% CPI' : ', flat') + ' | AUD ' + price1.toFixed(2) + '/MWh |');
